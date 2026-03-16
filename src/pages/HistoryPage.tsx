@@ -10,6 +10,7 @@ import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -17,14 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { formatTND, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
 import { Search, Trash2, X } from 'lucide-react'
@@ -59,7 +52,6 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
 
-  // Filters
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -117,12 +109,11 @@ export default function HistoryPage() {
   }
 
   const hasActiveFilters = search || categoryFilter !== 'all' || typeFilter !== 'all' || startDate || endDate
-
   const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold">Historique</h2>
           <p className="text-muted-foreground text-sm mt-1">
@@ -130,10 +121,16 @@ export default function HistoryPage() {
             {hasActiveFilters ? ' (filtré)' : ''}
           </p>
         </div>
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+            <X className="h-4 w-4" />
+            Réinitialiser
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+      <div className="space-y-3 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -143,66 +140,52 @@ export default function HistoryPage() {
             className="pl-9"
           />
         </div>
-
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Catégorie" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes les catégories</SelectItem>
-            {CATEGORIES.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tout</SelectItem>
-            <SelectItem value="expense">Dépenses</SelectItem>
-            <SelectItem value="revenue">Recettes</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          placeholder="Date début"
-        />
-
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-3">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes</SelectItem>
+              {CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tout</SelectItem>
+              <SelectItem value="expense">Dépenses</SelectItem>
+              <SelectItem value="revenue">Recettes</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
           <Input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            placeholder="Date fin"
           />
-          {hasActiveFilters && (
-            <Button variant="ghost" size="icon" onClick={clearFilters} title="Réinitialiser">
-              <X className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Summary bar */}
+      {/* Summary */}
       {transactions.length > 0 && (
-        <div className="flex gap-6 mb-4 text-sm">
-          <span className="text-muted-foreground">
-            Total:{' '}
-            <span className={`font-semibold ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalAmount >= 0 ? '+' : ''}{formatTND(totalAmount)}
-            </span>
+        <div className="mb-4 text-sm text-muted-foreground">
+          Total:{' '}
+          <span className={`font-semibold ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {totalAmount >= 0 ? '+' : ''}{formatTND(totalAmount)}
           </span>
         </div>
       )}
 
+      {/* Transaction List — card-based for mobile, works on all screens */}
       {loading ? (
         <p className="text-muted-foreground py-8 text-center">Chargement...</p>
       ) : transactions.length === 0 ? (
@@ -215,63 +198,65 @@ export default function HistoryPage() {
           )}
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Catégorie</TableHead>
-              <TableHead>Détail</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right">Montant</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((tx) => {
-              const config = categoryConfig[tx.category]
-              const entityName = getEntityName(tx)
-              return (
-                <TableRow key={tx.id}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatDate(tx.date)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`${config.color} ${config.textColor} border`}
-                    >
-                      {tx.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {entityName || '—'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                    {tx.description || '—'}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-medium whitespace-nowrap ${
-                      tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {tx.amount >= 0 ? '+' : ''}
-                    {formatTND(tx.amount)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteTarget(tx)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+        <div className="space-y-3">
+          {transactions.map((tx) => {
+            const config = categoryConfig[tx.category]
+            const Icon = config.icon
+            const entityName = getEntityName(tx)
+            return (
+              <Card key={tx.id}>
+                <CardContent className="py-3 px-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`p-2 rounded-md shrink-0 ${config.color}`}>
+                        <Icon className={`h-4 w-4 ${config.textColor}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {entityName || tx.description || tx.category}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(tx.date)}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${config.color} ${config.textColor} border`}
+                          >
+                            {tx.category}
+                          </Badge>
+                        </div>
+                        {entityName && tx.description && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {tx.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-sm font-semibold ${
+                          tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {tx.amount >= 0 ? '+' : ''}
+                        {formatTND(tx.amount)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(tx)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
       )}
 
       <DeleteConfirmDialog

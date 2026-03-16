@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createTransaction, CATEGORIES, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import SalairesForm from '@/features/transactions/forms/SalairesForm'
@@ -12,9 +12,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { ArrowLeft } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 
 export default function AddTransactionPage() {
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+  const [searchParams] = useSearchParams()
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(() => {
+    const cat = searchParams.get('category')
+    if (cat && CATEGORIES.includes(cat as Category)) {
+      return cat as Category
+    }
+    return null
+  })
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
 
   const handleSubmit = async (

@@ -12,14 +12,7 @@ import EmployeeFormDialog from '@/features/employees/EmployeeFormDialog'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
 import { formatTND } from '@/lib/format'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
@@ -67,7 +60,7 @@ export default function EmployeesPage() {
       }
       await fetchEmployees()
     } catch {
-      toast.error('Erreur lors de l\'enregistrement')
+      toast.error("Erreur lors de l'enregistrement")
     }
   }
 
@@ -97,9 +90,7 @@ export default function EmployeesPage() {
     }
   }
 
-  if (loading) {
-    return <p className="text-muted-foreground">Chargement...</p>
-  }
+  if (loading) return <p className="text-muted-foreground">Chargement...</p>
 
   return (
     <div>
@@ -110,74 +101,72 @@ export default function EmployeesPage() {
             Gérez les profils des employés et leurs salaires de base
           </p>
         </div>
-        <Button onClick={handleAdd} className="gap-2">
+        <Button onClick={handleAdd} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
-          Ajouter un employé
+          <span className="hidden sm:inline">Ajouter un employé</span>
+          <span className="sm:hidden">Ajouter</span>
         </Button>
       </div>
 
       {employees.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p>Aucun employé pour le moment.</p>
-          <p className="text-sm mt-1">Cliquez sur "Ajouter un employé" pour commencer.</p>
+          <p className="text-sm mt-1">Cliquez sur "Ajouter" pour commencer.</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Rôle</TableHead>
-              <TableHead className="text-right">Salaire de base</TableHead>
-              <TableHead className="text-center">Jour de paie</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {employees.map((employee) => (
-              <TableRow
-                key={employee.id}
-                className={!employee.is_active ? 'opacity-50' : ''}
-              >
-                <TableCell className="font-medium">{employee.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {employee.role || '—'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatTND(employee.base_salary)}
-                </TableCell>
-                <TableCell className="text-center">{employee.pay_day}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={employee.is_active ? 'default' : 'secondary'}>
-                    {employee.is_active ? 'Actif' : 'Inactif'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(employee)}>
-                      <Pencil className="h-4 w-4" />
+        <div className="space-y-3">
+          {employees.map((employee) => (
+            <Card
+              key={employee.id}
+              className={!employee.is_active ? 'opacity-50' : ''}
+            >
+              <CardContent className="py-4 px-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium">{employee.name}</p>
+                      <Badge variant={employee.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                        {employee.is_active ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {employee.role && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{employee.role}</p>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
+                      <span className="text-muted-foreground">
+                        Salaire: <span className="font-medium text-foreground">{formatTND(employee.base_salary)}</span>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Jour de paie: <span className="font-medium text-foreground">{employee.pay_day}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(employee)}>
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => handleToggleActive(employee)}
                     >
-                      {employee.is_active ? 'Désactiver' : 'Réactiver'}
+                      <span className="text-xs">{employee.is_active ? 'Off' : 'On'}</span>
                     </Button>
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => setDeleteTarget(employee)}
-                      className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       <EmployeeFormDialog
@@ -186,12 +175,11 @@ export default function EmployeesPage() {
         employee={editingEmployee}
         onSubmit={handleSubmit}
       />
-
       <DeleteConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cet employé ?"
-        description={`Êtes-vous sûr de vouloir supprimer "${deleteTarget?.name}" ? Cette action est irréversible. Si cet employé est lié à des transactions, la suppression échouera.`}
+        description={`Êtes-vous sûr de vouloir supprimer "${deleteTarget?.name}" ? Cette action est irréversible.`}
         onConfirm={handleDelete}
       />
     </div>
