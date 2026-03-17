@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useRole } from '@/lib/RoleProvider'
+import { Navigate } from 'react-router-dom'
 import {
   getSubcategories,
   createSubcategory,
@@ -22,6 +24,9 @@ const GROUPS: { key: 'Transport' | 'Packaging'; label: string }[] = [
 ]
 
 export default function SubcategoriesPage() {
+  const { isAdmin } = useRole()
+    if (!isAdmin) return <Navigate to="/" replace />
+
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)

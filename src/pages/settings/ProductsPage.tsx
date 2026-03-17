@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useRole } from '@/lib/RoleProvider'
+import { Navigate } from 'react-router-dom'
 import {
   getProducts,
   createProduct,
@@ -17,6 +19,9 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function ProductsPage() {
+  const { isAdmin } = useRole()
+    if (!isAdmin) return <Navigate to="/" replace />
+
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
