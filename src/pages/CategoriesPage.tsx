@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useRole } from '@/lib/RoleProvider'
 import { CATEGORIES, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import { getEmployees, type Employee } from '@/features/employees/api'
@@ -63,6 +64,7 @@ function getCurrentMonthRange() {
 
 export default function CategoriesPage() {
   const navigate = useNavigate()
+  const { isAdmin } = useRole()
   const [summaries, setSummaries] = useState<CategorySummary[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [recentTx, setRecentTx] = useState<TransactionRow[]>([])
@@ -419,13 +421,15 @@ export default function CategoriesPage() {
           </div>
 
           {/* Quick action */}
-          <Button
-            onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
-            className="gap-2 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Ajouter une transaction {config.label}
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
+              className="gap-2 w-full sm:w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter une transaction {config.label}
+            </Button>
+          )}
 
           {/* Entity-specific content */}
           {renderEntities()}

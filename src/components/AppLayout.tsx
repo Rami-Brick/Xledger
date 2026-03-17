@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useRole } from '@/lib/RoleProvider'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -49,10 +50,12 @@ function SidebarContent({
   onNavigate,
   signOut,
   email,
+  isAdmin,
 }: {
   onNavigate?: () => void
   signOut: () => void
   email?: string
+  isAdmin: boolean
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -68,24 +71,28 @@ function SidebarContent({
 
       {/* Main Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`
-            }
-          >
-            <item.icon className="h-4 w-4" />
-            {item.label}
-          </NavLink>
-        ))}
+        {navItems.map((item) => {
+          // Hide "Ajouter" for viewers
+          if (item.to === '/ajouter' && !isAdmin) return null
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </NavLink>
+          )
+        })}
 
         <Separator className="my-4" />
 
@@ -145,13 +152,14 @@ function SidebarContent({
 
 export default function AppLayout() {
   const { user, signOut } = useAuth()
+  const { isAdmin } = useRole()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="min-h-screen flex">
       {/* Desktop Sidebar — hidden on mobile */}
       <aside className="hidden md:flex w-64 border-r bg-muted/30 flex-col">
-        <SidebarContent signOut={signOut} email={user?.email} />
+        <SidebarContent signOut={signOut} email={user?.email} isAdmin={isAdmin} />
       </aside>
 
       {/* Mobile Header + Sheet — visible on mobile only */}
@@ -169,6 +177,7 @@ export default function AppLayout() {
                 onNavigate={() => setMobileOpen(false)}
                 signOut={signOut}
                 email={user?.email}
+                isAdmin={isAdmin}
               />
             </SheetContent>
           </Sheet>
