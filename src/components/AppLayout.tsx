@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/ajouter', icon: PlusCircle, label: 'Ajouter' },
   { to: '/historique', icon: List, label: 'Historique' },
   { to: '/categories', icon: Grid3X3, label: 'Catégories' },
@@ -78,7 +78,7 @@ function SidebarContent({
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
+              end
               onClick={onNavigate}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${

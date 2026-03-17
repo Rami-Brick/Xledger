@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider'
-import { RoleProvider } from '@/lib/RoleProvider'
+import { RoleProvider, useRole  } from '@/lib/RoleProvider'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AppLayout from '@/components/AppLayout'
@@ -33,6 +33,20 @@ function LoginRoute() {
   return <LoginPage />
 }
 
+function HomeRedirect() {
+    const { isAdmin, loading } = useRole()
+
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      )
+    }
+
+    return isAdmin ? <AddTransactionPage /> : <DashboardPage />
+  }
+
 function App() {
   return (
     <BrowserRouter>
@@ -47,7 +61,8 @@ function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<DashboardPage />} />
+              <Route index element={<HomeRedirect />} />
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="ajouter" element={<AddTransactionPage />} />
               <Route path="historique" element={<HistoryPage />} />
               <Route path="categories" element={<CategoriesPage />} />
