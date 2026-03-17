@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from '@/features/auth/AuthProvider'
+import { AuthProvider, useAuth } from '@/features/auth/AuthProvider'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AppLayout from '@/components/AppLayout'
@@ -7,8 +7,8 @@ import LoginPage from '@/features/auth/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import AddTransactionPage from '@/pages/AddTransactionPage'
 import HistoryPage from '@/pages/HistoryPage'
-import SalariesPage from '@/pages/SalariesPage'
 import CategoriesPage from '@/pages/CategoriesPage'
+import SalariesPage from '@/pages/SalariesPage'
 import ReportsPage from '@/pages/ReportsPage'
 import EmployeesPage from '@/pages/settings/EmployeesPage'
 import FixedChargesPage from '@/pages/settings/FixedChargesPage'
@@ -17,12 +17,30 @@ import SubcategoriesPage from '@/pages/settings/SubcategoriesPage'
 import SubscriptionsPage from '@/pages/settings/SubscriptionsPage'
 import LoanContactsPage from '@/pages/settings/LoanContactsPage'
 
+function LoginRoute() {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Chargement...</p>
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
+
+  return <LoginPage />
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginRoute />} />
           <Route
             element={
               <ProtectedRoute>
@@ -43,6 +61,7 @@ function App() {
             <Route path="parametres/abonnements" element={<SubscriptionsPage />} />
             <Route path="parametres/contacts-prets" element={<LoanContactsPage />} />
           </Route>
+          {/* Catch-all: redirect any unknown route */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <Toaster position="top-right" richColors />

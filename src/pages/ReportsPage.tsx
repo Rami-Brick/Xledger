@@ -73,6 +73,11 @@ function formatMonthShort(dateStr: string): string {
   return d.toLocaleDateString('fr-TN', { month: 'short', year: '2-digit' })
 }
 
+function formatCompact(amount: number): string {
+  if (amount >= 1000) return `${(amount / 1000).toFixed(1)}k`
+  return amount.toFixed(0)
+}
+
 function downloadCSV(data: ExportTransaction[], filename: string) {
   const headers = ['Date', 'Catégorie', 'Détail', 'Description', 'Montant (TND)']
   const rows = data.map((t) => [
@@ -175,13 +180,8 @@ export default function ReportsPage() {
         date: tx.date, category: tx.category, description: tx.description,
         amount: Number(tx.amount),
         entity:
-          tx.employees?.name ||
-          tx.fixed_charges?.name ||
-          tx.products?.name ||
-          tx.subcategories?.name ||
-          tx.subscriptions?.name ||
-          tx.loan_contacts?.name ||
-          '',
+          tx.employees?.name || tx.fixed_charges?.name || tx.products?.name ||
+          tx.subcategories?.name || tx.subscriptions?.name || tx.loan_contacts?.name || '',
       }))
       downloadCSV(exportData, `transactions_${startDate}_${endDate}.csv`)
       toast.success(`${exportData.length} transactions exportées`)
@@ -203,8 +203,8 @@ export default function ReportsPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold">Rapports</h2>
           <p className="text-muted-foreground text-sm mt-1">Analyses financières</p>
@@ -217,7 +217,7 @@ export default function ReportsPage() {
 
       {/* Date Range */}
       <Card>
-        <CardContent className="pt-5 pb-4">
+        <CardContent className="pt-4 pb-3">
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -249,13 +249,13 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Tabs — scrollable */}
-      <div className="flex gap-1 border-b overflow-x-auto">
+      {/* Tabs */}
+      <div className="flex gap-1 border-b overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -275,42 +275,48 @@ export default function ReportsPage() {
             <div className="space-y-4">
               {chartData.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="text-base">Évolution mensuelle</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="month" fontSize={11} tickLine={false} />
-                        <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                        <Tooltip formatter={(value) => formatTND(Number(value))} />
-                        <Bar dataKey="Recettes" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="Dépenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm sm:text-base">Évolution mensuelle</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-2 sm:px-6">
+                    <div className="w-full overflow-x-auto">
+                      <div className="min-w-[300px]">
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={chartData} margin={{ left: -10, right: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="month" fontSize={10} tickLine={false} />
+                            <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCompact} width={40} />
+                            <Tooltip formatter={(value) => formatTND(Number(value))} />
+                            <Bar dataKey="Recettes" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="Dépenses" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {monthlySummary.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
                 ) : (
                   [...monthlySummary].reverse().map((row) => (
                     <Card key={row.month}>
-                      <CardContent className="py-3 px-4">
+                      <CardContent className="py-3 px-3 sm:px-4">
                         <p className="font-medium text-sm mb-2">{formatMonthLabel(row.month)}</p>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <p className="text-muted-foreground">Recettes</p>
-                            <p className="font-semibold text-green-600">{formatTND(row.total_revenue)}</p>
+                        <div className="space-y-1.5 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
+                          <div className="flex items-center justify-between sm:block">
+                            <p className="text-xs text-muted-foreground">Recettes</p>
+                            <p className="font-semibold text-xs sm:text-sm text-green-600">{formatTND(row.total_revenue)}</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">Dépenses</p>
-                            <p className="font-semibold text-red-600">{formatTND(row.total_expenses)}</p>
+                          <div className="flex items-center justify-between sm:block">
+                            <p className="text-xs text-muted-foreground">Dépenses</p>
+                            <p className="font-semibold text-xs sm:text-sm text-red-600">{formatTND(row.total_expenses)}</p>
                           </div>
-                          <div>
-                            <p className="text-muted-foreground">Net</p>
-                            <p className={`font-semibold ${row.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className="flex items-center justify-between sm:block border-t pt-1.5 sm:border-0 sm:pt-0">
+                            <p className="text-xs text-muted-foreground">Net</p>
+                            <p className={`font-semibold text-xs sm:text-sm ${row.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {row.net >= 0 ? '+' : ''}{formatTND(row.net)}
                             </p>
                           </div>
@@ -328,17 +334,23 @@ export default function ReportsPage() {
             <div className="space-y-4">
               {catChartData.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="text-base">Dépenses par catégorie</CardTitle></CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={catChartData} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                        <XAxis type="number" fontSize={11} tickLine={false} />
-                        <YAxis type="category" dataKey="name" fontSize={11} tickLine={false} width={90} />
-                        <Tooltip formatter={(value) => formatTND(Number(value))} />
-                        <Bar dataKey="total" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm sm:text-base">Dépenses par catégorie</CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-2 sm:px-6">
+                    <div className="w-full overflow-x-auto">
+                      <div className="min-w-[280px]">
+                        <ResponsiveContainer width="100%" height={Math.max(catChartData.length * 40, 150)}>
+                          <BarChart data={catChartData} layout="vertical" margin={{ left: 0, right: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" fontSize={10} tickLine={false} tickFormatter={formatCompact} />
+                            <YAxis type="category" dataKey="name" fontSize={10} tickLine={false} width={80} />
+                            <Tooltip formatter={(value) => formatTND(Number(value))} />
+                            <Bar dataKey="total" fill="#6366f1" radius={[0, 3, 3, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -351,23 +363,23 @@ export default function ReportsPage() {
                     const config = categoryConfig[row.category as Category]
                     return (
                       <Card key={row.category}>
-                        <CardContent className="py-3 px-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className={config ? `${config.color} ${config.textColor} border text-[10px]` : ''}>
+                        <CardContent className="py-3 px-3 sm:px-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Badge variant="outline" className={`shrink-0 ${config ? `${config.color} ${config.textColor} border text-[10px]` : ''}`}>
                                 {row.category}
                               </Badge>
-                              <span className="text-xs text-muted-foreground">{row.count} tx</span>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground">{row.count} tx</span>
                             </div>
-                            <span className="font-semibold text-sm text-red-600">{formatTND(row.total)}</span>
+                            <span className="font-semibold text-xs sm:text-sm text-red-600 shrink-0">{formatTND(row.total)}</span>
                           </div>
                         </CardContent>
                       </Card>
                     )
                   })}
                   <Card className="bg-muted/50">
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between font-semibold text-sm">
+                    <CardContent className="py-3 px-3 sm:px-4">
+                      <div className="flex items-center justify-between font-semibold text-xs sm:text-sm">
                         <span>Total ({categoryTotals.reduce((s, r) => s + r.count, 0)} tx)</span>
                         <span className="text-red-600">{formatTND(categoryTotals.reduce((s, r) => s + r.total, 0))}</span>
                       </div>
@@ -387,21 +399,21 @@ export default function ReportsPage() {
                 <>
                   {employeeTotals.map((row) => (
                     <Card key={row.name}>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{row.name}</p>
-                            <p className="text-xs text-muted-foreground">{row.count} paiement{row.count !== 1 ? 's' : ''}</p>
+                      <CardContent className="py-3 px-3 sm:px-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{row.name}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">{row.count} paiement{row.count !== 1 ? 's' : ''}</p>
                           </div>
-                          <span className="font-semibold text-sm">{formatTND(row.total_paid)}</span>
+                          <span className="font-semibold text-xs sm:text-sm shrink-0">{formatTND(row.total_paid)}</span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                   <Card className="bg-muted/50">
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between font-semibold text-sm">
-                        <span>Total ({employeeTotals.reduce((s, r) => s + r.count, 0)} paiements)</span>
+                    <CardContent className="py-3 px-3 sm:px-4">
+                      <div className="flex items-center justify-between font-semibold text-xs sm:text-sm">
+                        <span>Total ({employeeTotals.reduce((s, r) => s + r.count, 0)})</span>
                         <span>{formatTND(employeeTotals.reduce((s, r) => s + r.total_paid, 0))}</span>
                       </div>
                     </CardContent>
@@ -420,20 +432,20 @@ export default function ReportsPage() {
                 <>
                   {productTotals.map((row) => (
                     <Card key={row.name}>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{row.name}</p>
-                            <p className="text-xs text-muted-foreground">{row.count} transaction{row.count !== 1 ? 's' : ''}</p>
+                      <CardContent className="py-3 px-3 sm:px-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{row.name}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">{row.count} transaction{row.count !== 1 ? 's' : ''}</p>
                           </div>
-                          <span className="font-semibold text-sm text-red-600">{formatTND(row.total)}</span>
+                          <span className="font-semibold text-xs sm:text-sm text-red-600 shrink-0">{formatTND(row.total)}</span>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                   <Card className="bg-muted/50">
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between font-semibold text-sm">
+                    <CardContent className="py-3 px-3 sm:px-4">
+                      <div className="flex items-center justify-between font-semibold text-xs sm:text-sm">
                         <span>Total ({productTotals.reduce((s, r) => s + r.count, 0)} tx)</span>
                         <span className="text-red-600">{formatTND(productTotals.reduce((s, r) => s + r.total, 0))}</span>
                       </div>
