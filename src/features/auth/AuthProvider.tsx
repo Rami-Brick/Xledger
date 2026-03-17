@@ -19,19 +19,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session)
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+      })
+      .catch(() => {
+        setSession(null)
+        setUser(null)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('Auth state changed:', _event, session)
         setSession(session)
         setUser(session?.user ?? null)
+        setLoading(false)
       }
     )
 
@@ -39,12 +45,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error as Error | null }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      return { error: error as Error | null }
+    } catch (err) {
+      return { error: err as Error }
+    }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Force clear local state even if API call fails
+      setUser(null)
+      setSession(null)
+    }
   }
 
   return (

@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,15 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner'
 
 export default function LoginPage() {
-  const { user, signIn } = useAuth()
+  const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // If already logged in, redirect to dashboard
-  if (user) {
-    return <Navigate to="/" replace />
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
