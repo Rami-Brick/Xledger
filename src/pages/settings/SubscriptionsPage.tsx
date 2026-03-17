@@ -16,8 +16,8 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function SubscriptionsPage() {
-  const { isAdmin } = useRole()
-    if (!isAdmin) return <Navigate to="/" replace />
+  const { canManage } = useRole()
+    if (!canManage) return <Navigate to="/" replace />
 
   const [subs, setSubs] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +51,8 @@ export default function SubscriptionsPage() {
           <p className="text-muted-foreground text-sm mt-1">Gérez vos abonnements logiciels et services</p>
         </div>
         <Button onClick={() => { setEditing(null); setDialogOpen(true) }} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" /><span className="hidden sm:inline">Ajouter</span><span className="sm:hidden">+</span>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Ajouter</span>
         </Button>
       </div>
 

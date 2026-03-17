@@ -20,8 +20,8 @@ import { ArrowLeft } from 'lucide-react'
 export default function AddTransactionPage() {
   const [searchParams] = useSearchParams()
 
-  const { isAdmin } = useRole()
-  if (!isAdmin) {
+  const { canTransact  } = useRole()
+  if (!canTransact) {
     return <Navigate to="/" replace />
   }
 

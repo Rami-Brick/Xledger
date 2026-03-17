@@ -114,7 +114,7 @@ export default function EmployeeFormDialog({
                 type="number"
                 step="0.001"
                 min="0"
-                value={form.base_salary}
+                value={form.base_salary || ''}
                 onChange={(e) =>
                   setForm({ ...form, base_salary: parseFloat(e.target.value) || 0 })
                 }

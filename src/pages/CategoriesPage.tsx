@@ -64,7 +64,7 @@ function getCurrentMonthRange() {
 
 export default function CategoriesPage() {
   const navigate = useNavigate()
-  const { isAdmin } = useRole()
+  const { canTransact } = useRole()
   const [summaries, setSummaries] = useState<CategorySummary[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [recentTx, setRecentTx] = useState<TransactionRow[]>([])
@@ -421,7 +421,7 @@ export default function CategoriesPage() {
           </div>
 
           {/* Quick action */}
-          {isAdmin && (
+          {canTransact  && (
             <Button
               onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
               className="gap-2 w-full sm:w-auto"

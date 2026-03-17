@@ -85,7 +85,7 @@ export default function FixedChargeFormDialog({
               type="number"
               step="0.001"
               min="0"
-              value={form.default_amount}
+              value={form.default_amount || ''}
               onChange={(e) =>
                 setForm({ ...form, default_amount: parseFloat(e.target.value) || 0 })
               }

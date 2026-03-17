@@ -56,6 +56,7 @@ export default function HistoryPage() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
@@ -118,37 +119,50 @@ export default function HistoryPage() {
   const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0)
 
   return (
-    <div>
+    <div className="w-full min-w-0">
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold">Historique</h2>
-          <p className="text-muted-foreground text-sm mt-1">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold">Historique</h2>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
             {hasActiveFilters ? ' (filtré)' : ''}
           </p>
         </div>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
-            <X className="h-4 w-4" />
-            Réinitialiser
+        <div className="flex items-center gap-2 shrink-0">
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-xs">
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Réinitialiser</span>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className="text-xs sm:hidden"
+          >
+            <Search className="h-3.5 w-3.5 mr-1" />
+            Filtres
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="space-y-3 mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Rechercher..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
+      {/* Search — always visible */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Rechercher..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Advanced filters — collapsible on mobile, always visible on desktop */}
+      <div className={`space-y-3 mb-4 ${showFilters ? 'block' : 'hidden'} sm:block`}>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs sm:text-sm">
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
@@ -159,7 +173,7 @@ export default function HistoryPage() {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger>
+            <SelectTrigger className="text-xs sm:text-sm">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -172,18 +186,20 @@ export default function HistoryPage() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            className="text-xs sm:text-sm"
           />
           <Input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            className="text-xs sm:text-sm"
           />
         </div>
       </div>
 
       {/* Summary */}
       {transactions.length > 0 && (
-        <div className="mb-4 text-sm text-muted-foreground">
+        <div className="mb-3 text-xs sm:text-sm text-muted-foreground">
           Total:{' '}
           <span className={`font-semibold ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {totalAmount >= 0 ? '+' : ''}{formatTND(totalAmount)}
@@ -191,7 +207,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {/* Transaction List — card-based for mobile, works on all screens */}
+      {/* Transaction List */}
       {loading ? (
         <p className="text-muted-foreground py-8 text-center">Chargement...</p>
       ) : transactions.length === 0 ? (
@@ -204,60 +220,57 @@ export default function HistoryPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {transactions.map((tx) => {
             const config = categoryConfig[tx.category]
             const Icon = config.icon
             const entityName = getEntityName(tx)
             return (
               <Card key={tx.id}>
-                <CardContent className="py-3 px-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className={`p-2 rounded-md shrink-0 ${config.color}`}>
-                        <Icon className={`h-4 w-4 ${config.textColor}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
+                <CardContent className="py-2.5 px-3 sm:py-3 sm:px-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Icon */}
+                    <div className={`p-1.5 sm:p-2 rounded-md shrink-0 ${config.color}`}>
+                      <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${config.textColor}`} />
+                    </div>
+
+                    {/* Content — takes remaining space */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs sm:text-sm font-medium truncate">
                           {entityName || tx.description || tx.category}
                         </p>
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                          <span className="text-xs text-muted-foreground">
+                        <span
+                          className={`text-xs sm:text-sm font-semibold shrink-0 ${
+                            tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
+                          {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
                             {formatDate(tx.date)}
                           </span>
                           <Badge
                             variant="outline"
-                            className={`text-[10px] px-1.5 py-0 ${config.color} ${config.textColor} border`}
+                            className={`text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0 leading-tight ${config.color} ${config.textColor} border`}
                           >
                             {tx.category}
                           </Badge>
                         </div>
-                        {entityName && tx.description && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {tx.description}
-                          </p>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:text-destructive shrink-0"
+                            onClick={() => setDeleteTarget(tx)}
+                          >
+                            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                          </Button>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`text-sm font-semibold ${
-                          tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {tx.amount >= 0 ? '+' : ''}
-                        {formatTND(tx.amount)}
-                      </span>
-                      {isAdmin && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(tx)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
