@@ -26,7 +26,7 @@ interface LoanBalance {
 export default function LoanContactsPage() {
   const { isAdmin } = useRole()
     if (!isAdmin) return <Navigate to="/" replace />
-    
+
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [loading, setLoading] = useState(true)
@@ -64,9 +64,10 @@ export default function LoanContactsPage() {
           <h2 className="text-2xl font-bold">Contacts Prêts</h2>
           <p className="text-muted-foreground text-sm mt-1">Gérez les personnes à qui la société prête de l'argent</p>
         </div>
-        <Button onClick={() => { setEditing(null); setDialogOpen(true) }} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" /><span className="hidden sm:inline">Ajouter</span><span className="sm:hidden">+</span>
-        </Button>
+          <Button onClick={() => { setEditing(null); setDialogOpen(true) }} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Ajouter</span>
+          </Button>
       </div>
 
       {contacts.length === 0 ? (
