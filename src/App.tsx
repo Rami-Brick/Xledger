@@ -13,6 +13,8 @@ import EmployeesPage from '@/pages/settings/EmployeesPage'
 import FixedChargesPage from '@/pages/settings/FixedChargesPage'
 import ProductsPage from '@/pages/settings/ProductsPage'
 import SubcategoriesPage from '@/pages/settings/SubcategoriesPage'
+import SubscriptionsPage from '@/pages/settings/SubscriptionsPage'
+import LoanContactsPage from '@/pages/settings/LoanContactsPage'
 
 function App() {
   return (
@@ -36,6 +38,8 @@ function App() {
             <Route path="parametres/charges-fixes" element={<FixedChargesPage />} />
             <Route path="parametres/produits" element={<ProductsPage />} />
             <Route path="parametres/sous-categories" element={<SubcategoriesPage />} />
+            <Route path="parametres/abonnements" element={<SubscriptionsPage />} />
+            <Route path="parametres/contacts-prets" element={<LoanContactsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

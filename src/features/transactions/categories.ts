@@ -7,6 +7,8 @@ import {
   ShoppingCart,
   HelpCircle,
   TrendingUp,
+  CreditCard,
+  Handshake,
   type LucideIcon,
 } from 'lucide-react'
 import type { Category } from './api'
@@ -14,8 +16,8 @@ import type { Category } from './api'
 interface CategoryConfig {
   label: string
   icon: LucideIcon
-  color: string       // Tailwind bg class for the card
-  textColor: string   // Tailwind text class
+  color: string
+  textColor: string
   type: 'expense' | 'revenue'
 }
 
@@ -61,6 +63,20 @@ export const categoryConfig: Record<Category, CategoryConfig> = {
     color: 'bg-pink-50 hover:bg-pink-100 border-pink-200',
     textColor: 'text-pink-700',
     type: 'expense',
+  },
+  Subscriptions: {
+    label: 'Subscriptions',
+    icon: CreditCard,
+    color: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200',
+    textColor: 'text-indigo-700',
+    type: 'expense',
+  },
+  'Prêts': {
+    label: 'Prêts',
+    icon: Handshake,
+    color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
+    textColor: 'text-amber-700',
+    type: 'expense', // default — the form will handle the loan/repayment toggle
   },
   Divers: {
     label: 'Divers',

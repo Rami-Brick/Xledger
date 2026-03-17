@@ -40,6 +40,8 @@ const settingsItems = [
   { to: '/parametres/charges-fixes', label: 'Charges fixes' },
   { to: '/parametres/produits', label: 'Produits' },
   { to: '/parametres/sous-categories', label: 'Sous-catégories' },
+  { to: '/parametres/abonnements', label: 'Abonnements' },
+  { to: '/parametres/contacts-prets', label: 'Contacts Prêts' },
 ]
 
 function SidebarContent({

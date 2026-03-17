@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
       manifest: {
-        name: 'Finance Tracker',
-        short_name: 'Finance',
+        name: 'Xledger',
+        short_name: 'Xledger',
         description: 'Système de suivi financier',
         theme_color: '#0f172a',
         background_color: '#ffffff',

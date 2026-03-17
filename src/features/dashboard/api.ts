@@ -95,7 +95,9 @@ export async function getRecentTransactions() {
       employees(name),
       fixed_charges(name),
       products(name),
-      subcategories(name)
+      subcategories(name),
+      subscriptions(name),
+      loan_contacts(name)
     `)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })

@@ -7,6 +7,8 @@ export const CATEGORIES = [
   'Transport',
   'Packaging',
   'Sponsoring',
+  'Subscriptions',
+  'Prêts',
   'Divers',
   'Recettes',
 ] as const
@@ -24,6 +26,8 @@ export interface Transaction {
   fixed_charge_id: string | null
   product_id: string | null
   subcategory_id: string | null
+  subscription_id: string | null
+  loan_contact_id: string | null
 }
 
 export interface TransactionInsert {
@@ -35,6 +39,8 @@ export interface TransactionInsert {
   fixed_charge_id?: string | null
   product_id?: string | null
   subcategory_id?: string | null
+  subscription_id?: string | null
+  loan_contact_id?: string | null
 }
 
 export async function createTransaction(transaction: TransactionInsert) {
@@ -62,29 +68,20 @@ export async function getTransactions(filters?: {
       employees(name),
       fixed_charges(name),
       products(name),
-      subcategories(name)
+      subcategories(name),
+      subscriptions(name),
+      loan_contacts(name)
     `)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (filters?.category) {
-    query = query.eq('category', filters.category)
-  }
-  if (filters?.startDate) {
-    query = query.gte('date', filters.startDate)
-  }
-  if (filters?.endDate) {
-    query = query.lte('date', filters.endDate)
-  }
-  if (filters?.search) {
-    query = query.ilike('description', `%${filters.search}%`)
-  }
-  if (filters?.limit) {
-    query = query.limit(filters.limit)
-  }
+  if (filters?.category) query = query.eq('category', filters.category)
+  if (filters?.startDate) query = query.gte('date', filters.startDate)
+  if (filters?.endDate) query = query.lte('date', filters.endDate)
+  if (filters?.search) query = query.ilike('description', `%${filters.search}%`)
+  if (filters?.limit) query = query.limit(filters.limit)
 
   const { data, error } = await query
-
   if (error) throw error
   return data
 }
@@ -102,20 +99,12 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
 }
 
 export async function deleteTransaction(id: string) {
-  const { error } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', id)
-
+  const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) throw error
 }
 
-// Get salary status for the current month
 export async function getEmployeeSalaryStatus() {
-  const { data, error } = await supabase
-    .from('employee_salary_status')
-    .select('*')
-
+  const { data, error } = await supabase.from('employee_salary_status').select('*')
   if (error) throw error
   return data
 }

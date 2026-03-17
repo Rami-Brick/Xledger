@@ -164,13 +164,24 @@ export default function ReportsPage() {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('date, category, amount, description, employees(name), fixed_charges(name), products(name), subcategories(name)')
+        .select(`
+          date, category, amount, description,
+          employees(name), fixed_charges(name), products(name),
+          subcategories(name), subscriptions(name), loan_contacts(name)
+        `)
         .gte('date', startDate).lte('date', endDate).order('date', { ascending: true })
       if (error) throw error
       const exportData: ExportTransaction[] = (data || []).map((tx: any) => ({
         date: tx.date, category: tx.category, description: tx.description,
         amount: Number(tx.amount),
-        entity: tx.employees?.name || tx.fixed_charges?.name || tx.products?.name || tx.subcategories?.name || '',
+        entity:
+          tx.employees?.name ||
+          tx.fixed_charges?.name ||
+          tx.products?.name ||
+          tx.subcategories?.name ||
+          tx.subscriptions?.name ||
+          tx.loan_contacts?.name ||
+          '',
       }))
       downloadCSV(exportData, `transactions_${startDate}_${endDate}.csv`)
       toast.success(`${exportData.length} transactions exportées`)

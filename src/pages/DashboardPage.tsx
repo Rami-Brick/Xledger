@@ -51,6 +51,8 @@ interface RecentTx {
   fixed_charges: { name: string } | null
   products: { name: string } | null
   subcategories: { name: string } | null
+  subscriptions: { name: string } | null
+  loan_contacts: { name: string } | null
 }
 
 function getEntityName(tx: RecentTx): string {
@@ -58,6 +60,8 @@ function getEntityName(tx: RecentTx): string {
   if (tx.fixed_charges) return tx.fixed_charges.name
   if (tx.products) return tx.products.name
   if (tx.subcategories) return tx.subcategories.name
+  if (tx.subscriptions) return tx.subscriptions.name
+  if (tx.loan_contacts) return tx.loan_contacts.name
   return tx.description || ''
 }
 
