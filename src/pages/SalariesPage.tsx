@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useRole } from '@/lib/RoleProvider'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { formatTND, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
-import { Users, ArrowRight, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
+import { Users, ArrowRight, ArrowLeft, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
 
 interface SalaryStatus {
   employee_id: string
@@ -72,12 +73,14 @@ function generateMonthOptions(): { value: string; label: string }[] {
 
 export default function SalariesPage() {
   const navigate = useNavigate()
+  const { isAdmin } = useRole()
   const [statuses, setStatuses] = useState<SalaryStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth)
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null)
   const [employeeHistory, setEmployeeHistory] = useState<SalaryTransaction[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
+
 
   const monthOptions = generateMonthOptions()
   const isCurrentMonth = selectedMonth === getCurrentMonth()
@@ -170,6 +173,15 @@ export default function SalariesPage() {
       {/* Header — stacks on mobile */}
       <div className="space-y-4">
         <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="mb-3 gap-2 text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Toutes les catégories
+          </Button>
           <h2 className="text-2xl font-bold">Salaires</h2>
           <p className="text-muted-foreground text-sm mt-1">
             Suivi des paiements de salaires
@@ -188,13 +200,15 @@ export default function SalariesPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button
-            onClick={() => navigate('/ajouter?category=Salaires')}
-            className="gap-2 w-full sm:w-auto"
-          >
-            Payer un salaire
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => navigate('/ajouter?category=Salaires')}
+              className="gap-2 w-full sm:w-auto"
+            >
+              Payer un salaire
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 

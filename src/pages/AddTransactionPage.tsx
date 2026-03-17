@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Navigate } from 'react-router-dom'
+import { useRole } from '@/lib/RoleProvider'
 import { createTransaction, CATEGORIES, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import SalairesForm from '@/features/transactions/forms/SalairesForm'
@@ -18,6 +19,12 @@ import { ArrowLeft } from 'lucide-react'
 
 export default function AddTransactionPage() {
   const [searchParams] = useSearchParams()
+
+  const { isAdmin } = useRole()
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
+  }
+
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(() => {
     const cat = searchParams.get('category')
     if (cat && CATEGORIES.includes(cat as Category)) return cat as Category

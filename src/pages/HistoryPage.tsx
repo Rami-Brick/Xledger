@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useRole } from '@/lib/RoleProvider'
 import {
   getTransactions,
   deleteTransaction,
@@ -61,6 +62,7 @@ export default function HistoryPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const { isAdmin } = useRole()
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -246,14 +248,16 @@ export default function HistoryPage() {
                         {tx.amount >= 0 ? '+' : ''}
                         {formatTND(tx.amount)}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(tx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(tx)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
