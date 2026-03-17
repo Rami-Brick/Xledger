@@ -223,7 +223,7 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Dépenses par catégorie</CardTitle>
           </CardHeader>
           <CardContent>
-            {breakdown.length === 0 ? (
+            {breakdown.filter((b) => b.category !== 'Prêts').length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 Pas de dépenses ce mois
               </p>
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={breakdown}
+                    data={breakdown.filter((b) => b.category !== 'Prêts')}
                     dataKey="total_amount"
                     nameKey="category"
                     cx="50%"
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                     labelLine={false}
                     fontSize={11}
                   >
-                    {breakdown.map((_, i) => (
+                    {breakdown.filter((b) => b.category !== 'Prêts').map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>

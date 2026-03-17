@@ -47,7 +47,7 @@ export default function SubscriptionFormDialog({ open, onOpenChange, subscriptio
           </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Montant par défaut (TND)</Label>
-            <Input id="amount" type="number" step="0.001" min="0" value={form.default_amount} onChange={(e) => setForm({ ...form, default_amount: parseFloat(e.target.value) || 0 })} required />
+            <Input id="amount" type="number" step="0.001" min="0" value={form.default_amount || ''} onChange={(e) => setForm({ ...form, default_amount: parseFloat(e.target.value) || 0 })} required />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
