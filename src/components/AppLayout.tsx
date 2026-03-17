@@ -25,13 +25,14 @@ import {
   Wallet,
   ChevronDown,
   Menu,
+  Grid3X3,
 } from 'lucide-react'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/ajouter', icon: PlusCircle, label: 'Ajouter' },
   { to: '/historique', icon: List, label: 'Historique' },
-  { to: '/salaires', icon: Wallet, label: 'Salaires' },
+  { to: '/categories', icon: Grid3X3, label: 'Catégories' },
   { to: '/rapports', icon: BarChart3, label: 'Rapports' },
 ]
 

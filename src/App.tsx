@@ -8,6 +8,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import AddTransactionPage from '@/pages/AddTransactionPage'
 import HistoryPage from '@/pages/HistoryPage'
 import SalariesPage from '@/pages/SalariesPage'
+import CategoriesPage from '@/pages/CategoriesPage'
 import ReportsPage from '@/pages/ReportsPage'
 import EmployeesPage from '@/pages/settings/EmployeesPage'
 import FixedChargesPage from '@/pages/settings/FixedChargesPage'
@@ -32,6 +33,7 @@ function App() {
             <Route index element={<DashboardPage />} />
             <Route path="ajouter" element={<AddTransactionPage />} />
             <Route path="historique" element={<HistoryPage />} />
+            <Route path="categories" element={<CategoriesPage />} />
             <Route path="salaires" element={<SalariesPage />} />
             <Route path="rapports" element={<ReportsPage />} />
             <Route path="parametres/employes" element={<EmployeesPage />} />
