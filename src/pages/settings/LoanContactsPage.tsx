@@ -24,8 +24,8 @@ interface LoanBalance {
 }
 
 export default function LoanContactsPage() {
-  const { isAdmin } = useRole()
-    if (!isAdmin) return <Navigate to="/" replace />
+  const { canManage } = useRole()
+    if (!canManage) return <Navigate to="/" replace />
 
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])

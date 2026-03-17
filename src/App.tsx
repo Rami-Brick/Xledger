@@ -34,18 +34,18 @@ function LoginRoute() {
 }
 
 function HomeRedirect() {
-    const { isAdmin, loading } = useRole()
+  const { canTransact, loading } = useRole()
 
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Chargement...</p>
-        </div>
-      )
-    }
-
-    return isAdmin ? <AddTransactionPage /> : <DashboardPage />
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Chargement...</p>
+      </div>
+    )
   }
+
+  return canTransact ? <AddTransactionPage /> : <DashboardPage />
+}
 
 function App() {
   return (

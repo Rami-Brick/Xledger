@@ -50,12 +50,14 @@ function SidebarContent({
   onNavigate,
   signOut,
   email,
-  isAdmin,
+  canTransact,
+  canManage,
 }: {
   onNavigate?: () => void
   signOut: () => void
   email?: string
-  isAdmin: boolean
+  canTransact: boolean
+  canManage: boolean
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -73,7 +75,7 @@ function SidebarContent({
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           // Hide "Ajouter" for viewers
-          if (item.to === '/ajouter' && !isAdmin) return null
+          if (item.to === '/ajouter' && !canTransact) return null
           return (
             <NavLink
               key={item.to}
@@ -94,10 +96,8 @@ function SidebarContent({
           )
         })}
 
-        <Separator className="my-4" />
-
         {/* Collapsible Settings Section */}
-        {isAdmin && (
+        {canManage  && (
           <>
             <Separator className="my-4" />
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -157,14 +157,14 @@ function SidebarContent({
 
 export default function AppLayout() {
   const { user, signOut } = useAuth()
-  const { isAdmin } = useRole()
+  const { canTransact, canManage } = useRole()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="min-h-screen flex">
       {/* Desktop Sidebar — hidden on mobile */}
       <aside className="hidden md:flex w-64 border-r bg-muted/30 flex-col">
-        <SidebarContent signOut={signOut} email={user?.email} isAdmin={isAdmin} />
+        <SidebarContent signOut={signOut} email={user?.email} canTransact={canTransact} canManage={canManage} />
       </aside>
 
       {/* Mobile Header + Sheet — visible on mobile only */}
@@ -182,7 +182,8 @@ export default function AppLayout() {
                 onNavigate={() => setMobileOpen(false)}
                 signOut={signOut}
                 email={user?.email}
-                isAdmin={isAdmin}
+                canTransact={canTransact}
+                canManage={canManage}
               />
             </SheetContent>
           </Sheet>

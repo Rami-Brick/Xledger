@@ -24,8 +24,8 @@ const GROUPS: { key: 'Transport' | 'Packaging'; label: string }[] = [
 ]
 
 export default function SubcategoriesPage() {
-  const { isAdmin } = useRole()
-    if (!isAdmin) return <Navigate to="/" replace />
+  const { canManage } = useRole()
+    if (!canManage) return <Navigate to="/" replace />
 
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [loading, setLoading] = useState(true)

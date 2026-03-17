@@ -21,9 +21,9 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
-  const { isAdmin } = useRole()
-    if (!isAdmin) return <Navigate to="/" replace />
-    
+  const { canManage } = useRole()
+    if (!canManage) return <Navigate to="/" replace />
+
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)

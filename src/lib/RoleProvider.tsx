@@ -2,15 +2,25 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/features/auth/AuthProvider'
 
-export type UserRole = 'admin' | 'viewer'
+export type UserRole = 'admin' | 'mod' | 'viewer'
 
 interface RoleContextType {
   role: UserRole | null
   isAdmin: boolean
+  isMod: boolean
+  canManage: boolean   // admin OR mod — can manage entities/settings
+  canTransact: boolean // admin only — can add/edit/delete transactions
   loading: boolean
 }
 
-const RoleContext = createContext<RoleContextType>({ role: null, isAdmin: false, loading: true })
+const RoleContext = createContext<RoleContextType>({
+  role: null,
+  isAdmin: false,
+  isMod: false,
+  canManage: false,
+  canTransact: false,
+  loading: true,
+})
 
 export function RoleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -44,8 +54,18 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     fetchRole()
   }, [user])
 
+  const isAdmin = role === 'admin'
+  const isMod = role === 'mod'
+
   return (
-    <RoleContext.Provider value={{ role, isAdmin: role === 'admin', loading }}>
+    <RoleContext.Provider value={{
+      role,
+      isAdmin,
+      isMod,
+      canManage: isAdmin || isMod,
+      canTransact: isAdmin,
+      loading,
+    }}>
       {children}
     </RoleContext.Provider>
   )

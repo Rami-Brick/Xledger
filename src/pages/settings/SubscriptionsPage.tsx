@@ -16,8 +16,8 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function SubscriptionsPage() {
-  const { isAdmin } = useRole()
-    if (!isAdmin) return <Navigate to="/" replace />
+  const { canManage } = useRole()
+    if (!canManage) return <Navigate to="/" replace />
 
   const [subs, setSubs] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
