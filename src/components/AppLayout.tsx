@@ -97,37 +97,42 @@ function SidebarContent({
         <Separator className="my-4" />
 
         {/* Collapsible Settings Section */}
-        <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-            <span className="flex items-center gap-3">
-              <Settings className="h-4 w-4" />
-              Paramètres
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform duration-200 ${
-                settingsOpen ? 'rotate-180' : ''
-              }`}
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-1 mt-1">
-            {settingsItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 pl-10 rounded-md text-sm transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
+        {isAdmin && (
+          <>
+            <Separator className="my-4" />
+            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+                <span className="flex items-center gap-3">
+                  <Settings className="h-4 w-4" />
+                  Paramètres
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    settingsOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1 mt-1">
+                {settingsItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onNavigate}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 pl-10 rounded-md text-sm transition-colors ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </>
+        )}
       </nav>
 
       {/* Footer */}

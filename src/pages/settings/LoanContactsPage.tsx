@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useRole } from '@/lib/RoleProvider'
+import { Navigate } from 'react-router-dom'
 import {
   getLoanContacts, createLoanContact, updateLoanContact,
   toggleLoanContactActive, deleteLoanContact, getLoanBalances,
@@ -22,6 +24,9 @@ interface LoanBalance {
 }
 
 export default function LoanContactsPage() {
+  const { isAdmin } = useRole()
+    if (!isAdmin) return <Navigate to="/" replace />
+    
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [loading, setLoading] = useState(true)
