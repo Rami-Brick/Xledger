@@ -8,6 +8,10 @@ interface SimpleFormProps {
   descriptionRequired?: boolean
   descriptionPlaceholder?: string
   submitLabel?: string
+  initialData?: {
+    amount: number
+    description: string
+  }
   onSubmit: (data: {
     amount: number
     description: string
@@ -19,11 +23,13 @@ export default function SimpleForm({
   descriptionRequired = false,
   descriptionPlaceholder = 'Description',
   submitLabel = 'Enregistrer',
+  initialData,
   onSubmit,
 }: SimpleFormProps) {
-  const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [description, setDescription] = useState(initialData?.description ?? '')
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -32,8 +38,10 @@ export default function SimpleForm({
     setLoading(true)
     try {
       await onSubmit({ amount, description })
-      setDescription('')
-      setAmount(0)
+      if (!isEditing) {
+        setDescription('')
+        setAmount(0)
+      }
     } finally {
       setLoading(false)
     }

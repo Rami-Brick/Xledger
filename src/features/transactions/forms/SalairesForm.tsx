@@ -16,6 +16,11 @@ import { toast } from 'sonner'
 
 interface SalairesFormProps {
   date: string
+  initialData?: {
+    amount: number
+    description: string
+    employee_id: string
+  }
   onSubmit: (data: {
     amount: number
     description: string
@@ -31,12 +36,13 @@ interface SalaryStatus {
   remaining: number
 }
 
-export default function SalairesForm({ date, onSubmit }: SalairesFormProps) {
+export default function SalairesForm({ date, initialData, onSubmit }: SalairesFormProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [salaryStatus, setSalaryStatus] = useState<SalaryStatus[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.employee_id ?? '')
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   useEffect(() => {
     const load = async () => {
@@ -59,12 +65,14 @@ export default function SalairesForm({ date, onSubmit }: SalairesFormProps) {
 
   const handleEmployeeChange = (id: string) => {
     setSelectedId(id)
-    const status = salaryStatus.find((s) => s.employee_id === id)
-    if (status && status.remaining > 0) {
-      setAmount(status.remaining)
-    } else {
-      const emp = employees.find((e) => e.id === id)
-      setAmount(emp?.base_salary || 0)
+    if (!isEditing) {
+      const status = salaryStatus.find((s) => s.employee_id === id)
+      if (status && status.remaining > 0) {
+        setAmount(status.remaining)
+      } else {
+        const emp = employees.find((e) => e.id === id)
+        setAmount(emp?.base_salary || 0)
+      }
     }
   }
 
@@ -78,8 +86,10 @@ export default function SalairesForm({ date, onSubmit }: SalairesFormProps) {
         description: `Salaire — ${selectedEmployee?.name}`,
         employee_id: selectedId,
       })
-      setSelectedId('')
-      setAmount(0)
+      if (!isEditing) {
+        setSelectedId('')
+        setAmount(0)
+      }
       // Refresh salary status after payment
       const status = await getEmployeeSalaryStatus()
       setSalaryStatus(status as SalaryStatus[])

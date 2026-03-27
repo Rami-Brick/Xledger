@@ -9,6 +9,12 @@ import { toast } from 'sonner'
 
 interface Props {
   date: string
+  initialData?: {
+    amount: number
+    description: string
+    loan_contact_id: string
+    isRendu: boolean
+  }
   onSubmit: (data: { amount: number; description: string; loan_contact_id: string; isRendu: boolean }) => Promise<void>
 }
 
@@ -20,13 +26,14 @@ interface LoanBalance {
   remaining: number
 }
 
-export default function PretsForm({ date, onSubmit }: Props) {
+export default function PretsForm({ date, initialData, onSubmit }: Props) {
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [isRendu, setIsRendu] = useState(false) // default: Reçu
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.loan_contact_id ?? '')
+  const [isRendu, setIsRendu] = useState(initialData?.isRendu ?? false) // default: Reçu
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   const loadData = async () => {
     try {
@@ -53,7 +60,9 @@ export default function PretsForm({ date, onSubmit }: Props) {
         loan_contact_id: selectedId,
         isRendu,
       })
-      setSelectedId(''); setAmount(0); setIsRendu(false)
+      if (!isEditing) {
+        setSelectedId(''); setAmount(0); setIsRendu(false)
+      }
       await loadData()
     } finally { setLoading(false) }
   }

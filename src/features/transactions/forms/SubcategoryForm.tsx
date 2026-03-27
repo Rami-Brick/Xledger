@@ -15,6 +15,11 @@ import { toast } from 'sonner'
 interface SubcategoryFormProps {
   date: string
   parentCategory: 'Transport' | 'Packaging'
+  initialData?: {
+    amount: number
+    description: string
+    subcategory_id: string
+  }
   onSubmit: (data: {
     amount: number
     description: string
@@ -22,11 +27,12 @@ interface SubcategoryFormProps {
   }) => Promise<void>
 }
 
-export default function SubcategoryForm({ date, parentCategory, onSubmit }: SubcategoryFormProps) {
+export default function SubcategoryForm({ date, parentCategory, initialData,onSubmit }: SubcategoryFormProps) {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.subcategory_id ??'')
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   useEffect(() => {
     const load = async () => {
@@ -52,8 +58,10 @@ export default function SubcategoryForm({ date, parentCategory, onSubmit }: Subc
         description: selectedSub?.name || '',
         subcategory_id: selectedId,
       })
-      setSelectedId('')
-      setAmount(0)
+      if (!isEditing) {
+        setSelectedId('')
+        setAmount(0)
+      }
     } finally {
       setLoading(false)
     }

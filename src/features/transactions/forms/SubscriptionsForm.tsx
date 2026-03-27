@@ -8,14 +8,20 @@ import { toast } from 'sonner'
 
 interface Props {
   date: string
+  initialData?: {
+    amount: number
+    description: string
+    subscription_id: string
+  }
   onSubmit: (data: { amount: number; description: string; subscription_id: string }) => Promise<void>
 }
 
-export default function SubscriptionsForm({ date, onSubmit }: Props) {
+export default function SubscriptionsForm({ date, initialData, onSubmit }: Props) {
   const [subs, setSubs] = useState<Subscription[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.subscription_id ?? '')
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   useEffect(() => {
     getSubscriptions().then((data) => setSubs(data.filter((s) => s.is_active))).catch(() => toast.error('Erreur chargement abonnements'))
@@ -26,7 +32,7 @@ export default function SubscriptionsForm({ date, onSubmit }: Props) {
   const handleChange = (id: string) => {
     setSelectedId(id)
     const sub = subs.find((s) => s.id === id)
-    if (sub) setAmount(sub.default_amount)
+    if (sub && !isEditing) setAmount(sub.default_amount)
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -35,7 +41,9 @@ export default function SubscriptionsForm({ date, onSubmit }: Props) {
     setLoading(true)
     try {
       await onSubmit({ amount, description: selectedSub?.name || '', subscription_id: selectedId })
-      setSelectedId(''); setAmount(0)
+      if (!isEditing) {
+        setSelectedId(''); setAmount(0)
+      }
     } finally { setLoading(false) }
   }
 

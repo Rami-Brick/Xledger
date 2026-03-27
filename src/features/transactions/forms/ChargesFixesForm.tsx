@@ -14,6 +14,11 @@ import { toast } from 'sonner'
 
 interface ChargesFixesFormProps {
   date: string
+  initialData?: {
+    amount: number
+    description: string
+    fixed_charge_id: string
+  }
   onSubmit: (data: {
     amount: number
     description: string
@@ -21,11 +26,12 @@ interface ChargesFixesFormProps {
   }) => Promise<void>
 }
 
-export default function ChargesFixesForm({ date, onSubmit }: ChargesFixesFormProps) {
+export default function ChargesFixesForm({ date, initialData, onSubmit }: ChargesFixesFormProps) {
   const [charges, setCharges] = useState<FixedCharge[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.fixed_charge_id ??'')
+  const [amount, setAmount] = useState<number>(initialData?.amount ??0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
 
   useEffect(() => {
     const load = async () => {
@@ -44,7 +50,7 @@ export default function ChargesFixesForm({ date, onSubmit }: ChargesFixesFormPro
   const handleChargeChange = (id: string) => {
     setSelectedId(id)
     const charge = charges.find((c) => c.id === id)
-    if (charge) {
+    if (charge && !isEditing) {
       setAmount(charge.default_amount)
     }
   }
@@ -59,8 +65,10 @@ export default function ChargesFixesForm({ date, onSubmit }: ChargesFixesFormPro
         description: selectedCharge?.name || '',
         fixed_charge_id: selectedId,
       })
-      setSelectedId('')
-      setAmount(0)
+      if (!isEditing) {
+        setSelectedId('')
+        setAmount(0)
+      }
     } finally {
       setLoading(false)
     }

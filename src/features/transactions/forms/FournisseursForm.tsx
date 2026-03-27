@@ -14,6 +14,11 @@ import { toast } from 'sonner'
 
 interface FournisseursFormProps {
   date: string
+  initialData?: {
+    amount: number
+    description: string
+    product_id: string
+  }
   onSubmit: (data: {
     amount: number
     description: string
@@ -21,12 +26,14 @@ interface FournisseursFormProps {
   }) => Promise<void>
 }
 
-export default function FournisseursForm({ date, onSubmit }: FournisseursFormProps) {
+export default function FournisseursForm({ date, initialData, onSubmit }: FournisseursFormProps) {
   const [products, setProducts] = useState<Product[]>([])
-  const [selectedId, setSelectedId] = useState('')
-  const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState<number>(0)
+  const [selectedId, setSelectedId] = useState(initialData?.product_id ?? '')
+  const [description, setDescription] = useState(initialData?.description ?? '')
+  const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
+  const isEditing = !!initialData
+
 
   useEffect(() => {
     const load = async () => {
@@ -52,9 +59,11 @@ export default function FournisseursForm({ date, onSubmit }: FournisseursFormPro
         description: description || `Fournisseur — ${selectedProduct?.name}`,
         product_id: selectedId,
       })
-      setSelectedId('')
-      setDescription('')
-      setAmount(0)
+      if (!isEditing) {
+        setSelectedId('')
+        setDescription('')
+        setAmount(0)
+      }
     } finally {
       setLoading(false)
     }

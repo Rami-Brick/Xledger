@@ -7,6 +7,7 @@ import {
   type Category,
 } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
+import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/select'
 import { formatTND, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
-import { Search, Trash2, X } from 'lucide-react'
+import { Search, Trash2, X, Pencil } from 'lucide-react'
 
 interface TransactionRow {
   id: string
@@ -34,6 +35,8 @@ interface TransactionRow {
   fixed_charge_id: string | null
   product_id: string | null
   subcategory_id: string | null
+  subscription_id: string | null
+  loan_contact_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
   products: { name: string } | null
@@ -56,6 +59,7 @@ export default function HistoryPage() {
   const [transactions, setTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
+  const [editTarget, setEditTarget] = useState<TransactionRow | null>(null)
   const [showFilters, setShowFilters] = useState(false)
 
   const [search, setSearch] = useState('')
@@ -261,14 +265,24 @@ export default function HistoryPage() {
                           </Badge>
                         </div>
                         {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:text-destructive shrink-0"
-                            onClick={() => setDeleteTarget(tx)}
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => setEditTarget(tx)}
+                            >
+                              <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(tx)}
+                            >
+                              <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -286,6 +300,12 @@ export default function HistoryPage() {
         title="Supprimer cette transaction ?"
         description={`Êtes-vous sûr de vouloir supprimer cette transaction de ${deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''} ? Cette action est irréversible.`}
         onConfirm={handleDelete}
+      />
+      <EditTransactionDialog
+        open={!!editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+        transaction={editTarget}
+        onSuccess={fetchTransactions}
       />
     </div>
   )
