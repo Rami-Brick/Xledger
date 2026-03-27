@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { formatTND, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
-import { ArrowLeft, ArrowRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
 
 interface CategorySummary {
   category: string
@@ -61,6 +61,8 @@ interface LoanBalance {
   remaining: number
 }
 
+const LOAN_HISTORY_PAGE_SIZE = 5
+
 function getEntityName(tx: TransactionRow): string {
   if (tx.employees) return tx.employees.name
   if (tx.fixed_charges) return tx.fixed_charges.name
@@ -78,6 +80,10 @@ function getCurrentMonthRange() {
   return { start, end }
 }
 
+function getLoanEntryType(amount: number) {
+  return amount >= 0 ? 'Reçu' : 'Rendu'
+}
+
 export default function CategoriesPage() {
   const navigate = useNavigate()
   const { canTransact } = useRole()
@@ -88,6 +94,8 @@ export default function CategoriesPage() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [editTarget, setEditTarget] = useState<TransactionRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
+  const [expandedLoanContactId, setExpandedLoanContactId] = useState<string | null>(null)
+  const [loanHistoryVisibleCount, setLoanHistoryVisibleCount] = useState<Record<string, number>>({})
 
   const [fixedCharges, setFixedCharges] = useState<FixedCharge[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -151,6 +159,11 @@ export default function CategoriesPage() {
     setCategoryTransactions(
       (category === 'Prêts' ? transactions : transactions.slice(0, 15)) as TransactionRow[]
     )
+
+    if (category === 'Prêts') {
+      setExpandedLoanContactId(null)
+      setLoanHistoryVisibleCount({})
+    }
 
     const now = new Date()
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -234,6 +247,28 @@ export default function CategoriesPage() {
     } catch {
       toast.error('Erreur lors de la suppression')
     }
+  }
+
+  const toggleLoanHistory = (loanContactId: string) => {
+    setExpandedLoanContactId((current) => {
+      if (current === loanContactId) return null
+      return loanContactId
+    })
+
+    setLoanHistoryVisibleCount((current) => {
+      if (current[loanContactId]) return current
+      return {
+        ...current,
+        [loanContactId]: LOAN_HISTORY_PAGE_SIZE,
+      }
+    })
+  }
+
+  const handleShowMoreLoanEntries = (loanContactId: string) => {
+    setLoanHistoryVisibleCount((current) => ({
+      ...current,
+      [loanContactId]: (current[loanContactId] || LOAN_HISTORY_PAGE_SIZE) + LOAN_HISTORY_PAGE_SIZE,
+    }))
   }
 
   if (!selectedCategory) {
@@ -404,29 +439,119 @@ export default function CategoriesPage() {
             {loanBalances.length > 0 && (
               <Card>
                 <CardContent className="pt-5 pb-3">
-                  <p className="text-sm font-medium mb-3">Soldes par personne</p>
+                  <p className="text-sm font-medium mb-1">Soldes par personne</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Cliquez sur une personne pour voir l&apos;historique.
+                  </p>
                   <div className="space-y-3">
                     {loanBalances.map((balance) => {
                       const percent = balance.total_lent > 0
                         ? Math.min((balance.total_repaid / balance.total_lent) * 100, 100)
                         : 0
+                      const isExpanded = expandedLoanContactId === balance.loan_contact_id
+                      const entries = categoryTransactions.filter(
+                        (tx) => tx.loan_contact_id === balance.loan_contact_id
+                      )
+                      const visibleCount = loanHistoryVisibleCount[balance.loan_contact_id] || LOAN_HISTORY_PAGE_SIZE
+                      const visibleEntries = entries.slice(0, visibleCount)
+                      const hasMore = entries.length > visibleEntries.length
 
                       return (
-                        <div key={balance.loan_contact_id} className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{balance.name}</span>
-                            <span className={`text-xs font-semibold ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                              {balance.remaining > 0 ? `Reste: ${formatTND(balance.remaining)}` : 'Soldé'}
-                            </span>
-                          </div>
-                          <Progress
-                            value={percent}
-                            className={`h-1.5 ${balance.remaining <= 0 ? '[&>div]:bg-green-500' : '[&>div]:bg-blue-500'}`}
-                          />
-                          <div className="flex justify-between text-[10px] text-muted-foreground">
-                            <span>Rendu: {formatTND(balance.total_repaid)}</span>
-                            <span>Reçu: {formatTND(balance.total_lent)}</span>
-                          </div>
+                        <div key={balance.loan_contact_id} className="rounded-md border">
+                          <button
+                            type="button"
+                            onClick={() => toggleLoanHistory(balance.loan_contact_id)}
+                            className="w-full p-4 text-left"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1 space-y-1.5">
+                                <div className="flex items-center justify-between gap-3 text-sm">
+                                  <span className="font-medium truncate">{balance.name}</span>
+                                  <span className={`text-xs font-semibold shrink-0 ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                                    {balance.remaining > 0 ? `Reste: ${formatTND(balance.remaining)}` : 'Soldé'}
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={percent}
+                                  className={`h-1.5 ${balance.remaining <= 0 ? '[&>div]:bg-green-500' : '[&>div]:bg-blue-500'}`}
+                                />
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                  <span>Rendu: {formatTND(balance.total_repaid)}</span>
+                                  <span>Reçu: {formatTND(balance.total_lent)}</span>
+                                </div>
+                              </div>
+                              <span className="shrink-0 text-muted-foreground">
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </span>
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="border-t px-4 py-3 space-y-2">
+                              {entries.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">Aucune entrée pour cette personne.</p>
+                              ) : (
+                                <>
+                                  {visibleEntries.map((tx) => (
+                                    <div key={tx.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
+                                      <div className="min-w-0 space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="text-sm font-medium">{getLoanEntryType(tx.amount)}</span>
+                                          {tx.is_internal && (
+                                            <Badge variant="secondary" className="text-[10px]">
+                                              Interne
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                          {formatDate(tx.date)}
+                                          {tx.description ? ` • ${tx.description}` : ''}
+                                        </p>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <span className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
+                                        </span>
+                                        {canTransact && (
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                              onClick={() => setEditTarget(tx)}
+                                            >
+                                              <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-destructive hover:text-destructive"
+                                              onClick={() => setDeleteTarget(tx)}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  {hasMore && (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleShowMoreLoanEntries(balance.loan_contact_id)}
+                                      className="w-full"
+                                    >
+                                      Voir plus
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -503,12 +628,10 @@ export default function CategoriesPage() {
 
           {renderEntities()}
 
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium">
-                {selectedCategory === 'Prêts' ? 'Historique des prêts' : 'Transactions récentes'}
-              </p>
-              {selectedCategory !== 'Prêts' && (
+          {selectedCategory !== 'Prêts' && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium">Transactions récentes</p>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -517,67 +640,45 @@ export default function CategoriesPage() {
                 >
                   Voir tout <ArrowRight className="h-3 w-3" />
                 </Button>
-              )}
-            </div>
+              </div>
 
-            {categoryTransactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Aucune transaction</p>
-            ) : (
-              <div className="space-y-2">
-                {categoryTransactions.map((tx) => {
-                  const entityName = getEntityName(tx)
+              {categoryTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Aucune transaction</p>
+              ) : (
+                <div className="space-y-2">
+                  {categoryTransactions.map((tx) => {
+                    const entityName = getEntityName(tx)
 
-                  return (
-                    <Card key={tx.id}>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <p className="text-sm font-medium truncate">
-                                {entityName || tx.description || selectedCategory}
-                              </p>
-                              {tx.is_internal && (
-                                <Badge variant="secondary" className="text-[10px] shrink-0">
-                                  Interne
-                                </Badge>
-                              )}
+                    return (
+                      <Card key={tx.id}>
+                        <CardContent className="py-3 px-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {entityName || tx.description || selectedCategory}
+                                </p>
+                                {tx.is_internal && (
+                                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                                    Interne
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
-                          </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className={`text-sm font-semibold shrink-0 ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
                             </span>
-                            {selectedCategory === 'Prêts' && canTransact && (
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => setEditTarget(tx)}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteTarget(tx)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
