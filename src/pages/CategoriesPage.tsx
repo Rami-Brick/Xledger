@@ -145,11 +145,11 @@ export default function CategoriesPage() {
   const fetchCategoryDetail = useCallback(async (category: Category) => {
     const transactions = await getTransactions({
       category,
-      includeInternal: category === 'PrÃªts',
+      includeInternal: category === 'Prêts',
     })
 
     setCategoryTransactions(
-      (category === 'PrÃªts' ? transactions : transactions.slice(0, 15)) as TransactionRow[]
+      (category === 'Prêts' ? transactions : transactions.slice(0, 15)) as TransactionRow[]
     )
 
     const now = new Date()
@@ -161,7 +161,7 @@ export default function CategoriesPage() {
     let thisMonthQuery = supabase.from('transactions').select('amount').eq('category', category).gte('date', thisMonthStart)
     let lastMonthQuery = supabase.from('transactions').select('amount').eq('category', category).gte('date', lastMonthStart).lte('date', lastMonthEnd)
 
-    if (category !== 'PrÃªts') {
+    if (category !== 'Prêts') {
       allTimeQuery = allTimeQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
       thisMonthQuery = thisMonthQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
       lastMonthQuery = lastMonthQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
@@ -191,7 +191,7 @@ export default function CategoriesPage() {
       case 'Subscriptions':
         setSubscriptions(await getSubscriptions())
         break
-      case 'PrÃªts': {
+      case 'Prêts': {
         const [contacts, balances] = await Promise.all([getLoanContacts(), getLoanBalances()])
         setLoanContacts(contacts)
         setLoanBalances(balances)
@@ -214,7 +214,7 @@ export default function CategoriesPage() {
     try {
       await fetchCategoryDetail(category)
     } catch {
-      toast.error('Erreur chargement dÃ©tails')
+      toast.error('Erreur chargement détails')
     } finally {
       setDetailLoading(false)
     }
@@ -225,7 +225,7 @@ export default function CategoriesPage() {
 
     try {
       await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimÃ©e')
+      toast.success('Transaction supprimée')
       setDeleteTarget(null)
       await fetchSummaries()
       if (selectedCategory) {
@@ -240,8 +240,8 @@ export default function CategoriesPage() {
     return (
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold">CatÃ©gories</h2>
-          <p className="text-muted-foreground text-sm mt-1">Vue d&apos;ensemble par catÃ©gorie â€” ce mois</p>
+          <h2 className="text-2xl font-bold">Catégories</h2>
+          <p className="text-muted-foreground text-sm mt-1">Vue d&apos;ensemble par catégorie — ce mois</p>
         </div>
 
         {loading ? (
@@ -290,7 +290,7 @@ export default function CategoriesPage() {
         return (
           <Card>
             <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Charges enregistrÃ©es</p>
+              <p className="text-sm font-medium mb-3">Charges enregistrées</p>
               <div className="space-y-2">
                 {activeCharges.map((charge) => (
                   <div key={charge.id} className="flex items-center justify-between text-sm py-1">
@@ -337,7 +337,7 @@ export default function CategoriesPage() {
         return (
           <Card>
             <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Sous-catÃ©gories</p>
+              <p className="text-sm font-medium mb-3">Sous-catégories</p>
               <div className="flex flex-wrap gap-2">
                 {activeSubcategories.map((subcategory) => (
                   <Badge key={subcategory.id} variant="outline">{subcategory.name}</Badge>
@@ -369,7 +369,7 @@ export default function CategoriesPage() {
         )
       }
 
-      case 'PrÃªts': {
+      case 'Prêts': {
         if (loanBalances.length === 0 && loanContacts.length === 0) return null
 
         const totalReceived = loanBalances.reduce((sum, balance) => sum + balance.total_lent, 0)
@@ -381,7 +381,7 @@ export default function CategoriesPage() {
             <div className="grid grid-cols-3 gap-3">
               <Card>
                 <CardContent className="pt-4 pb-4 px-3">
-                  <p className="text-xs text-muted-foreground">Total reÃ§u</p>
+                  <p className="text-xs text-muted-foreground">Total reçu</p>
                   <p className="text-base font-bold mt-1">{formatTND(totalReceived)}</p>
                 </CardContent>
               </Card>
@@ -416,7 +416,7 @@ export default function CategoriesPage() {
                           <div className="flex items-center justify-between text-sm">
                             <span className="font-medium">{balance.name}</span>
                             <span className={`text-xs font-semibold ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                              {balance.remaining > 0 ? `Reste: ${formatTND(balance.remaining)}` : 'SoldÃ©'}
+                              {balance.remaining > 0 ? `Reste: ${formatTND(balance.remaining)}` : 'Soldé'}
                             </span>
                           </div>
                           <Progress
@@ -425,7 +425,7 @@ export default function CategoriesPage() {
                           />
                           <div className="flex justify-between text-[10px] text-muted-foreground">
                             <span>Rendu: {formatTND(balance.total_repaid)}</span>
-                            <span>ReÃ§u: {formatTND(balance.total_lent)}</span>
+                            <span>Reçu: {formatTND(balance.total_lent)}</span>
                           </div>
                         </div>
                       )
@@ -453,7 +453,7 @@ export default function CategoriesPage() {
           className="mb-3 gap-2 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Toutes les catÃ©gories
+          Toutes les catégories
         </Button>
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-md ${config.color}`}>
@@ -461,7 +461,7 @@ export default function CategoriesPage() {
           </div>
           <div>
             <h2 className="text-2xl font-bold">{config.label}</h2>
-            <p className="text-muted-foreground text-sm">Vue dÃ©taillÃ©e</p>
+            <p className="text-muted-foreground text-sm">Vue détaillée</p>
           </div>
         </div>
       </div>
@@ -506,9 +506,9 @@ export default function CategoriesPage() {
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-sm font-medium">
-                {selectedCategory === 'PrÃªts' ? 'Historique des prÃªts' : 'Transactions rÃ©centes'}
+                {selectedCategory === 'Prêts' ? 'Historique des prêts' : 'Transactions récentes'}
               </p>
-              {selectedCategory !== 'PrÃªts' && (
+              {selectedCategory !== 'Prêts' && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -549,7 +549,7 @@ export default function CategoriesPage() {
                             <span className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
                             </span>
-                            {selectedCategory === 'PrÃªts' && canTransact && (
+                            {selectedCategory === 'Prêts' && canTransact && (
                               <div className="flex items-center gap-1">
                                 <Button
                                   variant="ghost"
@@ -585,7 +585,7 @@ export default function CategoriesPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cette transaction ?"
-        description={`ÃŠtes-vous sÃ»r de vouloir supprimer cette transaction de ${deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''} ? Cette action est irrÃ©versible.`}
+        description={`Êtes-vous sûr de vouloir supprimer cette transaction de ${deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''} ? Cette action est irréversible.`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

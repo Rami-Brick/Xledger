@@ -47,46 +47,48 @@ export default function EditTransactionDialog({
   transaction,
   onSuccess,
 }: EditTransactionDialogProps) {
-  // Sync date when transaction changes
-    const [localDate, setLocalDate] = useState('')
+  const [localDate, setLocalDate] = useState('')
 
-    useEffect(() => {
+  useEffect(() => {
     if (open && transaction?.date) {
-        setLocalDate(transaction.date)
+      setLocalDate(transaction.date)
     }
-    }, [open, transaction?.date])
+  }, [open, transaction?.date])
 
   if (!transaction) return null
 
   const config = categoryConfig[transaction.category]
   const absAmount = Math.abs(transaction.amount)
-  const isRendu = transaction.amount < 0 // for Prêts: negative = Rendu (money out)
+  const isRendu = transaction.amount < 0
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     try {
-        const config = categoryConfig[transaction.category]
+      const config = categoryConfig[transaction.category]
+      const { isRendu: isRenduValue, ...dbFields } = formData
 
-        let amount: number
-        const rawAmount = formData.amount as number
-        if (transaction.category === 'Prêts') {
-        const isRendu = formData.isRendu as boolean
-        amount = isRendu ? -Math.abs(rawAmount) : Math.abs(rawAmount)
-        } else {
+      let amount: number
+      const rawAmount = formData.amount as number
+
+      if (transaction.category === 'Prêts') {
+        amount = (isRenduValue as boolean) ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+      } else {
         amount = config.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
-        }
+      }
 
-        await updateTransaction(transaction.id, {
+      await updateTransaction(transaction.id, {
         date: localDate,
-        ...formData,
+        ...dbFields,
         amount,
-        })
-        toast.success('Transaction modifiée')
-        onOpenChange(false)
-        onSuccess()
+      })
+
+      toast.success('Transaction modifiée')
+      onOpenChange(false)
+      onSuccess()
     } catch {
-        toast.error('Erreur lors de la modification')
+      toast.error('Erreur lors de la modification')
     }
-}
+  }
+
   const renderForm = () => {
     switch (transaction.category) {
       case 'Salaires':
