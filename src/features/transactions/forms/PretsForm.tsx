@@ -14,8 +14,15 @@ interface Props {
     description: string
     loan_contact_id: string
     isRendu: boolean
+    is_internal: boolean
   }
-  onSubmit: (data: { amount: number; description: string; loan_contact_id: string; isRendu: boolean }) => Promise<void>
+  onSubmit: (data: {
+    amount: number
+    description: string
+    loan_contact_id: string
+    isRendu: boolean
+    is_internal: boolean
+  }) => Promise<void>
 }
 
 interface LoanBalance {
@@ -30,27 +37,36 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.loan_contact_id ?? '')
-  const [isRendu, setIsRendu] = useState(initialData?.isRendu ?? false) // default: Reçu
+  const [isRendu, setIsRendu] = useState(initialData?.isRendu ?? false)
+  const [isInternal, setIsInternal] = useState(initialData?.is_internal ?? false)
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
   const isEditing = !!initialData
 
   const loadData = async () => {
     try {
-      const [c, b] = await Promise.all([getLoanContacts(), getLoanBalances()])
-      setContacts(c.filter((c) => c.is_active))
-      setBalances(b)
-    } catch { toast.error('Erreur chargement contacts') }
+      const [contactsData, balancesData] = await Promise.all([
+        getLoanContacts(),
+        getLoanBalances(),
+      ])
+      setContacts(contactsData.filter((contact) => contact.is_active))
+      setBalances(balancesData)
+    } catch {
+      toast.error('Erreur chargement contacts')
+    }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => {
+    loadData()
+  }, [])
 
-  const selectedContact = contacts.find((c) => c.id === selectedId)
-  const selectedBalance = balances.find((b) => b.loan_contact_id === selectedId)
+  const selectedContact = contacts.find((contact) => contact.id === selectedId)
+  const selectedBalance = balances.find((balance) => balance.loan_contact_id === selectedId)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!selectedId || amount <= 0) return
+
     setLoading(true)
     try {
       const label = isRendu ? 'Rendu' : 'Reçu'
@@ -59,17 +75,24 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
         description: `${label} — ${selectedContact?.name}`,
         loan_contact_id: selectedId,
         isRendu,
+        is_internal: isInternal,
       })
+
       if (!isEditing) {
-        setSelectedId(''); setAmount(0); setIsRendu(false)
+        setSelectedId('')
+        setAmount(0)
+        setIsRendu(false)
+        setIsInternal(false)
       }
+
       await loadData()
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Reçu / Rendu toggle */}
       <div className="space-y-2">
         <Label>Type</Label>
         <div className="grid grid-cols-2 gap-2">
@@ -100,18 +123,19 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
       <div className="space-y-2">
         <Label>Personne</Label>
         <Select value={selectedId} onValueChange={setSelectedId}>
-          <SelectTrigger><SelectValue placeholder="Sélectionner une personne" /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner une personne" />
+          </SelectTrigger>
           <SelectContent>
-            {contacts.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}{c.description ? ` — ${c.description}` : ''}
+            {contacts.map((contact) => (
+              <SelectItem key={contact.id} value={contact.id}>
+                {contact.name}{contact.description ? ` — ${contact.description}` : ''}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Balance info */}
       {selectedBalance && (
         <div className="rounded-md bg-muted p-4 space-y-2 text-sm">
           <div className="flex justify-between">
@@ -133,7 +157,35 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
 
       <div className="space-y-2">
         <Label htmlFor="amount">Montant (TND)</Label>
-        <Input id="amount" type="number" step="0.001" min="0.001" value={amount || ''} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} required />
+        <Input
+          id="amount"
+          type="number"
+          step="0.001"
+          min="0.001"
+          value={amount || ''}
+          onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+          required
+        />
+      </div>
+
+      <div className="rounded-md border p-4 space-y-2">
+        <div className="flex items-start gap-3">
+          <input
+            id="is-internal"
+            type="checkbox"
+            checked={isInternal}
+            onChange={(e) => setIsInternal(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-input"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="is-internal" className="cursor-pointer">
+              Entrée interne
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Ne pas inclure cette entrée dans le solde global ni dans l&apos;historique. Elle restera visible dans les détails de la catégorie Prêts.
+            </p>
+          </div>
+        </div>
       </div>
 
       <Button type="submit" className="w-full" disabled={loading || !selectedId || amount <= 0}>

@@ -55,6 +55,7 @@ export default function AddTransactionPage() {
     data: {
       amount: number
       description: string
+      is_internal?: boolean
       employee_id?: string
       fixed_charge_id?: string
       product_id?: string
@@ -79,6 +80,7 @@ export default function AddTransactionPage() {
       category,
       amount,
       description: data.description || null,
+      is_internal: data.is_internal || false,
       employee_id: data.employee_id || null,
       fixed_charge_id: data.fixed_charge_id || null,
       product_id: data.product_id || null,

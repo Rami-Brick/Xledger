@@ -31,6 +31,7 @@ interface TransactionRow {
   category: Category
   amount: number
   description: string | null
+  is_internal: boolean | null
   employee_id: string | null
   fixed_charge_id: string | null
   product_id: string | null
