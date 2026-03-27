@@ -635,7 +635,9 @@ export default function CategoriesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate('/historique')}
+                  onClick={() =>
+                    navigate(`/historique?category=${encodeURIComponent(selectedCategory)}`)
+                  }
                   className="text-xs gap-1"
                 >
                   Voir tout <ArrowRight className="h-3 w-3" />
