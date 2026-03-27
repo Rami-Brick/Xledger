@@ -17,6 +17,14 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { ArrowLeft } from 'lucide-react'
 
+function getTodayDate() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export default function AddTransactionPage() {
   const [searchParams] = useSearchParams()
 
@@ -30,7 +38,17 @@ export default function AddTransactionPage() {
     if (cat && CATEGORIES.includes(cat as Category)) return cat as Category
     return null
   })
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(getTodayDate)
+
+  const handleCategorySelect = (category: Category) => {
+    setDate(getTodayDate())
+    setSelectedCategory(category)
+  }
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null)
+    setDate(getTodayDate())
+  }
 
   const handleSubmit = async (
     category: Category,
@@ -111,11 +129,6 @@ export default function AddTransactionPage() {
         </p>
       </div>
 
-      <div className="mb-6 max-w-xs">
-        <Label htmlFor="date">Date</Label>
-        <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
-      </div>
-
       {!selectedCategory ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {CATEGORIES.map((cat) => {
@@ -125,7 +138,7 @@ export default function AddTransactionPage() {
               <Card
                 key={cat}
                 className={`cursor-pointer border-2 transition-all ${config.color}`}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => handleCategorySelect(cat)}
               >
                 <CardContent className="flex flex-col items-center justify-center py-5 gap-2">
                   <Icon className={`h-7 w-7 ${config.textColor}`} />
@@ -142,7 +155,7 @@ export default function AddTransactionPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedCategory(null)}
+            onClick={handleBackToCategories}
             className="mb-4 gap-2 text-muted-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -163,6 +176,15 @@ export default function AddTransactionPage() {
                     </>
                   )
                 })()}
+              </div>
+              <div className="mb-6 space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
               </div>
               {renderForm()}
             </CardContent>

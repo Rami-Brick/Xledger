@@ -89,7 +89,7 @@ export default function SubcategoryForm({ date, parentCategory, initialData,onSu
         </Select>
       </div>
 
-      {parentCategory === 'Packaging' && (
+      {(parentCategory === 'Packaging' || parentCategory === 'Transport') && (
         <div className="space-y-2">
           <Label htmlFor="description">Description (optionnel)</Label>
           <Input
