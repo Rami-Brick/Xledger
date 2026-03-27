@@ -63,18 +63,29 @@ export default function EditTransactionDialog({
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     try {
-      await updateTransaction(transaction.id, {
+        const config = categoryConfig[transaction.category]
+
+        let amount: number
+        const rawAmount = formData.amount as number
+        if (transaction.category === 'Prêts') {
+        const isRendu = formData.isRendu as boolean
+        amount = isRendu ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+        } else {
+        amount = config.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+        }
+
+        await updateTransaction(transaction.id, {
         date: localDate,
         ...formData,
-      })
-      toast.success('Transaction modifiée')
-      onOpenChange(false)
-      onSuccess()
+        amount,
+        })
+        toast.success('Transaction modifiée')
+        onOpenChange(false)
+        onSuccess()
     } catch {
-      toast.error('Erreur lors de la modification')
+        toast.error('Erreur lors de la modification')
     }
-  }
-
+}
   const renderForm = () => {
     switch (transaction.category) {
       case 'Salaires':

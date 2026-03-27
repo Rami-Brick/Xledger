@@ -30,6 +30,7 @@ interface SubcategoryFormProps {
 export default function SubcategoryForm({ date, parentCategory, initialData,onSubmit }: SubcategoryFormProps) {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.subcategory_id ??'')
+  const [description, setDescription] = useState(initialData?.description ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [loading, setLoading] = useState(false)
   const isEditing = !!initialData
@@ -55,12 +56,15 @@ export default function SubcategoryForm({ date, parentCategory, initialData,onSu
     try {
       await onSubmit({
         amount,
-        description: selectedSub?.name || '',
+        description: parentCategory === 'Packaging'
+          ? description
+          : selectedSub?.name || '',
         subcategory_id: selectedId,
       })
       if (!isEditing) {
         setSelectedId('')
         setAmount(0)
+        setDescription('')
       }
     } finally {
       setLoading(false)
@@ -84,6 +88,18 @@ export default function SubcategoryForm({ date, parentCategory, initialData,onSu
           </SelectContent>
         </Select>
       </div>
+
+      {parentCategory === 'Packaging' && (
+        <div className="space-y-2">
+          <Label htmlFor="description">Description (optionnel)</Label>
+          <Input
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ex: Commande 500 sacs"
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="amount">Montant (TND)</Label>
