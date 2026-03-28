@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import { useRole } from '@/lib/RoleProvider'
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Users,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { MAIN_VIEW_TRANSACTIONS_FILTER } from '@/features/transactions/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,17 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useRole } from '@/lib/RoleProvider'
 import { formatDate, formatTND } from '@/lib/format'
-import { toast } from 'sonner'
-import {
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Users,
-} from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 interface SalaryStatus {
   employee_id: string
@@ -41,6 +42,7 @@ interface SalaryTransaction {
   date: string
   amount: number
   description: string | null
+  is_internal: boolean | null
 }
 
 const ALL_MONTHS_VALUE = 'all'
@@ -70,7 +72,7 @@ function getPayDayStatus(payDay: number): { label: string; icon: typeof CheckCir
     return { label: "Aujourd'hui", icon: AlertCircle, color: 'text-orange-600' }
   }
 
-  return { label: 'Dépassé', icon: AlertCircle, color: 'text-red-600' }
+  return { label: 'Depasse', icon: AlertCircle, color: 'text-red-600' }
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -118,6 +120,7 @@ export default function SalariesPage() {
         .from('transactions')
         .select('employee_id, amount')
         .eq('category', 'Salaires')
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER)
 
       if (!isAllTime) {
         const { startDate, endDate } = getMonthDateRange(selectedMonth)
@@ -125,7 +128,6 @@ export default function SalariesPage() {
       }
 
       const { data: transactions, error: transactionsError } = await transactionsQuery
-
       if (transactionsError) throw transactionsError
 
       const statusList: SalaryStatus[] = (employees || []).map((employee) => {
@@ -173,7 +175,7 @@ export default function SalariesPage() {
     try {
       let historyQuery = supabase
         .from('transactions')
-        .select('id, date, amount, description')
+        .select('id, date, amount, description, is_internal')
         .eq('category', 'Salaires')
         .eq('employee_id', employeeId)
 
@@ -183,8 +185,8 @@ export default function SalariesPage() {
       }
 
       const { data, error } = await historyQuery.order('date', { ascending: true })
-
       if (error) throw error
+
       setEmployeeHistory(data as SalaryTransaction[])
     } catch {
       toast.error("Erreur lors du chargement de l'historique")
@@ -211,7 +213,7 @@ export default function SalariesPage() {
             className="mb-3 gap-2 text-muted-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Toutes les catégories
+            Toutes les categories
           </Button>
           <h2 className="text-2xl font-bold">Salaires</h2>
           <p className="mt-1 text-sm text-muted-foreground">Suivi des paiements de salaires</p>
@@ -234,7 +236,7 @@ export default function SalariesPage() {
           <Button
             variant="outline"
             onClick={() => navigate('/historique?category=Salaires')}
-            className="gap-2 w-full sm:w-auto"
+            className="w-full gap-2 sm:w-auto"
           >
             Voir tout
             <ArrowRight className="h-4 w-4" />
@@ -243,7 +245,7 @@ export default function SalariesPage() {
           {isAdmin && (
             <Button
               onClick={() => navigate('/ajouter?category=Salaires')}
-              className="gap-2 w-full sm:w-auto"
+              className="w-full gap-2 sm:w-auto"
             >
               Payer un salaire
               <ArrowRight className="h-4 w-4" />
@@ -264,7 +266,7 @@ export default function SalariesPage() {
         <Card>
           <CardContent className="px-3 pb-4 pt-4 sm:px-6 sm:pt-6">
             <p className="text-xs text-muted-foreground sm:text-sm">
-              {isAllTime ? 'Payé total' : 'Payé'}
+              {isAllTime ? 'Paye total' : 'Paye'}
             </p>
             <p className="mt-1 text-base font-bold text-green-600 sm:text-xl">{formatTND(totalPaid)}</p>
           </CardContent>
@@ -292,9 +294,9 @@ export default function SalariesPage() {
       {statuses.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Users className="mx-auto mb-3 h-10 w-10 opacity-50" />
-          <p>Aucun employé actif.</p>
+          <p>Aucun employe actif.</p>
           <Button variant="link" onClick={() => navigate('/parametres/employes')} className="mt-2">
-            Gérer les employés
+            Gerer les employes
           </Button>
         </div>
       ) : (
@@ -321,7 +323,9 @@ export default function SalariesPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold sm:text-base">{employee.name}</p>
-                      {employee.role && <p className="text-xs text-muted-foreground">{employee.role}</p>}
+                      {employee.role && (
+                        <p className="text-xs text-muted-foreground">{employee.role}</p>
+                      )}
                     </div>
                     <div className="shrink-0">
                       {isAllTime ? (
@@ -331,7 +335,7 @@ export default function SalariesPage() {
                       ) : isFullyPaid ? (
                         <Badge className="bg-green-100 text-[10px] text-green-700 hover:bg-green-100">
                           <CheckCircle2 className="mr-1 h-3 w-3" />
-                          Payé
+                          Paye
                         </Badge>
                       ) : payStatus ? (
                         <Badge variant="outline" className={`${payStatus.color} text-[10px]`}>
@@ -349,8 +353,10 @@ export default function SalariesPage() {
                         <p className="mt-1 font-medium">{formatTND(employee.base_salary)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Payé total</p>
-                        <p className="mt-1 font-medium text-green-600">{formatTND(employee.paid_in_period)}</p>
+                        <p className="text-muted-foreground">Paye total</p>
+                        <p className="mt-1 font-medium text-green-600">
+                          {formatTND(employee.paid_in_period)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Paiements</p>
@@ -361,7 +367,9 @@ export default function SalariesPage() {
                     <>
                       <div>
                         <div className="mb-1.5 flex justify-between text-xs sm:text-sm">
-                          <span className="text-muted-foreground">{formatTND(employee.paid_in_period)}</span>
+                          <span className="text-muted-foreground">
+                            {formatTND(employee.paid_in_period)}
+                          </span>
                           <span className="font-medium">{formatTND(employee.base_salary)}</span>
                         </div>
                         <Progress
@@ -400,7 +408,7 @@ export default function SalariesPage() {
                         <p className="text-xs text-muted-foreground">Chargement...</p>
                       ) : employeeHistory.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
-                          {isAllTime ? 'Aucun paiement enregistré' : 'Aucun paiement ce mois'}
+                          {isAllTime ? 'Aucun paiement enregistre' : 'Aucun paiement ce mois'}
                         </p>
                       ) : (
                         <div className="space-y-2">
@@ -408,9 +416,14 @@ export default function SalariesPage() {
                             <div key={transaction.id} className="flex items-center justify-between text-xs">
                               <div className="min-w-0">
                                 <span className="text-muted-foreground">{formatDate(transaction.date)}</span>
+                                {transaction.is_internal && (
+                                  <Badge variant="secondary" className="ml-2 text-[10px]">
+                                    Interne
+                                  </Badge>
+                                )}
                                 {transaction.description && (
                                   <span className="ml-2 truncate text-muted-foreground">
-                                    · {transaction.description}
+                                    - {transaction.description}
                                   </span>
                                 )}
                               </div>

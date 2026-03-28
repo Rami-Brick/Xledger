@@ -1,23 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { updateTransaction, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import { toast } from 'sonner'
-
-import SimpleForm from './forms/SimpleForm'
 import ChargesFixesForm from './forms/ChargesFixesForm'
 import FournisseursForm from './forms/FournisseursForm'
+import PretsForm from './forms/PretsForm'
+import SalairesForm from './forms/SalairesForm'
+import SimpleForm from './forms/SimpleForm'
 import SubcategoryForm from './forms/SubcategoryForm'
 import SubscriptionsForm from './forms/SubscriptionsForm'
-import SalairesForm from './forms/SalairesForm'
-import PretsForm from './forms/PretsForm'
 
 interface TransactionRow {
   id: string
@@ -63,16 +62,16 @@ export default function EditTransactionDialog({
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     try {
-      const config = categoryConfig[transaction.category]
+      const transactionConfig = categoryConfig[transaction.category]
       const { isRendu: isRenduValue, ...dbFields } = formData
-
-      let amount: number
       const rawAmount = formData.amount as number
 
+      let amount: number
       if (transaction.category === 'Prêts') {
         amount = (isRenduValue as boolean) ? -Math.abs(rawAmount) : Math.abs(rawAmount)
       } else {
-        amount = config.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+        amount =
+          transactionConfig.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
       }
 
       await updateTransaction(transaction.id, {
@@ -81,7 +80,7 @@ export default function EditTransactionDialog({
         amount,
       })
 
-      toast.success('Transaction modifiée')
+      toast.success('Transaction modifiee')
       onOpenChange(false)
       onSuccess()
     } catch {
@@ -99,6 +98,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               employee_id: transaction.employee_id ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -112,6 +112,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               fixed_charge_id: transaction.fixed_charge_id ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -125,6 +126,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               product_id: transaction.product_id ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -140,6 +142,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               subcategory_id: transaction.subcategory_id ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -153,6 +156,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               subscription_id: transaction.subscription_id ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -174,15 +178,45 @@ export default function EditTransactionDialog({
         )
 
       case 'Sponsoring':
+        return (
+          <SimpleForm
+            date={localDate}
+            categoryLabel="Sponsoring"
+            descriptionRequired
+            initialData={{
+              amount: absAmount,
+              description: transaction.description ?? '',
+              is_internal: transaction.is_internal ?? false,
+            }}
+            onSubmit={handleUpdate}
+          />
+        )
+
       case 'Divers':
+        return (
+          <SimpleForm
+            date={localDate}
+            categoryLabel="Divers"
+            descriptionRequired
+            initialData={{
+              amount: absAmount,
+              description: transaction.description ?? '',
+              is_internal: transaction.is_internal ?? false,
+            }}
+            onSubmit={handleUpdate}
+          />
+        )
+
       case 'Recettes':
       default:
         return (
           <SimpleForm
             date={localDate}
+            categoryLabel="Recettes"
             initialData={{
               amount: absAmount,
               description: transaction.description ?? '',
+              is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
           />
@@ -195,18 +229,17 @@ export default function EditTransactionDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            Modifier la transaction —{' '}
-            <span className={config.textColor}>{transaction.category}</span>
+            Modifier la transaction - <span className={config.textColor}>{transaction.category}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2 mb-2">
+        <div className="mb-2 space-y-2">
           <Label htmlFor="edit-date">Date</Label>
           <Input
             id="edit-date"
             type="date"
             value={localDate}
-            onChange={(e) => setLocalDate(e.target.value)}
+            onChange={(event) => setLocalDate(event.target.value)}
           />
         </div>
 

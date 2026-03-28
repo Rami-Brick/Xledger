@@ -1,7 +1,15 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import { useRole } from '@/lib/RoleProvider'
+import {
+  ArrowLeft,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import {
   CATEGORIES,
   MAIN_VIEW_TRANSACTIONS_FILTER,
@@ -11,19 +19,19 @@ import {
 } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import { getFixedCharges, type FixedCharge } from '@/features/fixed-charges/api'
+import { getLoanBalances, getLoanContacts, type LoanContact } from '@/features/loan-contacts/api'
 import { getProducts, type Product } from '@/features/products/api'
 import { getSubcategories, type Subcategory } from '@/features/subcategories/api'
 import { getSubscriptions, type Subscription } from '@/features/subscriptions/api'
-import { getLoanContacts, getLoanBalances, type LoanContact } from '@/features/loan-contacts/api'
-import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
-import { Card, CardContent } from '@/components/ui/card'
+import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { formatTND, formatDate } from '@/lib/format'
-import { toast } from 'sonner'
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useRole } from '@/lib/RoleProvider'
+import { formatDate, formatTND } from '@/lib/format'
+import { supabase } from '@/lib/supabase'
 
 interface CategorySummary {
   category: string
@@ -63,14 +71,14 @@ interface LoanBalance {
 
 const LOAN_HISTORY_PAGE_SIZE = 5
 
-function getEntityName(tx: TransactionRow): string {
-  if (tx.employees) return tx.employees.name
-  if (tx.fixed_charges) return tx.fixed_charges.name
-  if (tx.products) return tx.products.name
-  if (tx.subcategories) return tx.subcategories.name
-  if (tx.subscriptions) return tx.subscriptions.name
-  if (tx.loan_contacts) return tx.loan_contacts.name
-  return tx.description || ''
+function getEntityName(transaction: TransactionRow): string {
+  if (transaction.employees) return transaction.employees.name
+  if (transaction.fixed_charges) return transaction.fixed_charges.name
+  if (transaction.products) return transaction.products.name
+  if (transaction.subcategories) return transaction.subcategories.name
+  if (transaction.subscriptions) return transaction.subscriptions.name
+  if (transaction.loan_contacts) return transaction.loan_contacts.name
+  return transaction.description || ''
 }
 
 function getCurrentMonthRange() {
@@ -81,7 +89,7 @@ function getCurrentMonthRange() {
 }
 
 function getLoanEntryType(amount: number) {
-  return amount >= 0 ? 'Reçu' : 'Rendu'
+  return amount >= 0 ? 'Recu' : 'Rendu'
 }
 
 export default function CategoriesPage() {
@@ -126,10 +134,11 @@ export default function CategoriesPage() {
         map.set(category, { count: 0, total: 0 })
       }
 
-      for (const tx of data || []) {
-        const existing = map.get(tx.category)!
+      for (const transaction of data || []) {
+        const existing = map.get(transaction.category)
+        if (!existing) continue
         existing.count += 1
-        existing.total += Math.abs(Number(tx.amount))
+        existing.total += Math.abs(Number(transaction.amount))
       }
 
       setSummaries(
@@ -151,14 +160,12 @@ export default function CategoriesPage() {
   }, [fetchSummaries])
 
   const fetchCategoryDetail = useCallback(async (category: Category) => {
-    const transactions = await getTransactions({
+    const transactions = (await getTransactions({
       category,
-      includeInternal: category === 'Prêts',
-    })
+      includeInternal: true,
+    })) as TransactionRow[]
 
-    setCategoryTransactions(
-      (category === 'Prêts' ? transactions : transactions.slice(0, 15)) as TransactionRow[]
-    )
+    setCategoryTransactions(category === 'Prêts' ? transactions : transactions.slice(0, 15))
 
     if (category === 'Prêts') {
       setExpandedLoanContactId(null)
@@ -170,25 +177,30 @@ export default function CategoriesPage() {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
 
-    let allTimeQuery = supabase.from('transactions').select('amount').eq('category', category)
-    let thisMonthQuery = supabase.from('transactions').select('amount').eq('category', category).gte('date', thisMonthStart)
-    let lastMonthQuery = supabase.from('transactions').select('amount').eq('category', category).gte('date', lastMonthStart).lte('date', lastMonthEnd)
-
-    if (category !== 'Prêts') {
-      allTimeQuery = allTimeQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
-      thisMonthQuery = thisMonthQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
-      lastMonthQuery = lastMonthQuery.or(MAIN_VIEW_TRANSACTIONS_FILTER)
-    }
-
     const [allTime, thisMonth, lastMonth] = await Promise.all([
-      allTimeQuery,
-      thisMonthQuery,
-      lastMonthQuery,
+      supabase
+        .from('transactions')
+        .select('amount')
+        .eq('category', category)
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER),
+      supabase
+        .from('transactions')
+        .select('amount')
+        .eq('category', category)
+        .gte('date', thisMonthStart)
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER),
+      supabase
+        .from('transactions')
+        .select('amount')
+        .eq('category', category)
+        .gte('date', lastMonthStart)
+        .lte('date', lastMonthEnd)
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER),
     ])
 
-    setAllTimeTotal((allTime.data || []).reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0))
-    setThisMonthTotal((thisMonth.data || []).reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0))
-    setLastMonthTotal((lastMonth.data || []).reduce((sum, tx) => sum + Math.abs(Number(tx.amount)), 0))
+    setAllTimeTotal((allTime.data || []).reduce((sum, transaction) => sum + Math.abs(Number(transaction.amount)), 0))
+    setThisMonthTotal((thisMonth.data || []).reduce((sum, transaction) => sum + Math.abs(Number(transaction.amount)), 0))
+    setLastMonthTotal((lastMonth.data || []).reduce((sum, transaction) => sum + Math.abs(Number(transaction.amount)), 0))
 
     switch (category) {
       case 'Charges fixes':
@@ -227,7 +239,7 @@ export default function CategoriesPage() {
     try {
       await fetchCategoryDetail(category)
     } catch {
-      toast.error('Erreur chargement détails')
+      toast.error('Erreur chargement details')
     } finally {
       setDetailLoading(false)
     }
@@ -238,7 +250,7 @@ export default function CategoriesPage() {
 
     try {
       await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimée')
+      toast.success('Transaction supprimee')
       setDeleteTarget(null)
       await fetchSummaries()
       if (selectedCategory) {
@@ -250,17 +262,10 @@ export default function CategoriesPage() {
   }
 
   const toggleLoanHistory = (loanContactId: string) => {
-    setExpandedLoanContactId((current) => {
-      if (current === loanContactId) return null
-      return loanContactId
-    })
-
+    setExpandedLoanContactId((current) => (current === loanContactId ? null : loanContactId))
     setLoanHistoryVisibleCount((current) => {
       if (current[loanContactId]) return current
-      return {
-        ...current,
-        [loanContactId]: LOAN_HISTORY_PAGE_SIZE,
-      }
+      return { ...current, [loanContactId]: LOAN_HISTORY_PAGE_SIZE }
     })
   }
 
@@ -275,29 +280,32 @@ export default function CategoriesPage() {
     return (
       <div>
         <div className="mb-6">
-          <h2 className="text-2xl font-bold">Catégories</h2>
-          <p className="text-muted-foreground text-sm mt-1">Vue d&apos;ensemble par catégorie — ce mois</p>
+          <h2 className="text-2xl font-bold">Categories</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Vue d'ensemble par categorie - ce mois</p>
         </div>
 
         {loading ? (
-          <p className="text-muted-foreground py-8 text-center">Chargement...</p>
+          <p className="py-8 text-center text-muted-foreground">Chargement...</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {summaries.map((summary) => {
               const config = categoryConfig[summary.category as Category]
               const Icon = config.icon
+
               return (
                 <Card
                   key={summary.category}
                   className={`cursor-pointer border-2 transition-all hover:shadow-md ${config.color}`}
                   onClick={() => openDetail(summary.category as Category)}
                 >
-                  <CardContent className="py-5 px-3">
-                    <div className="flex flex-col items-center text-center gap-2">
+                  <CardContent className="px-3 py-5">
+                    <div className="flex flex-col items-center gap-2 text-center">
                       <Icon className={`h-7 w-7 ${config.textColor}`} />
-                      <span className={`text-xs sm:text-sm font-medium ${config.textColor}`}>{config.label}</span>
+                      <span className={`text-xs font-medium sm:text-sm ${config.textColor}`}>
+                        {config.label}
+                      </span>
                     </div>
-                    <div className="mt-3 text-center space-y-1">
+                    <div className="mt-3 space-y-1 text-center">
                       <p className="text-lg font-bold">{formatTND(summary.total)}</p>
                       <p className="text-[10px] text-muted-foreground">
                         {summary.count} transaction{summary.count !== 1 ? 's' : ''}
@@ -324,11 +332,11 @@ export default function CategoriesPage() {
 
         return (
           <Card>
-            <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Charges enregistrées</p>
+            <CardContent className="pb-3 pt-5">
+              <p className="mb-3 text-sm font-medium">Charges enregistrees</p>
               <div className="space-y-2">
                 {activeCharges.map((charge) => (
-                  <div key={charge.id} className="flex items-center justify-between text-sm py-1">
+                  <div key={charge.id} className="flex items-center justify-between py-1 text-sm">
                     <span>{charge.name}</span>
                     <span className="text-muted-foreground">{formatTND(charge.default_amount)}</span>
                   </div>
@@ -345,11 +353,11 @@ export default function CategoriesPage() {
 
         return (
           <Card>
-            <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Produits actifs</p>
+            <CardContent className="pb-3 pt-5">
+              <p className="mb-3 text-sm font-medium">Produits actifs</p>
               <div className="space-y-2">
                 {activeProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between text-sm py-1">
+                  <div key={product.id} className="flex items-center justify-between py-1 text-sm">
                     <span>{product.name}</span>
                     {product.description && (
                       <span className="text-xs text-muted-foreground">{product.description}</span>
@@ -371,11 +379,13 @@ export default function CategoriesPage() {
 
         return (
           <Card>
-            <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Sous-catégories</p>
+            <CardContent className="pb-3 pt-5">
+              <p className="mb-3 text-sm font-medium">Sous-categories</p>
               <div className="flex flex-wrap gap-2">
                 {activeSubcategories.map((subcategory) => (
-                  <Badge key={subcategory.id} variant="outline">{subcategory.name}</Badge>
+                  <Badge key={subcategory.id} variant="outline">
+                    {subcategory.name}
+                  </Badge>
                 ))}
               </div>
             </CardContent>
@@ -389,11 +399,11 @@ export default function CategoriesPage() {
 
         return (
           <Card>
-            <CardContent className="pt-5 pb-3">
-              <p className="text-sm font-medium mb-3">Abonnements actifs</p>
+            <CardContent className="pb-3 pt-5">
+              <p className="mb-3 text-sm font-medium">Abonnements actifs</p>
               <div className="space-y-2">
                 {activeSubscriptions.map((subscription) => (
-                  <div key={subscription.id} className="flex items-center justify-between text-sm py-1">
+                  <div key={subscription.id} className="flex items-center justify-between py-1 text-sm">
                     <span>{subscription.name}</span>
                     <span className="text-muted-foreground">{formatTND(subscription.default_amount)}</span>
                   </div>
@@ -415,21 +425,21 @@ export default function CategoriesPage() {
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <Card>
-                <CardContent className="pt-4 pb-4 px-3">
-                  <p className="text-xs text-muted-foreground">Total reçu</p>
-                  <p className="text-base font-bold mt-1">{formatTND(totalReceived)}</p>
+                <CardContent className="px-3 pb-4 pt-4">
+                  <p className="text-xs text-muted-foreground">Total recu</p>
+                  <p className="mt-1 text-base font-bold">{formatTND(totalReceived)}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4 pb-4 px-3">
+                <CardContent className="px-3 pb-4 pt-4">
                   <p className="text-xs text-muted-foreground">Total rendu</p>
-                  <p className="text-base font-bold mt-1 text-green-600">{formatTND(totalReturned)}</p>
+                  <p className="mt-1 text-base font-bold text-green-600">{formatTND(totalReturned)}</p>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="pt-4 pb-4 px-3">
+                <CardContent className="px-3 pb-4 pt-4">
                   <p className="text-xs text-muted-foreground">Reste</p>
-                  <p className={`text-base font-bold mt-1 ${totalRemaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                  <p className={`mt-1 text-base font-bold ${totalRemaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                     {formatTND(totalRemaining)}
                   </p>
                 </CardContent>
@@ -438,21 +448,23 @@ export default function CategoriesPage() {
 
             {loanBalances.length > 0 && (
               <Card>
-                <CardContent className="pt-5 pb-3">
-                  <p className="text-sm font-medium mb-1">Soldes par personne</p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Cliquez sur une personne pour voir l&apos;historique.
+                <CardContent className="pb-3 pt-5">
+                  <p className="mb-1 text-sm font-medium">Soldes par personne</p>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Cliquez sur une personne pour voir l'historique.
                   </p>
                   <div className="space-y-3">
                     {loanBalances.map((balance) => {
-                      const percent = balance.total_lent > 0
-                        ? Math.min((balance.total_repaid / balance.total_lent) * 100, 100)
-                        : 0
+                      const percent =
+                        balance.total_lent > 0
+                          ? Math.min((balance.total_repaid / balance.total_lent) * 100, 100)
+                          : 0
                       const isExpanded = expandedLoanContactId === balance.loan_contact_id
                       const entries = categoryTransactions.filter(
-                        (tx) => tx.loan_contact_id === balance.loan_contact_id
+                        (transaction) => transaction.loan_contact_id === balance.loan_contact_id
                       )
-                      const visibleCount = loanHistoryVisibleCount[balance.loan_contact_id] || LOAN_HISTORY_PAGE_SIZE
+                      const visibleCount =
+                        loanHistoryVisibleCount[balance.loan_contact_id] || LOAN_HISTORY_PAGE_SIZE
                       const visibleEntries = entries.slice(0, visibleCount)
                       const hasMore = entries.length > visibleEntries.length
 
@@ -466,52 +478,70 @@ export default function CategoriesPage() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1 space-y-1.5">
                                 <div className="flex items-center justify-between gap-3 text-sm">
-                                  <span className="font-medium truncate">{balance.name}</span>
-                                  <span className={`text-xs font-semibold shrink-0 ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                                    {balance.remaining > 0 ? `Reste: ${formatTND(balance.remaining)}` : 'Soldé'}
+                                  <span className="truncate font-medium">{balance.name}</span>
+                                  <span className={`shrink-0 text-xs font-semibold ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                                    {balance.remaining > 0
+                                      ? `Reste: ${formatTND(balance.remaining)}`
+                                      : 'Solde'}
                                   </span>
                                 </div>
                                 <Progress
                                   value={percent}
-                                  className={`h-1.5 ${balance.remaining <= 0 ? '[&>div]:bg-green-500' : '[&>div]:bg-blue-500'}`}
+                                  className={`h-1.5 ${
+                                    balance.remaining <= 0
+                                      ? '[&>div]:bg-green-500'
+                                      : '[&>div]:bg-blue-500'
+                                  }`}
                                 />
                                 <div className="flex justify-between text-[10px] text-muted-foreground">
                                   <span>Rendu: {formatTND(balance.total_repaid)}</span>
-                                  <span>Reçu: {formatTND(balance.total_lent)}</span>
+                                  <span>Recu: {formatTND(balance.total_lent)}</span>
                                 </div>
                               </div>
                               <span className="shrink-0 text-muted-foreground">
-                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                {isExpanded ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
                               </span>
                             </div>
                           </button>
 
                           {isExpanded && (
-                            <div className="border-t px-4 py-3 space-y-2">
+                            <div className="space-y-2 border-t px-4 py-3">
                               {entries.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Aucune entrée pour cette personne.</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Aucune entree pour cette personne.
+                                </p>
                               ) : (
                                 <>
-                                  {visibleEntries.map((tx) => (
-                                    <div key={tx.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
+                                  {visibleEntries.map((transaction) => (
+                                    <div
+                                      key={transaction.id}
+                                      className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2"
+                                    >
                                       <div className="min-w-0 space-y-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className="text-sm font-medium">{getLoanEntryType(tx.amount)}</span>
-                                          {tx.is_internal && (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="text-sm font-medium">
+                                            {getLoanEntryType(transaction.amount)}
+                                          </span>
+                                          {transaction.is_internal && (
                                             <Badge variant="secondary" className="text-[10px]">
                                               Interne
                                             </Badge>
                                           )}
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                          {formatDate(tx.date)}
-                                          {tx.description ? ` • ${tx.description}` : ''}
+                                          {formatDate(transaction.date)}
+                                          {transaction.description ? ` - ${transaction.description}` : ''}
                                         </p>
                                       </div>
 
                                       <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`text-sm font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                          {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
+                                        <span className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {transaction.amount >= 0 ? '+' : ''}
+                                          {formatTND(transaction.amount)}
                                         </span>
                                         {canTransact && (
                                           <div className="flex items-center gap-1">
@@ -519,7 +549,7 @@ export default function CategoriesPage() {
                                               variant="ghost"
                                               size="icon"
                                               className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                              onClick={() => setEditTarget(tx)}
+                                              onClick={() => setEditTarget(transaction)}
                                             >
                                               <Pencil className="h-3.5 w-3.5" />
                                             </Button>
@@ -527,7 +557,7 @@ export default function CategoriesPage() {
                                               variant="ghost"
                                               size="icon"
                                               className="h-7 w-7 text-destructive hover:text-destructive"
-                                              onClick={() => setDeleteTarget(tx)}
+                                              onClick={() => setDeleteTarget(transaction)}
                                             >
                                               <Trash2 className="h-3.5 w-3.5" />
                                             </Button>
@@ -578,40 +608,40 @@ export default function CategoriesPage() {
           className="mb-3 gap-2 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Toutes les catégories
+          Toutes les categories
         </Button>
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-md ${config.color}`}>
+          <div className={`rounded-md p-2.5 ${config.color}`}>
             <Icon className={`h-6 w-6 ${config.textColor}`} />
           </div>
           <div>
             <h2 className="text-2xl font-bold">{config.label}</h2>
-            <p className="text-muted-foreground text-sm">Vue détaillée</p>
+            <p className="text-sm text-muted-foreground">Vue detaillee</p>
           </div>
         </div>
       </div>
 
       {detailLoading ? (
-        <p className="text-muted-foreground py-8 text-center">Chargement...</p>
+        <p className="py-8 text-center text-muted-foreground">Chargement...</p>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3">
             <Card>
-              <CardContent className="pt-4 pb-4 px-3">
+              <CardContent className="px-3 pb-4 pt-4">
                 <p className="text-xs text-muted-foreground">Ce mois</p>
-                <p className="text-base sm:text-lg font-bold mt-1">{formatTND(thisMonthTotal)}</p>
+                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(thisMonthTotal)}</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-4 pb-4 px-3">
+              <CardContent className="px-3 pb-4 pt-4">
                 <p className="text-xs text-muted-foreground">Mois dernier</p>
-                <p className="text-base sm:text-lg font-bold mt-1">{formatTND(lastMonthTotal)}</p>
+                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(lastMonthTotal)}</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="pt-4 pb-4 px-3">
+              <CardContent className="px-3 pb-4 pt-4">
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-base sm:text-lg font-bold mt-1">{formatTND(allTimeTotal)}</p>
+                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(allTimeTotal)}</p>
               </CardContent>
             </Card>
           </div>
@@ -619,7 +649,7 @@ export default function CategoriesPage() {
           {canTransact && (
             <Button
               onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
-              className="gap-2 w-full sm:w-auto"
+              className="w-full gap-2 sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Ajouter une transaction {config.label}
@@ -630,48 +660,71 @@ export default function CategoriesPage() {
 
           {selectedCategory !== 'Prêts' && (
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium">Transactions récentes</p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-medium">Transactions recentes</p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() =>
-                    navigate(`/historique?category=${encodeURIComponent(selectedCategory)}`)
-                  }
-                  className="text-xs gap-1"
+                  onClick={() => navigate(`/historique?category=${encodeURIComponent(selectedCategory)}`)}
+                  className="gap-1 text-xs"
                 >
                   Voir tout <ArrowRight className="h-3 w-3" />
                 </Button>
               </div>
 
               {categoryTransactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Aucune transaction</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">Aucune transaction</p>
               ) : (
                 <div className="space-y-2">
-                  {categoryTransactions.map((tx) => {
-                    const entityName = getEntityName(tx)
+                  {categoryTransactions.map((transaction) => {
+                    const entityName = getEntityName(transaction)
 
                     return (
-                      <Card key={tx.id}>
-                        <CardContent className="py-3 px-4">
+                      <Card key={transaction.id}>
+                        <CardContent className="px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <p className="text-sm font-medium truncate">
-                                  {entityName || tx.description || selectedCategory}
+                              <div className="flex min-w-0 items-center gap-2">
+                                <p className="truncate text-sm font-medium">
+                                  {entityName || transaction.description || selectedCategory}
                                 </p>
-                                {tx.is_internal && (
-                                  <Badge variant="secondary" className="text-[10px] shrink-0">
+                                {transaction.is_internal && (
+                                  <Badge variant="secondary" className="shrink-0 text-[10px]">
                                     Interne
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-muted-foreground">{formatDate(tx.date)}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(transaction.date)}
+                              </p>
                             </div>
 
-                            <span className={`text-sm font-semibold shrink-0 ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {tx.amount >= 0 ? '+' : ''}{formatTND(tx.amount)}
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {transaction.amount >= 0 ? '+' : ''}
+                                {formatTND(transaction.amount)}
+                              </span>
+                              {canTransact && transaction.is_internal && (
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setEditTarget(transaction)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    onClick={() => setDeleteTarget(transaction)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -688,7 +741,9 @@ export default function CategoriesPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cette transaction ?"
-        description={`Êtes-vous sûr de vouloir supprimer cette transaction de ${deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''} ? Cette action est irréversible.`}
+        description={`Etes-vous sur de vouloir supprimer cette transaction de ${
+          deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
+        } ? Cette action est irreversible.`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

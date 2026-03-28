@@ -1,11 +1,18 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { getLoanContacts, getLoanBalances, type LoanContact } from '@/features/loan-contacts/api'
+import { useEffect, useState, type FormEvent } from 'react'
+import { getLoanBalances, getLoanContacts, type LoanContact } from '@/features/loan-contacts/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { formatTND } from '@/lib/format'
 import { toast } from 'sonner'
+import InternalEntryField from './InternalEntryField'
 
 interface Props {
   date: string
@@ -63,16 +70,16 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
   const selectedContact = contacts.find((contact) => contact.id === selectedId)
   const selectedBalance = balances.find((balance) => balance.loan_contact_id === selectedId)
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
     if (!selectedId || amount <= 0) return
 
     setLoading(true)
     try {
-      const label = isRendu ? 'Rendu' : 'Reçu'
+      const label = isRendu ? 'Rendu' : 'Recu'
       await onSubmit({
         amount,
-        description: `${label} — ${selectedContact?.name}`,
+        description: `${label} - ${selectedContact?.name}`,
         loan_contact_id: selectedId,
         isRendu,
         is_internal: isInternal,
@@ -102,7 +109,7 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
             onClick={() => setIsRendu(false)}
             className="w-full"
           >
-            Reçu
+            Recu
           </Button>
           <Button
             type="button"
@@ -115,8 +122,8 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
         </div>
         <p className="text-xs text-muted-foreground">
           {isRendu
-            ? 'La société rembourse — argent qui sort'
-            : 'La société reçoit un prêt — argent qui entre'}
+            ? 'La societe rembourse - argent qui sort'
+            : 'La societe recoit un pret - argent qui entre'}
         </p>
       </div>
 
@@ -124,12 +131,13 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
         <Label>Personne</Label>
         <Select value={selectedId} onValueChange={setSelectedId}>
           <SelectTrigger>
-            <SelectValue placeholder="Sélectionner une personne" />
+            <SelectValue placeholder="Selectionner une personne" />
           </SelectTrigger>
           <SelectContent>
             {contacts.map((contact) => (
               <SelectItem key={contact.id} value={contact.id}>
-                {contact.name}{contact.description ? ` — ${contact.description}` : ''}
+                {contact.name}
+                {contact.description ? ` - ${contact.description}` : ''}
               </SelectItem>
             ))}
           </SelectContent>
@@ -137,9 +145,9 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
       </div>
 
       {selectedBalance && (
-        <div className="rounded-md bg-muted p-4 space-y-2 text-sm">
+        <div className="space-y-2 rounded-md bg-muted p-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Total reçu</span>
+            <span className="text-muted-foreground">Total recu</span>
             <span className="font-medium">{formatTND(selectedBalance.total_lent)}</span>
           </div>
           <div className="flex justify-between">
@@ -147,8 +155,12 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
             <span className="font-medium">{formatTND(selectedBalance.total_repaid)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
-            <span className="font-medium">Reste à rendre</span>
-            <span className={`font-bold ${selectedBalance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+            <span className="font-medium">Reste a rendre</span>
+            <span
+              className={`font-bold ${
+                selectedBalance.remaining > 0 ? 'text-orange-600' : 'text-green-600'
+              }`}
+            >
               {formatTND(selectedBalance.remaining)}
             </span>
           </div>
@@ -163,33 +175,19 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
           step="0.001"
           min="0.001"
           value={amount || ''}
-          onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+          onChange={(event) => setAmount(parseFloat(event.target.value) || 0)}
           required
         />
       </div>
 
-      <div className="rounded-md border p-4 space-y-2">
-        <div className="flex items-start gap-3">
-          <input
-            id="is-internal"
-            type="checkbox"
-            checked={isInternal}
-            onChange={(e) => setIsInternal(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-input"
-          />
-          <div className="space-y-1">
-            <Label htmlFor="is-internal" className="cursor-pointer">
-              Entrée interne
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Ne pas inclure cette entrée dans le solde global ni dans l&apos;historique. Elle restera visible dans les détails de la catégorie Prêts.
-            </p>
-          </div>
-        </div>
-      </div>
+      <InternalEntryField
+        checked={isInternal}
+        onCheckedChange={setIsInternal}
+        categoryLabel="Prets"
+      />
 
       <Button type="submit" className="w-full" disabled={loading || !selectedId || amount <= 0}>
-        {loading ? 'Enregistrement...' : isRendu ? 'Enregistrer le rendu' : 'Enregistrer le reçu'}
+        {loading ? 'Enregistrement...' : isRendu ? 'Enregistrer le rendu' : 'Enregistrer le recu'}
       </Button>
     </form>
   )
