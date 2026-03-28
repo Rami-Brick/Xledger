@@ -11,6 +11,7 @@ import HistoryPage from '@/pages/HistoryPage'
 import CategoriesPage from '@/pages/CategoriesPage'
 import SalariesPage from '@/pages/SalariesPage'
 import ReportsPage from '@/pages/ReportsPage'
+import LogsPage from '@/pages/LogsPage'
 import EmployeesPage from '@/pages/settings/EmployeesPage'
 import FixedChargesPage from '@/pages/settings/FixedChargesPage'
 import ProductsPage from '@/pages/settings/ProductsPage'
@@ -34,7 +35,7 @@ function LoginRoute() {
 }
 
 function HomeRedirect() {
-  const { canTransact, loading } = useRole()
+  const { canCreateTransactions, loading } = useRole()
 
   if (loading) {
     return (
@@ -44,7 +45,7 @@ function HomeRedirect() {
     )
   }
 
-  return canTransact ? <AddTransactionPage /> : <DashboardPage />
+  return canCreateTransactions ? <AddTransactionPage /> : <DashboardPage />
 }
 
 function App() {
@@ -68,6 +69,7 @@ function App() {
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="salaires" element={<SalariesPage />} />
               <Route path="rapports" element={<ReportsPage />} />
+              <Route path="logs" element={<LogsPage />} />
               <Route path="parametres/employes" element={<EmployeesPage />} />
               <Route path="parametres/charges-fixes" element={<FixedChargesPage />} />
               <Route path="parametres/produits" element={<ProductsPage />} />

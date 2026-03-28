@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Pencil, Search, Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
 import {
   CATEGORIES,
@@ -8,8 +10,8 @@ import {
   type Category,
 } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
-import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
+import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,8 +25,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatDate, formatTND } from '@/lib/format'
-import { Pencil, Search, Trash2, X } from 'lucide-react'
-import { toast } from 'sonner'
 
 interface TransactionRow {
   id: string
@@ -48,19 +48,23 @@ interface TransactionRow {
   loan_contacts: { name: string } | null
 }
 
-function getEntityName(tx: TransactionRow): string {
-  if (tx.employees) return tx.employees.name
-  if (tx.fixed_charges) return tx.fixed_charges.name
-  if (tx.products) return tx.products.name
-  if (tx.subcategories) return tx.subcategories.name
-  if (tx.subscriptions) return tx.subscriptions.name
-  if (tx.loan_contacts) return tx.loan_contacts.name
+function getEntityName(transaction: TransactionRow): string {
+  if (transaction.employees) return transaction.employees.name
+  if (transaction.fixed_charges) return transaction.fixed_charges.name
+  if (transaction.products) return transaction.products.name
+  if (transaction.subcategories) return transaction.subcategories.name
+  if (transaction.subscriptions) return transaction.subscriptions.name
+  if (transaction.loan_contacts) return transaction.loan_contacts.name
   return ''
 }
 
 function getCategoryFilterFromSearchParams(searchParams: URLSearchParams) {
   const category = searchParams.get('category')
   return category && CATEGORIES.includes(category as Category) ? category : 'all'
+}
+
+function getIncludeInternalFromSearchParams(searchParams: URLSearchParams) {
+  return searchParams.get('includeInternal') === 'true'
 }
 
 export default function HistoryPage() {
@@ -78,7 +82,10 @@ export default function HistoryPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const { isAdmin } = useRole()
+  const [showInternalEntries, setShowInternalEntries] = useState<boolean>(() =>
+    getIncludeInternalFromSearchParams(searchParams)
+  )
+  const { canEditTransactions, canDeleteTransactions } = useRole()
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -88,6 +95,7 @@ export default function HistoryPage() {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         search: search || undefined,
+        includeInternal: showInternalEntries,
       })
 
       let filtered = data as TransactionRow[]
@@ -104,7 +112,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false)
     }
-  }, [categoryFilter, endDate, search, startDate, typeFilter])
+  }, [categoryFilter, endDate, search, showInternalEntries, startDate, typeFilter])
 
   useEffect(() => {
     fetchTransactions()
@@ -112,34 +120,52 @@ export default function HistoryPage() {
 
   useEffect(() => {
     const categoryFromUrl = getCategoryFilterFromSearchParams(searchParams)
+    const includeInternalFromUrl = getIncludeInternalFromSearchParams(searchParams)
+
     setCategoryFilter((current) => (current === categoryFromUrl ? current : categoryFromUrl))
+    setShowInternalEntries((current) =>
+      current === includeInternalFromUrl ? current : includeInternalFromUrl
+    )
   }, [searchParams])
 
   useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams)
+    let shouldUpdate = false
+
     const currentCategory = searchParams.get('category')
+    const currentIncludeInternal = searchParams.get('includeInternal')
 
     if (categoryFilter === 'all') {
-      if (!currentCategory) return
-
-      const nextParams = new URLSearchParams(searchParams)
-      nextParams.delete('category')
-      setSearchParams(nextParams, { replace: true })
-      return
+      if (currentCategory) {
+        nextParams.delete('category')
+        shouldUpdate = true
+      }
+    } else if (currentCategory !== categoryFilter) {
+      nextParams.set('category', categoryFilter)
+      shouldUpdate = true
     }
 
-    if (currentCategory === categoryFilter) return
+    if (showInternalEntries) {
+      if (currentIncludeInternal !== 'true') {
+        nextParams.set('includeInternal', 'true')
+        shouldUpdate = true
+      }
+    } else if (currentIncludeInternal) {
+      nextParams.delete('includeInternal')
+      shouldUpdate = true
+    }
 
-    const nextParams = new URLSearchParams(searchParams)
-    nextParams.set('category', categoryFilter)
-    setSearchParams(nextParams, { replace: true })
-  }, [categoryFilter, searchParams, setSearchParams])
+    if (shouldUpdate) {
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [categoryFilter, searchParams, setSearchParams, showInternalEntries])
 
   const handleDelete = async () => {
     if (!deleteTarget) return
 
     try {
       await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimée')
+      toast.success('Transaction supprimee')
       setDeleteTarget(null)
       await fetchTransactions()
     } catch {
@@ -153,10 +179,16 @@ export default function HistoryPage() {
     setTypeFilter('all')
     setStartDate('')
     setEndDate('')
+    setShowInternalEntries(false)
   }
 
   const hasActiveFilters =
-    search || categoryFilter !== 'all' || typeFilter !== 'all' || startDate || endDate
+    search ||
+    categoryFilter !== 'all' ||
+    typeFilter !== 'all' ||
+    startDate ||
+    endDate ||
+    showInternalEntries
   const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
 
   return (
@@ -166,14 +198,14 @@ export default function HistoryPage() {
           <h2 className="text-xl font-bold sm:text-2xl">Historique</h2>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
-            {hasActiveFilters ? ' (filtré)' : ''}
+            {hasActiveFilters ? ' (filtre)' : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-xs">
               <X className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Réinitialiser</span>
+              <span className="hidden sm:inline">Reinitialiser</span>
             </Button>
           )}
           <Button
@@ -201,12 +233,15 @@ export default function HistoryPage() {
       <div className={`mb-4 space-y-3 ${showFilters ? 'block' : 'hidden'} sm:block`}>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <Label htmlFor="history-category-filter" className="shrink-0 text-xs text-muted-foreground">
-              Catégories
+            <Label
+              htmlFor="history-category-filter"
+              className="shrink-0 text-xs text-muted-foreground"
+            >
+              Categories
             </Label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger id="history-category-filter" className="flex-1 text-xs sm:text-sm">
-                <SelectValue placeholder="Catégorie" />
+                <SelectValue placeholder="Categorie" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes</SelectItem>
@@ -229,7 +264,7 @@ export default function HistoryPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tout</SelectItem>
-                <SelectItem value="expense">Dépenses</SelectItem>
+                <SelectItem value="expense">Depenses</SelectItem>
                 <SelectItem value="revenue">Recettes</SelectItem>
               </SelectContent>
             </Select>
@@ -247,6 +282,22 @@ export default function HistoryPage() {
             onChange={(event) => setEndDate(event.target.value)}
             className="text-xs sm:text-sm"
           />
+
+          <div className="flex items-center gap-2 rounded-md border px-3 py-2 sm:col-span-2">
+            <input
+              id="history-include-internal"
+              type="checkbox"
+              checked={showInternalEntries}
+              onChange={(event) => setShowInternalEntries(event.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            <Label
+              htmlFor="history-include-internal"
+              className="cursor-pointer text-xs text-muted-foreground sm:text-sm"
+            >
+              Entrees internes
+            </Label>
+          </div>
         </div>
       </div>
 
@@ -264,10 +315,10 @@ export default function HistoryPage() {
         <p className="py-8 text-center text-muted-foreground">Chargement...</p>
       ) : transactions.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
-          <p>Aucune transaction trouvée.</p>
+          <p>Aucune transaction trouvee.</p>
           {hasActiveFilters && (
             <Button variant="link" onClick={clearFilters} className="mt-2">
-              Réinitialiser les filtres
+              Reinitialiser les filtres
             </Button>
           )}
         </div>
@@ -279,11 +330,11 @@ export default function HistoryPage() {
             const entityName = getEntityName(transaction)
 
             return (
-              <Card key={transaction.id}>
-                <CardContent className="px-3 py-2.5 sm:px-4 sm:py-3">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`shrink-0 rounded-md p-1.5 sm:p-2 ${config.color}`}>
-                      <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${config.textColor}`} />
+              <Card key={transaction.id} className="gap-0 rounded-lg py-1 shadow-none sm:py-1.5">
+                <CardContent className="px-2 py-1 sm:px-2.5 sm:py-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`shrink-0 rounded-md p-1 ${config.color}`}>
+                      <Icon className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${config.textColor}`} />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -301,8 +352,8 @@ export default function HistoryPage() {
                         </span>
                       </div>
 
-                      <div className="mt-0.5 flex items-center justify-between">
-                        <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="mt-0 flex items-center justify-between">
+                        <div className="flex min-w-0 items-center gap-1">
                           <span className="shrink-0 text-[10px] text-muted-foreground sm:text-xs">
                             {formatDate(transaction.date)}
                           </span>
@@ -312,26 +363,35 @@ export default function HistoryPage() {
                           >
                             {transaction.category}
                           </Badge>
+                          {transaction.is_internal && (
+                            <Badge variant="secondary" className="text-[8px] sm:text-[10px]">
+                              Interne
+                            </Badge>
+                          )}
                         </div>
 
-                        {isAdmin && (
-                          <div className="flex shrink-0 items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground sm:h-7 sm:w-7"
-                              onClick={() => setEditTarget(transaction)}
-                            >
-                              <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive hover:text-destructive sm:h-7 sm:w-7"
-                              onClick={() => setDeleteTarget(transaction)}
-                            >
-                              <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            </Button>
+                        {(canEditTransactions || canDeleteTransactions) && (
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            {canEditTransactions && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-foreground sm:h-6 sm:w-6"
+                                onClick={() => setEditTarget(transaction)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {canDeleteTransactions && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-destructive hover:text-destructive sm:h-6 sm:w-6"
+                                onClick={() => setDeleteTarget(transaction)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -348,9 +408,9 @@ export default function HistoryPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cette transaction ?"
-        description={`Êtes-vous sûr de vouloir supprimer cette transaction de ${
+        description={`Etes-vous sur de vouloir supprimer cette transaction de ${
           deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
-        } ? Cette action est irréversible.`}
+        } ? Cette action est irreversible.`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

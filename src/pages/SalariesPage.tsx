@@ -91,7 +91,7 @@ function generateMonthOptions(): { value: string; label: string }[] {
 
 export default function SalariesPage() {
   const navigate = useNavigate()
-  const { isAdmin } = useRole()
+  const { canCreateTransactions } = useRole()
   const [statuses, setStatuses] = useState<SalaryStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth)
@@ -242,7 +242,7 @@ export default function SalariesPage() {
             <ArrowRight className="h-4 w-4" />
           </Button>
 
-          {isAdmin && (
+          {canCreateTransactions && (
             <Button
               onClick={() => navigate('/ajouter?category=Salaires')}
               className="w-full gap-2 sm:w-auto"

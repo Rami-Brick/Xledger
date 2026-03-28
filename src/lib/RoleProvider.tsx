@@ -9,7 +9,9 @@ interface RoleContextType {
   isAdmin: boolean
   isMod: boolean
   canManage: boolean   // admin OR mod — can manage entities/settings
-  canTransact: boolean // admin only — can add/edit/delete transactions
+  canCreateTransactions: boolean
+  canEditTransactions: boolean
+  canDeleteTransactions: boolean
   loading: boolean
 }
 
@@ -18,7 +20,9 @@ const RoleContext = createContext<RoleContextType>({
   isAdmin: false,
   isMod: false,
   canManage: false,
-  canTransact: false,
+  canCreateTransactions: false,
+  canEditTransactions: false,
+  canDeleteTransactions: false,
   loading: true,
 })
 
@@ -63,7 +67,9 @@ export function RoleProvider({ children }: { children: ReactNode }) {
       isAdmin,
       isMod,
       canManage: isAdmin || isMod,
-      canTransact: isAdmin,
+      canCreateTransactions: isAdmin,
+      canEditTransactions: isAdmin || isMod,
+      canDeleteTransactions: isAdmin,
       loading,
     }}>
       {children}
