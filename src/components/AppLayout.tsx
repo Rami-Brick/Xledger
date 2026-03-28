@@ -1,5 +1,17 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useState, type ComponentType } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
+import {
+  BarChart3,
+  ChevronDown,
+  Grid3X3,
+  LayoutDashboard,
+  List,
+  LogOut,
+  Menu,
+  PlusCircle,
+  ScrollText,
+  Settings,
+} from 'lucide-react'
 import { useRole } from '@/lib/RoleProvider'
 import { useAuth } from '@/features/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
@@ -13,37 +25,34 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetTrigger,
   SheetTitle,
+  SheetTrigger,
 } from '@/components/ui/sheet'
-import {
-  LayoutDashboard,
-  PlusCircle,
-  List,
-  BarChart3,
-  Settings,
-  LogOut,
-  Wallet,
-  ChevronDown,
-  Menu,
-  Grid3X3,
-} from 'lucide-react'
 
-const navItems = [
+interface NavItem {
+  to: string
+  icon: ComponentType<{ className?: string }>
+  label: string
+  requiresTransact?: boolean
+  requiresManage?: boolean
+}
+
+const navItems: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-  { to: '/ajouter', icon: PlusCircle, label: 'Ajouter' },
+  { to: '/ajouter', icon: PlusCircle, label: 'Ajouter', requiresTransact: true },
   { to: '/historique', icon: List, label: 'Historique' },
-  { to: '/categories', icon: Grid3X3, label: 'Catégories' },
+  { to: '/categories', icon: Grid3X3, label: 'Categories' },
   { to: '/rapports', icon: BarChart3, label: 'Rapports' },
+  { to: '/logs', icon: ScrollText, label: 'Journal', requiresManage: true },
 ]
 
 const settingsItems = [
-  { to: '/parametres/employes', label: 'Employés' },
+  { to: '/parametres/employes', label: 'Employes' },
   { to: '/parametres/charges-fixes', label: 'Charges fixes' },
   { to: '/parametres/produits', label: 'Produits' },
-  { to: '/parametres/sous-categories', label: 'Sous-catégories' },
+  { to: '/parametres/sous-categories', label: 'Sous-categories' },
   { to: '/parametres/abonnements', label: 'Abonnements' },
-  { to: '/parametres/contacts-prets', label: 'Contacts Prêts' },
+  { to: '/parametres/contacts-prets', label: 'Contacts prets' },
 ]
 
 function SidebarContent({
@@ -62,20 +71,19 @@ function SidebarContent({
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Logo / Title */}
+    <div className="flex h-full flex-col">
       <div className="p-6">
         <h1 className="text-lg font-bold">Xledger</h1>
-        {email && <p className="text-xs text-muted-foreground mt-1">{email}</p>}
+        {email && <p className="mt-1 text-xs text-muted-foreground">{email}</p>}
       </div>
 
       <Separator />
 
-      {/* Main Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
-          // Hide "Ajouter" for viewers
-          if (item.to === '/ajouter' && !canTransact) return null
+          if (item.requiresTransact && !canTransact) return null
+          if (item.requiresManage && !canManage) return null
+
           return (
             <NavLink
               key={item.to}
@@ -83,7 +91,7 @@ function SidebarContent({
               end
               onClick={onNavigate}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -96,15 +104,14 @@ function SidebarContent({
           )
         })}
 
-        {/* Collapsible Settings Section */}
-        {canManage  && (
+        {canManage && (
           <>
             <Separator className="my-4" />
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                 <span className="flex items-center gap-3">
                   <Settings className="h-4 w-4" />
-                  Paramètres
+                  Parametres
                 </span>
                 <ChevronDown
                   className={`h-4 w-4 transition-transform duration-200 ${
@@ -112,14 +119,14 @@ function SidebarContent({
                   }`}
                 />
               </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 mt-1">
+              <CollapsibleContent className="mt-1 space-y-1">
                 {settingsItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
                     onClick={onNavigate}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 pl-10 rounded-md text-sm transition-colors ${
+                      `flex items-center gap-3 rounded-md px-3 py-2 pl-10 text-sm transition-colors ${
                         isActive
                           ? 'bg-primary text-primary-foreground'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -135,8 +142,7 @@ function SidebarContent({
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t flex items-center justify-between">
+      <div className="flex items-center justify-between border-t p-4">
         <Button
           variant="ghost"
           size="sm"
@@ -147,7 +153,7 @@ function SidebarContent({
           }}
         >
           <LogOut className="h-4 w-4" />
-          Déconnexion
+          Deconnexion
         </Button>
         <ThemeToggle />
       </div>
@@ -161,15 +167,18 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div className="min-h-screen flex">
-      {/* Desktop Sidebar — hidden on mobile */}
-      <aside className="hidden md:flex w-64 border-r bg-muted/30 flex-col">
-        <SidebarContent signOut={signOut} email={user?.email} canTransact={canTransact} canManage={canManage} />
+    <div className="flex min-h-screen">
+      <aside className="hidden w-64 border-r bg-muted/30 md:flex md:flex-col">
+        <SidebarContent
+          signOut={signOut}
+          email={user?.email}
+          canTransact={canTransact}
+          canManage={canManage}
+        />
       </aside>
 
-      {/* Mobile Header + Sheet — visible on mobile only */}
-      <div className="flex flex-col flex-1">
-        <header className="md:hidden flex items-center gap-3 border-b px-4 py-3 bg-background">
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center gap-3 border-b bg-background px-4 py-3 md:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -187,11 +196,10 @@ export default function AppLayout() {
               />
             </SheetContent>
           </Sheet>
-          <h1 className="text-lg font-bold flex-1">Xledger</h1>
+          <h1 className="flex-1 text-lg font-bold">Xledger</h1>
           <ThemeToggle />
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-auto">
           <div className="p-4 md:p-8">
             <Outlet />
