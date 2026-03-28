@@ -2,24 +2,29 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import InternalEntryField from './InternalEntryField'
 
 interface SimpleFormProps {
   date: string
+  categoryLabel: string
   descriptionRequired?: boolean
   descriptionPlaceholder?: string
   submitLabel?: string
   initialData?: {
     amount: number
     description: string
+    is_internal?: boolean
   }
   onSubmit: (data: {
     amount: number
     description: string
+    is_internal?: boolean
   }) => Promise<void>
 }
 
 export default function SimpleForm({
   date,
+  categoryLabel,
   descriptionRequired = false,
   descriptionPlaceholder = 'Description',
   submitLabel = 'Enregistrer',
@@ -28,6 +33,7 @@ export default function SimpleForm({
 }: SimpleFormProps) {
   const [description, setDescription] = useState(initialData?.description ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
+  const [isInternal, setIsInternal] = useState(initialData?.is_internal ?? false)
   const [loading, setLoading] = useState(false)
   const isEditing = !!initialData
 
@@ -37,10 +43,11 @@ export default function SimpleForm({
     if (descriptionRequired && !description.trim()) return
     setLoading(true)
     try {
-      await onSubmit({ amount, description })
+      await onSubmit({ amount, description, is_internal: isInternal })
       if (!isEditing) {
         setDescription('')
         setAmount(0)
+        setIsInternal(false)
       }
     } finally {
       setLoading(false)
@@ -74,6 +81,12 @@ export default function SimpleForm({
           required
         />
       </div>
+
+      <InternalEntryField
+        checked={isInternal}
+        onCheckedChange={setIsInternal}
+        categoryLabel={categoryLabel}
+      />
 
       <Button type="submit" className="w-full" disabled={loading || amount <= 0}>
         {loading ? 'Enregistrement...' : submitLabel}

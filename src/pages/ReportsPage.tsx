@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CATEGORIES, type Category } from '@/features/transactions/api'
+import { MAIN_VIEW_TRANSACTIONS_FILTER, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -110,15 +110,37 @@ export default function ReportsPage() {
     setLoading(true)
     try {
       const { data: monthlyData } = await supabase
-        .from('monthly_summary').select('*').order('month', { ascending: true })
-      setMonthlySummary((monthlyData || []).map((r) => ({
-        month: r.month, total_revenue: Number(r.total_revenue),
-        total_expenses: Number(r.total_expenses), net: Number(r.net),
-      })))
+        .from('transactions')
+        .select('date, amount')
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER)
+        .order('date', { ascending: true })
+
+      const monthMap = new Map<string, MonthlySummaryRow>()
+      for (const row of monthlyData || []) {
+        const month = `${row.date.slice(0, 7)}-01`
+        const amount = Number(row.amount)
+        const existing = monthMap.get(month) || {
+          month,
+          total_revenue: 0,
+          total_expenses: 0,
+          net: 0,
+        }
+
+        if (amount >= 0) {
+          existing.total_revenue += amount
+        } else {
+          existing.total_expenses += Math.abs(amount)
+        }
+
+        existing.net = existing.total_revenue - existing.total_expenses
+        monthMap.set(month, existing)
+      }
+      setMonthlySummary(Array.from(monthMap.values()))
 
       const { data: txData } = await supabase
         .from('transactions').select('category, amount')
         .gte('date', startDate).lte('date', endDate).lt('amount', 0)
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER)
       const catMap = new Map<string, { total: number; count: number }>()
       for (const tx of txData || []) {
         const e = catMap.get(tx.category) || { total: 0, count: 0 }
@@ -174,6 +196,7 @@ export default function ReportsPage() {
           employees(name), fixed_charges(name), products(name),
           subcategories(name), subscriptions(name), loan_contacts(name)
         `)
+        .or(MAIN_VIEW_TRANSACTIONS_FILTER)
         .gte('date', startDate).lte('date', endDate).order('date', { ascending: true })
       if (error) throw error
       const exportData: ExportTransaction[] = (data || []).map((tx: any) => ({
