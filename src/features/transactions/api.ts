@@ -14,6 +14,7 @@ export const CATEGORIES = [
 ] as const
 
 export type Category = (typeof CATEGORIES)[number]
+export const MAIN_VIEW_TRANSACTIONS_FILTER = 'is_internal.is.null,is_internal.eq.false'
 
 export interface Transaction {
   id: string
@@ -22,6 +23,7 @@ export interface Transaction {
   category: Category
   amount: number
   description: string | null
+  is_internal: boolean
   employee_id: string | null
   fixed_charge_id: string | null
   product_id: string | null
@@ -35,6 +37,7 @@ export interface TransactionInsert {
   category: Category
   amount: number
   description?: string | null
+  is_internal?: boolean
   employee_id?: string | null
   fixed_charge_id?: string | null
   product_id?: string | null
@@ -60,6 +63,7 @@ export async function getTransactions(filters?: {
   endDate?: string
   search?: string
   limit?: number
+  includeInternal?: boolean
 }) {
   let query = supabase
     .from('transactions')
@@ -75,6 +79,7 @@ export async function getTransactions(filters?: {
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
 
+  if (!filters?.includeInternal) query = query.or(MAIN_VIEW_TRANSACTIONS_FILTER)
   if (filters?.category) query = query.eq('category', filters.category)
   if (filters?.startDate) query = query.gte('date', filters.startDate)
   if (filters?.endDate) query = query.lte('date', filters.endDate)
