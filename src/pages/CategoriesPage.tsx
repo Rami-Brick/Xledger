@@ -699,32 +699,10 @@ export default function CategoriesPage() {
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {transaction.amount >= 0 ? '+' : ''}
-                                {formatTND(transaction.amount)}
-                              </span>
-                              {canTransact && transaction.is_internal && (
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                    onClick={() => setEditTarget(transaction)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-destructive hover:text-destructive"
-                                    onClick={() => setDeleteTarget(transaction)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
+                            <span className={`shrink-0 text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {transaction.amount >= 0 ? '+' : ''}
+                              {formatTND(transaction.amount)}
+                            </span>
                           </div>
                         </CardContent>
                       </Card>
