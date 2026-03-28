@@ -85,7 +85,7 @@ export default function HistoryPage() {
   const [showInternalEntries, setShowInternalEntries] = useState<boolean>(() =>
     getIncludeInternalFromSearchParams(searchParams)
   )
-  const { isAdmin } = useRole()
+  const { canEditTransactions, canDeleteTransactions } = useRole()
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
@@ -370,24 +370,28 @@ export default function HistoryPage() {
                           )}
                         </div>
 
-                        {isAdmin && (
+                        {(canEditTransactions || canDeleteTransactions) && (
                           <div className="flex shrink-0 items-center gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-muted-foreground hover:text-foreground sm:h-6 sm:w-6"
-                              onClick={() => setEditTarget(transaction)}
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-destructive hover:text-destructive sm:h-6 sm:w-6"
-                              onClick={() => setDeleteTarget(transaction)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {canEditTransactions && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-muted-foreground hover:text-foreground sm:h-6 sm:w-6"
+                                onClick={() => setEditTarget(transaction)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {canDeleteTransactions && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-destructive hover:text-destructive sm:h-6 sm:w-6"
+                                onClick={() => setDeleteTarget(transaction)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>

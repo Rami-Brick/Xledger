@@ -33,13 +33,13 @@ interface NavItem {
   to: string
   icon: ComponentType<{ className?: string }>
   label: string
-  requiresTransact?: boolean
+  requiresCreateTransactions?: boolean
   requiresManage?: boolean
 }
 
 const navItems: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-  { to: '/ajouter', icon: PlusCircle, label: 'Ajouter', requiresTransact: true },
+  { to: '/ajouter', icon: PlusCircle, label: 'Ajouter', requiresCreateTransactions: true },
   { to: '/historique', icon: List, label: 'Historique' },
   { to: '/categories', icon: Grid3X3, label: 'Categories' },
   { to: '/rapports', icon: BarChart3, label: 'Rapports' },
@@ -59,13 +59,13 @@ function SidebarContent({
   onNavigate,
   signOut,
   email,
-  canTransact,
+  canCreateTransactions,
   canManage,
 }: {
   onNavigate?: () => void
   signOut: () => void
   email?: string
-  canTransact: boolean
+  canCreateTransactions: boolean
   canManage: boolean
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -81,7 +81,7 @@ function SidebarContent({
 
       <nav className="flex-1 space-y-1 p-4">
         {navItems.map((item) => {
-          if (item.requiresTransact && !canTransact) return null
+          if (item.requiresCreateTransactions && !canCreateTransactions) return null
           if (item.requiresManage && !canManage) return null
 
           return (
@@ -163,7 +163,7 @@ function SidebarContent({
 
 export default function AppLayout() {
   const { user, signOut } = useAuth()
-  const { canTransact, canManage } = useRole()
+  const { canCreateTransactions, canManage } = useRole()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -172,7 +172,7 @@ export default function AppLayout() {
         <SidebarContent
           signOut={signOut}
           email={user?.email}
-          canTransact={canTransact}
+          canCreateTransactions={canCreateTransactions}
           canManage={canManage}
         />
       </aside>
@@ -191,7 +191,7 @@ export default function AppLayout() {
                 onNavigate={() => setMobileOpen(false)}
                 signOut={signOut}
                 email={user?.email}
-                canTransact={canTransact}
+                canCreateTransactions={canCreateTransactions}
                 canManage={canManage}
               />
             </SheetContent>

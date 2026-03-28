@@ -35,7 +35,7 @@ function LoginRoute() {
 }
 
 function HomeRedirect() {
-  const { canTransact, loading } = useRole()
+  const { canCreateTransactions, loading } = useRole()
 
   if (loading) {
     return (
@@ -45,7 +45,7 @@ function HomeRedirect() {
     )
   }
 
-  return canTransact ? <AddTransactionPage /> : <DashboardPage />
+  return canCreateTransactions ? <AddTransactionPage /> : <DashboardPage />
 }
 
 function App() {

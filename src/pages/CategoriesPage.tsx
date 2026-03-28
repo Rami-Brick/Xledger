@@ -94,7 +94,7 @@ function getLoanEntryType(amount: number) {
 
 export default function CategoriesPage() {
   const navigate = useNavigate()
-  const { canTransact } = useRole()
+  const { canCreateTransactions, canEditTransactions, canDeleteTransactions } = useRole()
   const [summaries, setSummaries] = useState<CategorySummary[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categoryTransactions, setCategoryTransactions] = useState<TransactionRow[]>([])
@@ -543,24 +543,28 @@ export default function CategoriesPage() {
                                           {transaction.amount >= 0 ? '+' : ''}
                                           {formatTND(transaction.amount)}
                                         </span>
-                                        {canTransact && (
+                                        {(canEditTransactions || canDeleteTransactions) && (
                                           <div className="flex items-center gap-1">
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                              onClick={() => setEditTarget(transaction)}
-                                            >
-                                              <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-7 w-7 text-destructive hover:text-destructive"
-                                              onClick={() => setDeleteTarget(transaction)}
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            {canEditTransactions && (
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                onClick={() => setEditTarget(transaction)}
+                                              >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                              </Button>
+                                            )}
+                                            {canDeleteTransactions && (
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                                onClick={() => setDeleteTarget(transaction)}
+                                              >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                              </Button>
+                                            )}
                                           </div>
                                         )}
                                       </div>
@@ -646,7 +650,7 @@ export default function CategoriesPage() {
             </Card>
           </div>
 
-          {canTransact && (
+          {canCreateTransactions && (
             <Button
               onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
               className="w-full gap-2 sm:w-auto"

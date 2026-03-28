@@ -27,9 +27,9 @@ function getTodayDate() {
 
 export default function AddTransactionPage() {
   const [searchParams] = useSearchParams()
-  const { canTransact } = useRole()
+  const { canCreateTransactions } = useRole()
 
-  if (!canTransact) {
+  if (!canCreateTransactions) {
     return <Navigate to="/" replace />
   }
 
