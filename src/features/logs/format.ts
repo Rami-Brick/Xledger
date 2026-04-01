@@ -24,6 +24,7 @@ const FIELD_LABELS: Record<string, string> = {
   base_salary: 'salaire de base',
   role: 'role',
   date: 'date',
+  salary_month: 'mois du salaire',
   category: 'categorie',
   description: 'description',
   default_amount: 'montant par defaut',
@@ -137,6 +138,9 @@ function formatFieldValue(
     return referenceData.loanContacts[value] || value
   }
   if (field === 'date' && typeof value === 'string') {
+    return value
+  }
+  if (field === 'salary_month' && typeof value === 'string') {
     return value
   }
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non'

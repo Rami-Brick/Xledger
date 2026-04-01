@@ -21,6 +21,7 @@ import SubscriptionsForm from './forms/SubscriptionsForm'
 interface TransactionRow {
   id: string
   date: string
+  salary_month: string | null
   category: Category
   amount: number
   description: string | null
@@ -98,6 +99,7 @@ export default function EditTransactionDialog({
               amount: absAmount,
               description: transaction.description ?? '',
               employee_id: transaction.employee_id ?? '',
+              salary_month: transaction.salary_month,
               is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}

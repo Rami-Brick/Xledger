@@ -9,6 +9,10 @@ import {
   getTransactions,
   type Category,
 } from '@/features/transactions/api'
+import {
+  formatSalaryMonthLabel,
+  isSalaryMonthDifferentFromEntryDate,
+} from '@/features/transactions/salaryMonth'
 import { categoryConfig } from '@/features/transactions/categories'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
@@ -30,6 +34,7 @@ interface TransactionRow {
   id: string
   created_at: string
   date: string
+  salary_month: string | null
   category: Category
   amount: number
   description: string | null
@@ -328,6 +333,8 @@ export default function HistoryPage() {
             const config = categoryConfig[transaction.category]
             const Icon = config.icon
             const entityName = getEntityName(transaction)
+            const showSalaryMonth = transaction.category === 'Salaires'
+            const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
 
             return (
               <Card key={transaction.id} className="gap-0 rounded-lg py-1 shadow-none sm:py-1.5">
@@ -366,6 +373,18 @@ export default function HistoryPage() {
                           {transaction.is_internal && (
                             <Badge variant="secondary" className="text-[8px] sm:text-[10px]">
                               Interne
+                            </Badge>
+                          )}
+                          {showSalaryMonth && (
+                            <Badge
+                              variant="outline"
+                              className={`px-1 py-0 text-[8px] leading-tight sm:px-1.5 sm:text-[10px] ${
+                                salaryMonthDiffers
+                                  ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                  : ''
+                              }`}
+                            >
+                              Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
                             </Badge>
                           )}
                         </div>

@@ -43,6 +43,7 @@ interface TransactionRow {
   id: string
   created_at: string
   date: string
+  salary_month: string | null
   category: Category
   amount: number
   description: string | null
