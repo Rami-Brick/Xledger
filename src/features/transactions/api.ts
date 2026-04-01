@@ -20,6 +20,7 @@ export interface Transaction {
   id: string
   created_at: string
   date: string
+  salary_month: string | null
   category: Category
   amount: number
   description: string | null
@@ -34,6 +35,7 @@ export interface Transaction {
 
 export interface TransactionInsert {
   date: string
+  salary_month?: string | null
   category: Category
   amount: number
   description?: string | null

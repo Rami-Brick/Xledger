@@ -25,11 +25,19 @@ interface EmployeeFormDialogProps {
   onSubmit: (data: EmployeeInsert) => Promise<void>
 }
 
-const emptyForm: EmployeeInsert = {
+interface EmployeeFormState {
+  name: string
+  role: string
+  base_salary: string
+  pay_day: string
+  is_active: boolean
+}
+
+const emptyForm: EmployeeFormState = {
   name: '',
   role: '',
-  base_salary: 0,
-  pay_day: 25,
+  base_salary: '',
+  pay_day: '25',
   is_active: true,
 }
 
@@ -39,7 +47,7 @@ export default function EmployeeFormDialog({
   employee,
   onSubmit,
 }: EmployeeFormDialogProps) {
-  const [form, setForm] = useState<EmployeeInsert>(emptyForm)
+  const [form, setForm] = useState<EmployeeFormState>(emptyForm)
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!employee
@@ -49,8 +57,8 @@ export default function EmployeeFormDialog({
       setForm({
         name: employee.name,
         role: employee.role || '',
-        base_salary: employee.base_salary,
-        pay_day: employee.pay_day,
+        base_salary: String(employee.base_salary),
+        pay_day: String(employee.pay_day),
         is_active: employee.is_active,
       })
     } else {
@@ -60,9 +68,28 @@ export default function EmployeeFormDialog({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
+    const baseSalaryValue = form.base_salary.trim()
+    const payDayValue = form.pay_day.trim()
+
+    if (baseSalaryValue === '' || payDayValue === '') return
+
+    const baseSalary = Number(baseSalaryValue)
+    const payDay = Number(payDayValue)
+
+    if (Number.isNaN(baseSalary) || Number.isNaN(payDay) || payDay < 1 || payDay > 28) {
+      return
+    }
+
     setLoading(true)
     try {
-      await onSubmit(form)
+      await onSubmit({
+        name: form.name,
+        role: form.role,
+        base_salary: baseSalary,
+        pay_day: payDay,
+        is_active: form.is_active,
+      })
       onOpenChange(false)
     } finally {
       setLoading(false)
@@ -103,6 +130,7 @@ export default function EmployeeFormDialog({
                 <SelectItem value="Head of Marketing">Head of Marketing</SelectItem>
                 <SelectItem value="Head of IT">Head of IT</SelectItem>
                 <SelectItem value="Agent de confirmation">Agent de confirmation</SelectItem>
+                <SelectItem value="Photographe">Photographe</SelectItem>
                 </SelectContent>
             </Select>
           </div>
@@ -110,14 +138,14 @@ export default function EmployeeFormDialog({
             <div className="space-y-2">
               <Label htmlFor="base_salary">Salaire de base (TND)</Label>
               <Input
-                id="base_salary"
-                type="number"
-                step="0.001"
-                min="0"
-                value={form.base_salary || ''}
-                onChange={(e) =>
-                  setForm({ ...form, base_salary: parseFloat(e.target.value) || 0 })
-                }
+              id="base_salary"
+              type="number"
+              step="0.001"
+              min="0"
+              value={form.base_salary}
+              onChange={(e) =>
+                setForm({ ...form, base_salary: e.target.value })
+              }
                 required
               />
             </div>
@@ -130,7 +158,7 @@ export default function EmployeeFormDialog({
                 max="28"
                 value={form.pay_day}
                 onChange={(e) =>
-                  setForm({ ...form, pay_day: parseInt(e.target.value) || 25 })
+                  setForm({ ...form, pay_day: e.target.value })
                 }
                 required
               />

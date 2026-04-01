@@ -25,6 +25,12 @@ import {
 import { useRole } from '@/lib/RoleProvider'
 import { formatDate, formatTND } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
+import {
+  formatSalaryMonthLabel,
+  getEffectiveSalaryMonth,
+  isSalaryMonthDifferentFromEntryDate,
+  normalizeSalaryMonth,
+} from '@/features/transactions/salaryMonth'
 
 interface SalaryStatus {
   employee_id: string
@@ -40,6 +46,7 @@ interface SalaryStatus {
 interface SalaryTransaction {
   id: string
   date: string
+  salary_month: string | null
   amount: number
   description: string | null
   is_internal: boolean | null
@@ -118,20 +125,21 @@ export default function SalariesPage() {
 
       let transactionsQuery = supabase
         .from('transactions')
-        .select('employee_id, amount')
+        .select('employee_id, amount, date, salary_month')
         .eq('category', 'Salaires')
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
-
-      if (!isAllTime) {
-        const { startDate, endDate } = getMonthDateRange(selectedMonth)
-        transactionsQuery = transactionsQuery.gte('date', startDate).lte('date', endDate)
-      }
 
       const { data: transactions, error: transactionsError } = await transactionsQuery
       if (transactionsError) throw transactionsError
 
+      const filteredTransactions = isAllTime
+        ? transactions || []
+        : (transactions || []).filter(
+            (transaction) => getEffectiveSalaryMonth(transaction) === normalizeSalaryMonth(selectedMonth)
+          )
+
       const statusList: SalaryStatus[] = (employees || []).map((employee) => {
-        const employeeTransactions = (transactions || []).filter(
+        const employeeTransactions = filteredTransactions.filter(
           (transaction) => transaction.employee_id === employee.id
         )
         const paidInPeriod = employeeTransactions.reduce(
@@ -175,19 +183,21 @@ export default function SalariesPage() {
     try {
       let historyQuery = supabase
         .from('transactions')
-        .select('id, date, amount, description, is_internal')
+        .select('id, date, salary_month, amount, description, is_internal')
         .eq('category', 'Salaires')
         .eq('employee_id', employeeId)
-
-      if (!isAllTime) {
-        const { startDate, endDate } = getMonthDateRange(selectedMonth)
-        historyQuery = historyQuery.gte('date', startDate).lte('date', endDate)
-      }
 
       const { data, error } = await historyQuery.order('date', { ascending: true })
       if (error) throw error
 
-      setEmployeeHistory(data as SalaryTransaction[])
+      const transactions = (data || []) as SalaryTransaction[]
+      const filteredTransactions = isAllTime
+        ? transactions
+        : transactions.filter(
+            (transaction) => getEffectiveSalaryMonth(transaction) === normalizeSalaryMonth(selectedMonth)
+          )
+
+      setEmployeeHistory(filteredTransactions)
     } catch {
       toast.error("Erreur lors du chargement de l'historique")
     } finally {
@@ -416,6 +426,16 @@ export default function SalariesPage() {
                             <div key={transaction.id} className="flex items-center justify-between text-xs">
                               <div className="min-w-0">
                                 <span className="text-muted-foreground">{formatDate(transaction.date)}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={`ml-2 text-[10px] ${
+                                    isSalaryMonthDifferentFromEntryDate(transaction)
+                                      ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                      : ''
+                                  }`}
+                                >
+                                  Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
+                                </Badge>
                                 {transaction.is_internal && (
                                   <Badge variant="secondary" className="ml-2 text-[10px]">
                                     Interne

@@ -55,6 +55,7 @@ export default function AddTransactionPage() {
     data: {
       amount: number
       description: string
+      salary_month?: string | null
       is_internal?: boolean
       employee_id?: string
       fixed_charge_id?: string
@@ -78,6 +79,7 @@ export default function AddTransactionPage() {
       date,
       category,
       amount,
+      salary_month: data.salary_month || null,
       description: data.description || null,
       is_internal: data.is_internal || false,
       employee_id: data.employee_id || null,
