@@ -350,8 +350,8 @@ export default function HistoryPage() {
                       <Icon className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${config.textColor}`} />
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden">
                         <p className="min-w-0 truncate text-xs font-medium sm:text-sm">
                           {entityName || transaction.description || transaction.category}
                         </p>
