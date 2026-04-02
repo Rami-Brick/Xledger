@@ -128,6 +128,7 @@ export default function EmployeeFormDialog({
                 <SelectContent>
                 <SelectItem value="CEO">CEO</SelectItem>
                 <SelectItem value="Head of Marketing">Head of Marketing</SelectItem>
+                <SelectItem value="Marketing">Marketing</SelectItem>
                 <SelectItem value="Head of IT">Head of IT</SelectItem>
                 <SelectItem value="Agent de confirmation">Agent de confirmation</SelectItem>
                 <SelectItem value="Photographe">Photographe</SelectItem>
