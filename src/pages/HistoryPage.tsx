@@ -237,7 +237,7 @@ export default function HistoryPage() {
 
       <div className={`mb-4 space-y-3 ${showFilters ? 'block' : 'hidden'} sm:block`}>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Label
               htmlFor="history-category-filter"
               className="shrink-0 text-xs text-muted-foreground"
@@ -245,7 +245,10 @@ export default function HistoryPage() {
               Categories
             </Label>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger id="history-category-filter" className="flex-1 text-xs sm:text-sm">
+              <SelectTrigger
+                id="history-category-filter"
+                className="min-w-0 flex-1 text-xs sm:text-sm"
+              >
                 <SelectValue placeholder="Categorie" />
               </SelectTrigger>
               <SelectContent>
@@ -259,12 +262,15 @@ export default function HistoryPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <Label htmlFor="history-type-filter" className="shrink-0 text-xs text-muted-foreground">
               Type
             </Label>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger id="history-type-filter" className="flex-1 text-xs sm:text-sm">
+              <SelectTrigger
+                id="history-type-filter"
+                className="min-w-0 flex-1 text-xs sm:text-sm"
+              >
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -346,7 +352,7 @@ export default function HistoryPage() {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-xs font-medium sm:text-sm">
+                        <p className="min-w-0 truncate text-xs font-medium sm:text-sm">
                           {entityName || transaction.description || transaction.category}
                         </p>
                         <span
@@ -359,8 +365,8 @@ export default function HistoryPage() {
                         </span>
                       </div>
 
-                      <div className="mt-0 flex items-center justify-between">
-                        <div className="flex min-w-0 items-center gap-1">
+                      <div className="mt-0 flex items-start justify-between">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
                           <span className="shrink-0 text-[10px] text-muted-foreground sm:text-xs">
                             {formatDate(transaction.date)}
                           </span>
@@ -378,7 +384,7 @@ export default function HistoryPage() {
                           {showSalaryMonth && (
                             <Badge
                               variant="outline"
-                              className={`px-1 py-0 text-[8px] leading-tight sm:px-1.5 sm:text-[10px] ${
+                              className={`hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px] ${
                                 salaryMonthDiffers
                                   ? 'border-orange-200 bg-orange-50 text-orange-700'
                                   : ''
@@ -414,6 +420,18 @@ export default function HistoryPage() {
                           </div>
                         )}
                       </div>
+
+                      {showSalaryMonth && (
+                        <div className="mt-0.5 sm:hidden">
+                          <span
+                            className={`text-[10px] text-muted-foreground ${
+                              salaryMonthDiffers ? 'text-orange-700' : ''
+                            }`}
+                          >
+                            Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
