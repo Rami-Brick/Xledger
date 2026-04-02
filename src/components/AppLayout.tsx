@@ -55,6 +55,19 @@ const settingsItems = [
   { to: '/parametres/contacts-prets', label: 'Contacts prets' },
 ]
 
+function formatBuildTimestamp(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  return date.toLocaleString('fr-TN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function SidebarContent({
   onNavigate,
   signOut,
@@ -69,6 +82,16 @@ function SidebarContent({
   canManage: boolean
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [buildInfoOpen, setBuildInfoOpen] = useState(false)
+  const buildInfo = __APP_BUILD_INFO__
+  const buildLabel = `${buildInfo.envLabel} • ${buildInfo.shortSha}`
+  const buildDetails = [
+    `Build: ${buildInfo.envLabel} • ${buildInfo.commitSha}`,
+    `Deploye: ${formatBuildTimestamp(buildInfo.builtAt)}`,
+    buildInfo.deploymentId ? `Deployment: ${buildInfo.deploymentId}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return (
     <div className="flex h-full flex-col">
@@ -142,20 +165,44 @@ function SidebarContent({
         )}
       </nav>
 
-      <div className="flex items-center justify-between border-t p-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="justify-start gap-3 text-muted-foreground"
-          onClick={() => {
-            signOut()
-            onNavigate?.()
-          }}
-        >
-          <LogOut className="h-4 w-4" />
-          Deconnexion
-        </Button>
-        <ThemeToggle />
+      <div className="space-y-3 border-t p-4">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start gap-3 text-muted-foreground"
+            onClick={() => {
+              signOut()
+              onNavigate?.()
+            }}
+          >
+            <LogOut className="h-4 w-4" />
+            Deconnexion
+          </Button>
+          <ThemeToggle />
+        </div>
+
+        <Collapsible open={buildInfoOpen} onOpenChange={setBuildInfoOpen}>
+          <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+            <span className="truncate">Build actuel</span>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                title={buildDetails}
+                className="shrink-0 rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 font-medium tracking-wide transition-colors hover:bg-muted/70"
+              >
+                {buildLabel}
+              </button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="pt-2">
+            <div className="space-y-1 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2 text-[10px] text-muted-foreground">
+              <p className="break-all">Build: {buildInfo.envLabel} • {buildInfo.commitSha}</p>
+              <p>Deploye: {formatBuildTimestamp(buildInfo.builtAt)}</p>
+              {buildInfo.deploymentId && <p className="break-all">Deployment: {buildInfo.deploymentId}</p>}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   )
