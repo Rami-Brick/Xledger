@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Pencil, Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -74,7 +74,7 @@ function getIncludeInternalFromSearchParams(searchParams: URLSearchParams) {
 
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [transactions, setTransactions] = useState<TransactionRow[]>([])
+  const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
   const [editTarget, setEditTarget] = useState<TransactionRow | null>(null)
@@ -99,25 +99,38 @@ export default function HistoryPage() {
         category: categoryFilter !== 'all' ? (categoryFilter as Category) : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
-        search: search || undefined,
         includeInternal: showInternalEntries,
       })
 
-      let filtered = data as TransactionRow[]
-
-      if (typeFilter === 'expense') {
-        filtered = filtered.filter((transaction) => transaction.amount < 0)
-      } else if (typeFilter === 'revenue') {
-        filtered = filtered.filter((transaction) => transaction.amount > 0)
-      }
-
-      setTransactions(filtered)
+      setAllTransactions(data as TransactionRow[])
     } catch {
       toast.error('Erreur lors du chargement des transactions')
     } finally {
       setLoading(false)
     }
-  }, [categoryFilter, endDate, search, showInternalEntries, startDate, typeFilter])
+  }, [categoryFilter, endDate, showInternalEntries, startDate])
+
+  const transactions = useMemo(() => {
+    let filtered = allTransactions
+
+    if (search) {
+      const term = search.toLowerCase()
+      filtered = filtered.filter((transaction) => {
+        const entityName = getEntityName(transaction).toLowerCase()
+        const description = (transaction.description ?? '').toLowerCase()
+        const category = transaction.category.toLowerCase()
+        return entityName.includes(term) || description.includes(term) || category.includes(term)
+      })
+    }
+
+    if (typeFilter === 'expense') {
+      filtered = filtered.filter((transaction) => transaction.amount < 0)
+    } else if (typeFilter === 'revenue') {
+      filtered = filtered.filter((transaction) => transaction.amount > 0)
+    }
+
+    return filtered
+  }, [allTransactions, search, typeFilter])
 
   useEffect(() => {
     fetchTransactions()
@@ -341,6 +354,13 @@ export default function HistoryPage() {
             const entityName = getEntityName(transaction)
             const showSalaryMonth = transaction.category === 'Salaires'
             const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
+            const showDescription =
+              (transaction.category === 'Fournisseurs' || transaction.category === 'Packaging') &&
+              !!transaction.description
+            const truncatedDescription =
+              showDescription && transaction.description!.length > 30
+                ? transaction.description!.slice(0, 30) + '...'
+                : transaction.description
 
             return (
               <Card key={transaction.id} className="gap-0 rounded-lg py-1 shadow-none sm:py-1.5">
@@ -393,6 +413,14 @@ export default function HistoryPage() {
                               Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
                             </Badge>
                           )}
+                          {showDescription && (
+                            <Badge
+                              variant="outline"
+                              className="hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px]"
+                            >
+                              {truncatedDescription}
+                            </Badge>
+                          )}
                         </div>
 
                         {(canEditTransactions || canDeleteTransactions) && (
@@ -429,6 +457,13 @@ export default function HistoryPage() {
                             }`}
                           >
                             Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
+                          </span>
+                        </div>
+                      )}
+                      {showDescription && (
+                        <div className="mt-0.5 sm:hidden">
+                          <span className="text-[10px] text-muted-foreground">
+                            {truncatedDescription}
                           </span>
                         </div>
                       )}
