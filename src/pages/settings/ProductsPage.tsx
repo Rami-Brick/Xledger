@@ -19,9 +19,7 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function ProductsPage() {
-  const { canManage } = useRole()
-    if (!canManage) return <Navigate to="/" replace />
-
+  const { canManage, loading: roleLoading } = useRole()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -37,6 +35,9 @@ export default function ProductsPage() {
   }
 
   useEffect(() => { fetchProducts() }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const handleAdd = () => { setEditingProduct(null); setDialogOpen(true) }
   const handleEdit = (p: Product) => { setEditingProduct(p); setDialogOpen(true) }

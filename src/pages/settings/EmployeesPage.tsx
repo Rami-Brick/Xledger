@@ -20,10 +20,8 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function EmployeesPage() {
+  const { canManage, loading: roleLoading } = useRole()
   const [employees, setEmployees] = useState<Employee[]>([])
-  const { canManage } = useRole()
-    if (!canManage) return <Navigate to="/" replace />
-
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
@@ -43,6 +41,9 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees()
   }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const handleAdd = () => {
     setEditingEmployee(null)

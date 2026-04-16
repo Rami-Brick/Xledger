@@ -22,9 +22,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 type GroupKey = 'Transport' | 'Packaging'
 
 export default function SubcategoriesPage() {
-  const { canManage } = useRole()
-  if (!canManage) return <Navigate to="/" replace />
-
+  const { canManage, loading: roleLoading } = useRole()
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -44,6 +42,9 @@ export default function SubcategoriesPage() {
   }
 
   useEffect(() => { fetchSubcategories() }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const handleAdd = () => {
     setEditingSub(null)
