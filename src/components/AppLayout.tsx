@@ -102,7 +102,7 @@ function SidebarContent({
 
       <Separator />
 
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 overflow-y-auto space-y-1 p-4">
         {navItems.map((item) => {
           if (item.requiresCreateTransactions && !canCreateTransactions) return null
           if (item.requiresManage && !canManage) return null
@@ -215,7 +215,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-64 border-r bg-muted/30 md:flex md:flex-col">
+      <aside className="hidden w-64 border-r bg-muted/30 md:flex md:flex-col h-screen sticky top-0">
         <SidebarContent
           signOut={signOut}
           email={user?.email}

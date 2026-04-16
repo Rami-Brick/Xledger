@@ -72,10 +72,13 @@ function getIncludeInternalFromSearchParams(searchParams: URLSearchParams) {
   return searchParams.get('includeInternal') === 'true'
 }
 
+const PAGE_SIZE = 50
+
 export default function HistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [allTransactions, setAllTransactions] = useState<TransactionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
   const [editTarget, setEditTarget] = useState<TransactionRow | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -131,6 +134,13 @@ export default function HistoryPage() {
 
     return filtered
   }, [allTransactions, search, typeFilter])
+
+  const visibleTransactions = useMemo(
+    () => transactions.slice(0, page * PAGE_SIZE),
+    [transactions, page]
+  )
+
+  useEffect(() => { setPage(1) }, [transactions])
 
   useEffect(() => {
     fetchTransactions()
@@ -215,7 +225,9 @@ export default function HistoryPage() {
         <div className="min-w-0">
           <h2 className="text-xl font-bold sm:text-2xl">Historique</h2>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
+            {visibleTransactions.length < transactions.length
+              ? `${visibleTransactions.length} / ${transactions.length} transactions`
+              : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
             {hasActiveFilters ? ' (filtre)' : ''}
           </p>
         </div>
@@ -348,7 +360,7 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {transactions.map((transaction) => {
+          {visibleTransactions.map((transaction) => {
             const config = categoryConfig[transaction.category]
             const Icon = config.icon
             const entityName = getEntityName(transaction)
@@ -473,6 +485,13 @@ export default function HistoryPage() {
               </Card>
             )
           })}
+          {visibleTransactions.length < transactions.length && (
+            <div className="pt-2 text-center">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)}>
+                Charger plus ({transactions.length - visibleTransactions.length} restants)
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

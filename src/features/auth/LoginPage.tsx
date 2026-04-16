@@ -19,9 +19,20 @@ export default function LoginPage() {
     const { error } = await signIn(email, password)
 
     if (error) {
-      toast.error('Échec de connexion', {
-        description: 'Email ou mot de passe incorrect.',
-      })
+      const msg = error.message?.toLowerCase() ?? ''
+      if (msg.includes('rate') || msg.includes('429') || msg.includes('too many')) {
+        toast.error('Trop de tentatives', {
+          description: 'Veuillez attendre quelques minutes avant de réessayer.',
+        })
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        toast.error('Erreur réseau', {
+          description: 'Vérifiez votre connexion internet et réessayez.',
+        })
+      } else {
+        toast.error('Échec de connexion', {
+          description: 'Email ou mot de passe incorrect.',
+        })
+      }
     }
 
     setLoading(false)

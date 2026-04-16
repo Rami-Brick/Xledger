@@ -20,9 +20,7 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function FixedChargesPage() {
-  const { canManage } = useRole()
-    if (!canManage) return <Navigate to="/" replace />
-    
+  const { canManage, loading: roleLoading } = useRole()
   const [charges, setCharges] = useState<FixedCharge[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -41,6 +39,9 @@ export default function FixedChargesPage() {
   }
 
   useEffect(() => { fetchCharges() }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const handleAdd = () => { setEditingCharge(null); setDialogOpen(true) }
   const handleEdit = (c: FixedCharge) => { setEditingCharge(c); setDialogOpen(true) }

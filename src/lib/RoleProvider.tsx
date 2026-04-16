@@ -27,11 +27,12 @@ const RoleContext = createContext<RoleContextType>({
 })
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [role, setRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       setRole(null)
       setLoading(false)
@@ -56,7 +57,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     }
 
     fetchRole()
-  }, [user])
+  }, [user, authLoading])
 
   const isAdmin = role === 'admin'
   const isMod = role === 'mod'

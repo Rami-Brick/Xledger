@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from '@/features/auth/AuthProvider'
 import { RoleProvider, useRole  } from '@/lib/RoleProvider'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import AppLayout from '@/components/AppLayout'
 import LoginPage from '@/features/auth/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
@@ -50,6 +51,7 @@ function HomeRedirect() {
 
 function App() {
   return (
+    <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
         <RoleProvider>
@@ -83,6 +85,7 @@ function App() {
         </RoleProvider>
       </AuthProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

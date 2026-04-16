@@ -16,9 +16,7 @@ import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 export default function SubscriptionsPage() {
-  const { canManage } = useRole()
-    if (!canManage) return <Navigate to="/" replace />
-
+  const { canManage, loading: roleLoading } = useRole()
   const [subs, setSubs] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -32,6 +30,9 @@ export default function SubscriptionsPage() {
   }
 
   useEffect(() => { fetch() }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const handleSubmit = async (data: SubscriptionInsert) => {
     try {
