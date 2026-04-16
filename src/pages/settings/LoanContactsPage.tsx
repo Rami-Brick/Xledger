@@ -24,9 +24,7 @@ interface LoanBalance {
 }
 
 export default function LoanContactsPage() {
-  const { canManage } = useRole()
-    if (!canManage) return <Navigate to="/" replace />
-
+  const { canManage, loading: roleLoading } = useRole()
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +42,9 @@ export default function LoanContactsPage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  if (roleLoading) return null
+  if (!canManage) return <Navigate to="/" replace />
 
   const getBalance = (id: string) => balances.find((b) => b.loan_contact_id === id)
 

@@ -75,24 +75,30 @@ export default function AddTransactionPage() {
       amount = config.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
     }
 
-    await createTransaction({
-      date,
-      category,
-      amount,
-      salary_month: data.salary_month || null,
-      description: data.description || null,
-      is_internal: data.is_internal || false,
-      employee_id: data.employee_id || null,
-      fixed_charge_id: data.fixed_charge_id || null,
-      product_id: data.product_id || null,
-      subcategory_id: data.subcategory_id || null,
-      subscription_id: data.subscription_id || null,
-      loan_contact_id: data.loan_contact_id || null,
-    })
+    try {
+      await createTransaction({
+        date,
+        category,
+        amount,
+        salary_month: data.salary_month || null,
+        description: data.description || null,
+        is_internal: data.is_internal || false,
+        employee_id: data.employee_id || null,
+        fixed_charge_id: data.fixed_charge_id || null,
+        product_id: data.product_id || null,
+        subcategory_id: data.subcategory_id || null,
+        subscription_id: data.subscription_id || null,
+        loan_contact_id: data.loan_contact_id || null,
+      })
 
-    toast.success('Transaction enregistree', {
-      description: `${category} - ${Math.abs(data.amount).toFixed(3)} TND`,
-    })
+      toast.success('Transaction enregistree', {
+        description: `${category} - ${Math.abs(data.amount).toFixed(3)} TND`,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      toast.error("Échec de l'enregistrement", { description: message })
+      throw err
+    }
   }
 
   const renderForm = () => {
