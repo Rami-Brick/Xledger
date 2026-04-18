@@ -13,7 +13,6 @@ import {
 import { useRole } from '@/lib/RoleProvider'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -145,143 +144,182 @@ export default function LogsPage() {
   if (!canManage) return <Navigate to="/" replace />
 
   return (
-    <div className="w-full min-w-0 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold sm:text-2xl">Journal d'activite</h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+    <div className="space-y-6 max-w-[1400px] w-full min-w-0">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+            Journal d'activité
+          </h2>
+          <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
             Suivi des ajouts, modifications et suppressions
           </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
-              Reinitialiser
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-foreground hover:bg-muted"
+            >
+              <span className="hidden sm:inline">Réinitialiser</span>
+              <span className="sm:hidden">×</span>
             </Button>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="text-xs sm:hidden"
+            className="sm:hidden"
           >
-            <ListFilter className="mr-1 h-3.5 w-3.5" />
+            <ListFilter className="mr-1.5 h-3.5 w-3.5" />
             Filtres
           </Button>
         </div>
       </div>
 
-      <div className={`${showFilters ? 'block' : 'hidden'} space-y-3 sm:block`}>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Utilisateur" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Utilisateur - Tous</SelectItem>
-              {userOptions.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.display_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Compact filter bar */}
+      <div
+        className={`${showFilters ? 'grid' : 'hidden'} grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center`}
+      >
+        <Select value={userFilter} onValueChange={setUserFilter}>
+          <SelectTrigger className="h-8 w-full sm:w-auto min-w-0 sm:min-w-[150px] rounded-lg text-[13px]">
+            <SelectValue placeholder="Utilisateur" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les utilisateurs</SelectItem>
+            {userOptions.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={tableFilter} onValueChange={setTableFilter}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Table" />
-            </SelectTrigger>
-            <SelectContent>
-              {TABLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select value={tableFilter} onValueChange={setTableFilter}>
+          <SelectTrigger className="h-8 w-full sm:w-auto min-w-0 sm:min-w-[130px] rounded-lg text-[13px]">
+            <SelectValue placeholder="Table" />
+          </SelectTrigger>
+          <SelectContent>
+            {TABLE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={actionFilter} onValueChange={(value) => setActionFilter(value as 'all' | LogAction)}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Action" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACTION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select
+          value={actionFilter}
+          onValueChange={(value) => setActionFilter(value as 'all' | LogAction)}
+        >
+          <SelectTrigger className="h-8 w-full sm:w-auto min-w-0 sm:min-w-[120px] rounded-lg text-[13px]">
+            <SelectValue placeholder="Action" />
+          </SelectTrigger>
+          <SelectContent>
+            {ACTION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
+        <Input
+          type="date"
+          value={startDate}
+          onChange={(event) => setStartDate(event.target.value)}
+          className="h-8 w-full sm:w-auto rounded-lg text-[13px]"
+          aria-label="Date de début"
+        />
 
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
-        </div>
+        <Input
+          type="date"
+          value={endDate}
+          onChange={(event) => setEndDate(event.target.value)}
+          className="h-8 w-full sm:w-auto rounded-lg text-[13px]"
+          aria-label="Date de fin"
+        />
       </div>
 
-      {loading ? (
-        <p className="py-12 text-center text-muted-foreground">Chargement...</p>
-      ) : logs.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <p>Aucune activite trouvee.</p>
+      {/* List container */}
+      <div className="premium-surface premium-surface-airy surface-tint-violet rounded-2xl p-4 sm:p-6">
+        <div className="mb-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Activité
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-foreground">
+            {loading
+              ? 'Chargement…'
+              : `${logs.length} entrée${logs.length !== 1 ? 's' : ''}`}
+          </h3>
         </div>
-      ) : (
-        <>
-          <div className="space-y-1.5">
-            {logs.map((log) => {
-              const actorLabel = getLogActorLabel(log.user_id, referenceData)
-              const actorInitial = actorLabel.charAt(0).toUpperCase()
 
-              return (
-                <Card key={log.id} className="gap-0 rounded-md border-border/80 py-1 shadow-none sm:py-1.5">
-                  <CardContent className="px-2 py-0.5 sm:px-2.5 sm:py-0.5">
-                    <div className="space-y-0.5">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <Badge className={`${getActionBadgeClass(log.action)} h-3.5 px-1 py-0 text-[9px] leading-none`}>
+        {loading ? (
+          <div className="space-y-2.5">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-14 animate-pulse rounded-2xl bg-muted/50" />
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Aucune activité trouvée
+          </p>
+        ) : (
+          <>
+            <div className="space-y-2">
+              {logs.map((log) => {
+                const actorLabel = getLogActorLabel(log.user_id, referenceData)
+                const actorInitial = actorLabel.charAt(0).toUpperCase()
+
+                return (
+                  <div key={log.id} className="row-surface rounded-2xl px-3 py-2.5">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          className={`${getActionBadgeClass(log.action)} h-4 rounded-full px-1.5 text-[9px] font-medium leading-none`}
+                        >
                           {getActionLabel(log.action)}
                         </Badge>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-1 py-0 text-[10px] text-muted-foreground">
-                          <span className="flex h-3 w-3 items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-foreground/80">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] text-foreground">
+                          <span className="grid h-3.5 w-3.5 place-items-center rounded-full bg-primary text-[8px] font-semibold text-primary-foreground">
                             {actorInitial}
                           </span>
-                          <span className="max-w-[96px] truncate sm:max-w-[140px]">
+                          <span className="max-w-[120px] truncate sm:max-w-[180px]">
                             {actorLabel}
                           </span>
                         </span>
-                        <span className="text-[10px] text-muted-foreground sm:text-[11px]">
+                        <span className="text-[10px] tabular-nums text-muted-foreground sm:text-[11px]">
                           {formatLogTimestamp(log.created_at)}
                         </span>
                       </div>
-                      <p className="text-[13px] leading-[1.05rem] sm:text-[12.5px]">
+                      <p className="text-[12.5px] text-foreground tracking-tight leading-[1.25rem]">
                         {formatLogDescription(log, referenceData)}
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Chargement...' : 'Charger plus'}
-              </Button>
+                  </div>
+                )
+              })}
             </div>
-          )}
-        </>
-      )}
+
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="rounded-full"
+                >
+                  {loadingMore ? 'Chargement...' : 'Charger plus'}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

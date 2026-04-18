@@ -14,7 +14,6 @@ import SubcategoryFormDialog from '@/features/subcategories/SubcategoryFormDialo
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
@@ -97,77 +96,124 @@ export default function SubcategoriesPage() {
     const items = subcategories.filter((s) => s.category === group)
     if (items.length === 0) {
       return (
-        <p className="text-sm text-muted-foreground py-8 text-center">
-          Aucune sous-catégorie.
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          Aucune sous-catégorie
         </p>
       )
     }
     return (
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {items.map((sub) => (
-          <Card key={sub.id} className={!sub.is_active ? 'opacity-50' : ''}>
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium text-sm">{sub.name}</p>
-                  <Badge variant={sub.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                    {sub.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(sub)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(sub)}>
-                    <span className="text-xs">{sub.is_active ? 'Off' : 'On'}</span>
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(sub)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div
+            key={sub.id}
+            className={`row-surface flex items-center gap-3 rounded-2xl px-4 py-2.5 ${
+              !sub.is_active ? 'opacity-60' : ''
+            }`}
+          >
+            <div className="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+              <p className="truncate text-[13px] font-medium text-foreground tracking-tight">
+                {sub.name}
+              </p>
+              <Badge
+                variant={sub.is_active ? 'default' : 'secondary'}
+                className="h-4 rounded-full px-1.5 text-[9px] font-medium"
+              >
+                {sub.is_active ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+            <div className="flex shrink-0 items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={() => handleEdit(sub)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 rounded-full px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={() => handleToggleActive(sub)}
+              >
+                {sub.is_active ? 'Off' : 'On'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteTarget(sub)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         ))}
       </div>
     )
   }
 
-  if (loading) return <p className="text-muted-foreground">Chargement...</p>
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-[1400px] min-w-0">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="space-y-2.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-14 animate-pulse rounded-2xl bg-muted/50" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const tint = activeTab === 'Transport' ? 'surface-tint-gold' : 'surface-tint-teal'
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Sous-catégories</h2>
-        <p className="text-muted-foreground text-sm mt-1">
+    <div className="space-y-6 max-w-[1400px] min-w-0">
+      <div>
+        <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+          Sous-catégories
+        </h2>
+        <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
           Gérez les sous-catégories Transport et Packaging
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GroupKey)}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="Transport">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <TabsList className="rounded-full">
+            <TabsTrigger value="Transport" className="rounded-full">
               Transport
               <span className="ml-2 text-xs text-muted-foreground">
                 ({subcategories.filter((s) => s.category === 'Transport').length})
               </span>
             </TabsTrigger>
-            <TabsTrigger value="Packaging">
+            <TabsTrigger value="Packaging" className="rounded-full">
               Packaging
               <span className="ml-2 text-xs text-muted-foreground">
                 ({subcategories.filter((s) => s.category === 'Packaging').length})
               </span>
             </TabsTrigger>
           </TabsList>
-          <Button variant="outline" size="sm" onClick={handleAdd} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAdd}
+            className="gap-2 rounded-lg"
+          >
             <Plus className="h-4 w-4" />
             Ajouter
           </Button>
         </div>
 
-        <TabsContent value="Transport">{renderList('Transport')}</TabsContent>
-        <TabsContent value="Packaging">{renderList('Packaging')}</TabsContent>
+        <div className={`premium-surface premium-surface-airy ${tint} rounded-2xl p-4 sm:p-6`}>
+          <TabsContent value="Transport" className="mt-0">
+            {renderList('Transport')}
+          </TabsContent>
+          <TabsContent value="Packaging" className="mt-0">
+            {renderList('Packaging')}
+          </TabsContent>
+        </div>
       </Tabs>
 
       <SubcategoryFormDialog

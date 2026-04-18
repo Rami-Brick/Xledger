@@ -43,7 +43,16 @@ import {
   LineChart,
 } from 'recharts'
 
-const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#eab308', '#14b8a6', '#ec4899', '#6b7280']
+const PIE_COLORS = [
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+  'var(--color-chart-6)',
+  'var(--color-chart-7)',
+  'var(--color-muted-foreground)',
+]
 const SUBCATEGORY_CATEGORIES = new Set<Category>(['Transport', 'Packaging'])
 
 interface MonthlySummaryRow {
@@ -553,93 +562,100 @@ export default function ReportsPage() {
   ]
 
   return (
-    <div className="min-w-0 space-y-5 overflow-x-hidden">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Rapports</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Analyses financieres</p>
+    <div className="space-y-6 max-w-[1400px] min-w-0">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+            Rapports
+          </h2>
+          <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
+            Analyses financières
+          </p>
         </div>
         <Button
           onClick={handleExportCSV}
           disabled={exporting}
           variant="outline"
           size="sm"
-          className="w-full gap-2 sm:w-auto"
+          className="gap-2 rounded-lg"
         >
           <Download className="h-4 w-4" />
-          {exporting ? 'Export...' : 'Exporter CSV'}
+          {exporting ? 'Export…' : 'Exporter CSV'}
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-4 pb-3">
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Debut</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Fin</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                />
-              </div>
+      <div className="premium-surface surface-tint-teal rounded-2xl p-4 sm:p-5">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Début</Label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="h-9 rounded-lg"
+              />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const now = new Date()
-                  setStartDate(
-                    new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-                  )
-                  setEndDate(now.toISOString().split('T')[0])
-                }}
-              >
-                Ce mois
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const now = new Date()
-                  setStartDate(new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0])
-                  setEndDate(now.toISOString().split('T')[0])
-                }}
-              >
-                Cette annee
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStartDate('2020-01-01')
-                  setEndDate(new Date().toISOString().split('T')[0])
-                }}
-              >
-                Tout
-              </Button>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-foreground">Fin</Label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="h-9 rounded-lg"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full text-foreground hover:bg-muted"
+              onClick={() => {
+                const now = new Date()
+                setStartDate(
+                  new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+                )
+                setEndDate(now.toISOString().split('T')[0])
+              }}
+            >
+              Ce mois
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full text-foreground hover:bg-muted"
+              onClick={() => {
+                const now = new Date()
+                setStartDate(new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0])
+                setEndDate(now.toISOString().split('T')[0])
+              }}
+            >
+              Cette année
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full text-foreground hover:bg-muted"
+              onClick={() => {
+                setStartDate('2020-01-01')
+                setEndDate(new Date().toISOString().split('T')[0])
+              }}
+            >
+              Tout
+            </Button>
+          </div>
+        </div>
+      </div>
 
-      <div className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
+      <div className="-mx-4 flex gap-1 overflow-x-auto border-b border-border/60 px-4 sm:mx-0 sm:px-0">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`border-b-2 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors sm:px-4 sm:text-sm ${
+            className={`border-b-2 px-3 py-2 text-[13px] font-medium whitespace-nowrap transition-colors sm:px-4 ${
               activeTab === tab.key
-                ? 'border-primary text-primary'
+                ? 'border-primary text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -675,12 +691,12 @@ export default function ReportsPage() {
                             />
                             <Tooltip formatter={(value) => formatTND(Number(value))} />
                             <Legend />
-                            <Bar dataKey="Recettes" fill="#22c55e" radius={[3, 3, 0, 0]} />
-                            <Bar dataKey="Depenses" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="Recettes" fill="var(--color-success)" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="Depenses" fill="var(--color-destructive)" radius={[3, 3, 0, 0]} />
                             <Line
                               type="monotone"
                               dataKey="Net"
-                              stroke="#6366f1"
+                              stroke="var(--color-chart-4)"
                               strokeWidth={2}
                               strokeDasharray="5 5"
                               dot={false}
@@ -726,7 +742,7 @@ export default function ReportsPage() {
                               <Line
                                 type="monotone"
                                 dataKey="amount"
-                                stroke="#22c55e"
+                                stroke="var(--color-success)"
                                 strokeWidth={2}
                                 dot={false}
                               />
@@ -754,13 +770,13 @@ export default function ReportsPage() {
                         <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
                           <div className="flex items-center justify-between sm:block">
                             <p className="text-xs text-muted-foreground">Recettes</p>
-                            <p className="text-xs font-semibold text-green-600 sm:text-sm">
+                            <p className="text-xs font-semibold text-success sm:text-sm">
                               {formatTND(row.total_revenue)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between sm:block">
                             <p className="text-xs text-muted-foreground">Depenses</p>
-                            <p className="text-xs font-semibold text-red-600 sm:text-sm">
+                            <p className="text-xs font-semibold text-destructive sm:text-sm">
                               {formatTND(row.total_expenses)}
                             </p>
                           </div>
@@ -768,7 +784,7 @@ export default function ReportsPage() {
                             <p className="text-xs text-muted-foreground">Net</p>
                             <p
                               className={`text-xs font-semibold sm:text-sm ${
-                                row.net >= 0 ? 'text-green-600' : 'text-red-600'
+                                row.net >= 0 ? 'text-success' : 'text-destructive'
                               }`}
                             >
                               {row.net >= 0 ? '+' : ''}
@@ -887,7 +903,7 @@ export default function ReportsPage() {
                               width={80}
                             />
                             <Tooltip formatter={(value) => formatTND(Number(value))} />
-                            <Bar dataKey="total" fill="#6366f1" radius={[0, 3, 3, 0]} />
+                            <Bar dataKey="total" fill="var(--color-chart-4)" radius={[0, 3, 3, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
@@ -959,7 +975,7 @@ export default function ReportsPage() {
                                     </>
                                   )}
                                 </div>
-                                <span className="shrink-0 text-xs font-semibold text-red-600 sm:text-sm">
+                                <span className="shrink-0 text-xs font-semibold text-destructive sm:text-sm">
                                   {formatTND(row.total)}
                                 </span>
                               </div>
@@ -980,7 +996,7 @@ export default function ReportsPage() {
                                             {subcategory.count} tx
                                           </p>
                                         </div>
-                                        <span className="shrink-0 text-xs font-medium text-red-600 sm:text-sm">
+                                        <span className="shrink-0 text-xs font-medium text-destructive sm:text-sm">
                                           {formatTND(subcategory.total)}
                                         </span>
                                       </div>
@@ -999,7 +1015,7 @@ export default function ReportsPage() {
                     <CardContent className="px-3 py-3 sm:px-4">
                       <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
                         <span>Total ({categoryTotals.reduce((sum, row) => sum + row.count, 0)} tx)</span>
-                        <span className="text-red-600">
+                        <span className="text-destructive">
                           {formatTND(categoryTotals.reduce((sum, row) => sum + row.total, 0))}
                         </span>
                       </div>
@@ -1068,7 +1084,7 @@ export default function ReportsPage() {
                               {row.count} transaction{row.count !== 1 ? 's' : ''}
                             </p>
                           </div>
-                          <span className="shrink-0 text-xs font-semibold text-red-600 sm:text-sm">
+                          <span className="shrink-0 text-xs font-semibold text-destructive sm:text-sm">
                             {formatTND(row.total)}
                           </span>
                         </div>
@@ -1079,7 +1095,7 @@ export default function ReportsPage() {
                     <CardContent className="px-3 py-3 sm:px-4">
                       <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
                         <span>Total ({productTotals.reduce((sum, row) => sum + row.count, 0)} tx)</span>
-                        <span className="text-red-600">
+                        <span className="text-destructive">
                           {formatTND(productTotals.reduce((sum, row) => sum + row.total, 0))}
                         </span>
                       </div>
@@ -1103,13 +1119,13 @@ export default function ReportsPage() {
                         <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
                           <div className="flex items-center justify-between sm:block">
                             <p className="text-xs text-muted-foreground">Recu</p>
-                            <p className="text-xs font-semibold text-green-600 sm:text-sm">
+                            <p className="text-xs font-semibold text-success sm:text-sm">
                               {formatTND(row.total_lent)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between sm:block">
                             <p className="text-xs text-muted-foreground">Rendu</p>
-                            <p className="text-xs font-semibold text-red-600 sm:text-sm">
+                            <p className="text-xs font-semibold text-destructive sm:text-sm">
                               {formatTND(row.total_repaid)}
                             </p>
                           </div>
@@ -1120,8 +1136,8 @@ export default function ReportsPage() {
                                 row.remaining > 0
                                   ? 'text-orange-600'
                                   : row.remaining === 0
-                                    ? 'text-green-600'
-                                    : 'text-red-600'
+                                    ? 'text-success'
+                                    : 'text-destructive'
                               }`}
                             >
                               {formatTND(row.remaining)}
@@ -1137,13 +1153,13 @@ export default function ReportsPage() {
                       <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
                         <div className="flex items-center justify-between sm:block">
                           <p className="text-xs text-muted-foreground">Total recu</p>
-                          <p className="text-xs font-semibold text-green-600 sm:text-sm">
+                          <p className="text-xs font-semibold text-success sm:text-sm">
                             {formatTND(loanTotals.totalLent)}
                           </p>
                         </div>
                         <div className="flex items-center justify-between sm:block">
                           <p className="text-xs text-muted-foreground">Total rendu</p>
-                          <p className="text-xs font-semibold text-red-600 sm:text-sm">
+                          <p className="text-xs font-semibold text-destructive sm:text-sm">
                             {formatTND(loanTotals.totalRepaid)}
                           </p>
                         </div>
@@ -1154,8 +1170,8 @@ export default function ReportsPage() {
                               loanTotals.remaining > 0
                                 ? 'text-orange-600'
                                 : loanTotals.remaining === 0
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
+                                  ? 'text-success'
+                                  : 'text-destructive'
                             }`}
                           >
                             {formatTND(loanTotals.remaining)}
