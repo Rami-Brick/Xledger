@@ -13,9 +13,21 @@ import SimpleForm from '@/features/transactions/forms/SimpleForm'
 import SubcategoryForm from '@/features/transactions/forms/SubcategoryForm'
 import SubscriptionsForm from '@/features/transactions/forms/SubscriptionsForm'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
+const categorySurfaceTint: Record<Category, string> = {
+  Recettes: 'surface-tint-success',
+  Salaires: 'surface-tint-violet',
+  'Charges fixes': 'surface-tint-violet',
+  Fournisseurs: 'surface-tint-warning',
+  Transport: 'surface-tint-gold',
+  Packaging: 'surface-tint-teal',
+  Sponsoring: 'surface-tint-rose',
+  Subscriptions: 'surface-tint-violet',
+  'Prêts': 'surface-tint-gold',
+  Divers: 'surface-tint-teal',
+}
 
 function getTodayDate() {
   const now = new Date()
@@ -185,74 +197,94 @@ export default function AddTransactionPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Ajouter une transaction</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Selectionnez une categorie puis remplissez le formulaire
+    <div className="space-y-6 max-w-[1400px] min-w-0">
+      {/* Page header — dashboard-aligned */}
+      <div>
+        <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+          Ajouter une transaction
+        </h2>
+        <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
+          {selectedCategory
+            ? 'Remplissez les détails ci-dessous pour enregistrer cette transaction'
+            : 'Sélectionnez une catégorie pour commencer'}
         </p>
       </div>
 
       {!selectedCategory ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {CATEGORIES.map((category) => {
             const config = categoryConfig[category]
             const Icon = config.icon
+            const tint = categorySurfaceTint[category]
             return (
-              <Card
+              <button
                 key={category}
-                className={`cursor-pointer border-2 transition-all ${config.color}`}
+                type="button"
                 onClick={() => handleCategorySelect(category)}
+                className={`premium-surface ${tint} group rounded-2xl px-4 py-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
               >
-                <CardContent className="flex flex-col items-center justify-center gap-2 py-5">
-                  <Icon className={`h-7 w-7 ${config.textColor}`} />
-                  <span className={`text-center text-xs font-medium sm:text-sm ${config.textColor}`}>
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className={`grid h-11 w-11 place-items-center rounded-xl ${config.color}`}>
+                    <Icon className={`h-5 w-5 ${config.textColor}`} />
+                  </div>
+                  <span className="text-center text-[13px] font-medium tracking-tight text-foreground">
                     {config.label}
                   </span>
-                </CardContent>
-              </Card>
+                </div>
+              </button>
             )
           })}
         </div>
       ) : (
-        <div className="max-w-md">
+        <div className="max-w-2xl">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleBackToCategories}
-            className="mb-4 gap-2 text-muted-foreground"
+            className="mb-4 gap-2 text-foreground hover:bg-muted"
           >
             <ArrowLeft className="h-4 w-4" />
-            Retour aux categories
+            Retour aux catégories
           </Button>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="mb-6 flex items-center gap-3">
-                {(() => {
-                  const config = categoryConfig[selectedCategory]
-                  const Icon = config.icon
-                  return (
-                    <>
-                      <div className={`rounded-md p-2 ${config.color}`}>
-                        <Icon className={`h-5 w-5 ${config.textColor}`} />
-                      </div>
-                      <h3 className="text-lg font-semibold">{config.label}</h3>
-                    </>
-                  )
-                })()}
-              </div>
-              <div className="mb-6 space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(event) => setDate(event.target.value)}
-                />
-              </div>
-              {renderForm()}
-            </CardContent>
-          </Card>
+          <div
+            className={`premium-surface ${categorySurfaceTint[selectedCategory]} rounded-2xl p-6`}
+          >
+            <div className="mb-6 flex items-center gap-3">
+              {(() => {
+                const config = categoryConfig[selectedCategory]
+                const Icon = config.icon
+                return (
+                  <>
+                    <div
+                      className={`grid h-11 w-11 place-items-center rounded-xl ${config.color}`}
+                    >
+                      <Icon className={`h-5 w-5 ${config.textColor}`} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Catégorie
+                      </p>
+                      <h3 className="text-base font-semibold tracking-tight text-foreground">
+                        {config.label}
+                      </h3>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+            <div className="mb-6 space-y-2">
+              <Label htmlFor="date" className="text-xs font-medium text-foreground">
+                Date
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </div>
+            {renderForm()}
+          </div>
         </div>
       )}
     </div>

@@ -237,7 +237,7 @@ export default function AppLayout() {
         />
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-sidebar-border bg-background px-4 py-3 md:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -263,8 +263,8 @@ export default function AppLayout() {
           <ThemeToggle />
         </header>
 
-        <main className="flex-1 overflow-auto app-atmosphere">
-          <div className="p-4 md:p-8">
+        <main className="min-w-0 flex-1 overflow-auto app-atmosphere">
+          <div className="min-w-0 p-4 md:p-8">
             <Outlet />
           </div>
         </main>

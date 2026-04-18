@@ -161,14 +161,14 @@ export default function DashboardPage() {
   const netIsPositive = stats.netThisMonth >= 0
 
   return (
-    <div className="space-y-8 max-w-[1400px]">
+    <div className="space-y-6 sm:space-y-8 max-w-[1400px] min-w-0">
       {/* Page header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-[28px] font-semibold tracking-tight leading-tight">
+        <div className="min-w-0">
+          <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
             Tableau de bord
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
             Vue d'ensemble financière · <span className="capitalize">{currentMonthLabel()}</span>
           </p>
         </div>

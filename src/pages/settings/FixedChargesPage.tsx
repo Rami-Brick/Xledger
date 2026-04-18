@@ -14,7 +14,6 @@ import FixedChargeFormDialog from '@/features/fixed-charges/FixedChargeFormDialo
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { formatTND } from '@/lib/format'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
@@ -77,60 +76,110 @@ export default function FixedChargesPage() {
     } catch { toast.error('Impossible de supprimer cette charge.') }
   }
 
-  if (loading) return <p className="text-muted-foreground">Chargement...</p>
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-[1400px] min-w-0">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="space-y-2.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted/50" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Charges fixes</h2>
-          <p className="text-muted-foreground text-sm mt-1">Gérez vos charges récurrentes</p>
+    <div className="space-y-6 max-w-[1400px] min-w-0">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+            Charges fixes
+          </h2>
+          <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
+            Gérez vos charges récurrentes
+          </p>
         </div>
-        <Button onClick={handleAdd} size="sm" className="gap-2">
+        <Button onClick={handleAdd} size="sm" className="gap-2 rounded-lg">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Ajouter une charge</span>
           <span className="sm:hidden">Ajouter</span>
         </Button>
       </div>
 
-      {charges.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Aucune charge fixe pour le moment.</p>
+      <div className="premium-surface premium-surface-airy surface-tint-violet rounded-2xl p-4 sm:p-6">
+        <div className="mb-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Charges
+          </p>
+          <h3 className="mt-1 text-base font-semibold text-foreground">
+            {charges.length} enregistrée{charges.length !== 1 ? 's' : ''}
+          </h3>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {charges.map((charge) => (
-            <Card key={charge.id} className={!charge.is_active ? 'opacity-50' : ''}>
-              <CardContent className="py-4 px-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium">{charge.name}</p>
-                      <Badge variant={charge.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                        {charge.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Montant par défaut: <span className="font-medium text-foreground">{formatTND(charge.default_amount)}</span>
+
+        {charges.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            Aucune charge fixe pour le moment
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {charges.map((charge) => (
+              <div
+                key={charge.id}
+                className={`row-surface flex items-center gap-3 rounded-2xl px-4 py-3 ${
+                  !charge.is_active ? 'opacity-60' : ''
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-[13px] font-medium text-foreground tracking-tight">
+                      {charge.name}
                     </p>
+                    <Badge
+                      variant={charge.is_active ? 'default' : 'secondary'}
+                      className="h-4 rounded-full px-1.5 text-[9px] font-medium"
+                    >
+                      {charge.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(charge)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(charge)}>
-                      <span className="text-xs">{charge.is_active ? 'Off' : 'On'}</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(charge)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    Montant par défaut:{' '}
+                    <span className="font-medium tabular-nums text-foreground">
+                      {formatTND(charge.default_amount)}
+                    </span>
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                    onClick={() => handleEdit(charge)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-full px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                    onClick={() => handleToggleActive(charge)}
+                  >
+                    {charge.is_active ? 'Off' : 'On'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(charge)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <FixedChargeFormDialog open={dialogOpen} onOpenChange={setDialogOpen} charge={editingCharge} onSubmit={handleSubmit} />
       <DeleteConfirmDialog

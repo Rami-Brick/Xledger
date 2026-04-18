@@ -13,7 +13,6 @@ import { toast } from 'sonner'
 import { MAIN_VIEW_TRANSACTIONS_FILTER } from '@/features/transactions/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Select,
@@ -76,10 +75,10 @@ function getPayDayStatus(payDay: number): { label: string; icon: typeof CheckCir
   }
 
   if (currentDay === payDay) {
-    return { label: "Aujourd'hui", icon: AlertCircle, color: 'text-orange-600' }
+    return { label: "Aujourd'hui", icon: AlertCircle, color: 'text-destructive' }
   }
 
-  return { label: 'Depasse', icon: AlertCircle, color: 'text-red-600' }
+  return { label: 'Dépassé', icon: AlertCircle, color: 'text-destructive' }
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -210,107 +209,145 @@ export default function SalariesPage() {
   const totalRemaining = statuses.reduce((sum, employee) => sum + employee.remaining, 0)
   const totalPayments = statuses.reduce((sum, employee) => sum + employee.payment_count, 0)
 
-  if (loading) return <p className="text-muted-foreground">Chargement...</p>
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-[1400px] min-w-0">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted/60" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-36 animate-pulse rounded-2xl bg-muted/60" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="mb-3 gap-2 text-muted-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Toutes les categories
-          </Button>
-          <h2 className="text-2xl font-bold">Salaires</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Suivi des paiements de salaires</p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full sm:w-[220px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant="outline"
-            onClick={() => navigate('/historique?category=Salaires')}
-            className="w-full gap-2 sm:w-auto"
-          >
-            Voir tout
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-
-          {canCreateTransactions && (
-            <Button
-              onClick={() => navigate('/ajouter?category=Salaires')}
-              className="w-full gap-2 sm:w-auto"
-            >
-              Payer un salaire
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
+    <div className="space-y-6 max-w-[1400px] min-w-0">
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="mb-3 gap-2 text-foreground hover:bg-muted"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Toutes les catégories
+        </Button>
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50">
+            <Users className="h-5 w-5 text-blue-700" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+              Salaires
+            </h2>
+            <p className="text-[13px] sm:text-sm text-muted-foreground">
+              Suivi des paiements de salaires
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="px-3 pb-4 pt-4 sm:px-6 sm:pt-6">
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              {isAllTime ? 'Base mensuelle' : 'Base'}
-            </p>
-            <p className="mt-1 text-base font-bold sm:text-xl">{formatTND(totalBase)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="px-3 pb-4 pt-4 sm:px-6 sm:pt-6">
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              {isAllTime ? 'Paye total' : 'Paye'}
-            </p>
-            <p className="mt-1 text-base font-bold text-green-600 sm:text-xl">{formatTND(totalPaid)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="px-3 pb-4 pt-4 sm:px-6 sm:pt-6">
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              {isAllTime ? 'Paiements' : 'Restant'}
-            </p>
-            <p
-              className={`mt-1 text-base font-bold sm:text-xl ${
-                isAllTime
-                  ? 'text-foreground'
-                  : totalRemaining > 0
-                    ? 'text-orange-600'
-                    : 'text-green-600'
-              }`}
-            >
-              {isAllTime ? totalPayments : formatTND(totalRemaining)}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="h-9 w-full sm:w-[220px] rounded-lg text-[13px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {monthOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/historique?category=Salaires')}
+          className="h-9 gap-2 rounded-lg"
+        >
+          Voir tout
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+
+        {canCreateTransactions && (
+          <Button
+            size="sm"
+            onClick={() => navigate('/ajouter?category=Salaires')}
+            className="h-9 gap-2 rounded-lg"
+          >
+            Payer un salaire
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="premium-surface surface-tint-violet rounded-2xl px-5 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {isAllTime ? 'Base mensuelle' : 'Base'}
+          </p>
+          <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-foreground">
+            {formatTND(totalBase)}
+          </p>
+        </div>
+        <div className="premium-surface surface-tint-success rounded-2xl px-5 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {isAllTime ? 'Payé total' : 'Payé'}
+          </p>
+          <p className="mt-2 text-xl font-semibold tabular-nums tracking-tight text-success">
+            {formatTND(totalPaid)}
+          </p>
+        </div>
+        <div
+          className={`premium-surface ${
+            isAllTime
+              ? 'surface-tint-gold'
+              : totalRemaining > 0
+                ? 'surface-tint-warning'
+                : 'surface-tint-success'
+          } rounded-2xl px-5 py-4`}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {isAllTime ? 'Paiements' : 'Restant'}
+          </p>
+          <p
+            className={`mt-2 text-xl font-semibold tabular-nums tracking-tight ${
+              isAllTime
+                ? 'text-foreground'
+                : totalRemaining > 0
+                  ? 'text-destructive'
+                  : 'text-success'
+            }`}
+          >
+            {isAllTime ? totalPayments : formatTND(totalRemaining)}
+          </p>
+        </div>
       </div>
 
       {statuses.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <Users className="mx-auto mb-3 h-10 w-10 opacity-50" />
-          <p>Aucun employe actif.</p>
-          <Button variant="link" onClick={() => navigate('/parametres/employes')} className="mt-2">
-            Gerer les employes
+        <div className="premium-surface rounded-2xl p-12 text-center">
+          <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-60" />
+          <p className="text-sm text-muted-foreground">Aucun employé actif</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/parametres/employes')}
+            className="mt-3 text-foreground"
+          >
+            Gérer les employés
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {statuses.map((employee) => {
             const paidPercent =
               employee.base_salary > 0
@@ -320,36 +357,48 @@ export default function SalariesPage() {
             const isOverpaid = employee.remaining < 0
             const payStatus = isCurrentMonth ? getPayDayStatus(employee.pay_day) : null
             const isExpanded = expandedEmployee === employee.employee_id
+            const cardTint =
+              !isAllTime && isFullyPaid ? 'surface-tint-success' : 'surface-tint-violet'
 
             return (
-              <Card
+              <button
                 key={employee.employee_id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  !isAllTime && isFullyPaid ? 'border-green-200 bg-green-50/30' : ''
-                }`}
+                type="button"
                 onClick={() => loadEmployeeHistory(employee.employee_id)}
+                className={`premium-surface ${cardTint} rounded-2xl p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
               >
-                <CardContent className="space-y-3 px-4 pb-4 pt-5">
+                <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold sm:text-base">{employee.name}</p>
+                      <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+                        {employee.name}
+                      </p>
                       {employee.role && (
-                        <p className="text-xs text-muted-foreground">{employee.role}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {employee.role}
+                        </p>
                       )}
                     </div>
                     <div className="shrink-0">
                       {isAllTime ? (
-                        <Badge variant="outline" className="text-[10px]">
-                          {employee.payment_count} paiement{employee.payment_count !== 1 ? 's' : ''}
+                        <Badge
+                          variant="outline"
+                          className="h-5 rounded-full px-2 text-[10px] font-medium"
+                        >
+                          {employee.payment_count} paiement
+                          {employee.payment_count !== 1 ? 's' : ''}
                         </Badge>
                       ) : isFullyPaid ? (
-                        <Badge className="bg-green-100 text-[10px] text-green-700 hover:bg-green-100">
-                          <CheckCircle2 className="mr-1 h-3 w-3" />
-                          Paye
+                        <Badge className="h-5 gap-1 rounded-full bg-success-soft px-2 text-[10px] font-medium text-success hover:bg-success-soft">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Payé
                         </Badge>
                       ) : payStatus ? (
-                        <Badge variant="outline" className={`${payStatus.color} text-[10px]`}>
-                          <Calendar className="mr-1 h-3 w-3" />
+                        <Badge
+                          variant="outline"
+                          className={`h-5 gap-1 rounded-full px-2 text-[10px] font-medium ${payStatus.color}`}
+                        >
+                          <Calendar className="h-3 w-3" />
                           {payStatus.label}
                         </Badge>
                       ) : null}
@@ -357,48 +406,60 @@ export default function SalariesPage() {
                   </div>
 
                   {isAllTime ? (
-                    <div className="grid grid-cols-3 gap-3 text-xs sm:text-sm">
+                    <div className="grid grid-cols-3 gap-3 text-xs">
                       <div>
-                        <p className="text-muted-foreground">Base mensuelle</p>
-                        <p className="mt-1 font-medium">{formatTND(employee.base_salary)}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Base
+                        </p>
+                        <p className="mt-1 text-[13px] font-semibold tabular-nums text-foreground">
+                          {formatTND(employee.base_salary)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Paye total</p>
-                        <p className="mt-1 font-medium text-green-600">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Payé
+                        </p>
+                        <p className="mt-1 text-[13px] font-semibold tabular-nums text-success">
                           {formatTND(employee.paid_in_period)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Paiements</p>
-                        <p className="mt-1 font-medium">{employee.payment_count}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Paiements
+                        </p>
+                        <p className="mt-1 text-[13px] font-semibold tabular-nums text-foreground">
+                          {employee.payment_count}
+                        </p>
                       </div>
                     </div>
                   ) : (
                     <>
                       <div>
-                        <div className="mb-1.5 flex justify-between text-xs sm:text-sm">
-                          <span className="text-muted-foreground">
+                        <div className="mb-1.5 flex justify-between text-xs">
+                          <span className="tabular-nums text-muted-foreground">
                             {formatTND(employee.paid_in_period)}
                           </span>
-                          <span className="font-medium">{formatTND(employee.base_salary)}</span>
+                          <span className="tabular-nums font-medium text-foreground">
+                            {formatTND(employee.base_salary)}
+                          </span>
                         </div>
                         <Progress
                           value={paidPercent}
                           className={`h-2 ${
-                            isFullyPaid ? '[&>div]:bg-green-500' : '[&>div]:bg-blue-500'
+                            isFullyPaid ? '[&>div]:bg-success' : '[&>div]:bg-brand-accent'
                           }`}
                         />
                       </div>
 
-                      <div className="flex justify-between text-xs sm:text-sm">
+                      <div className="flex justify-between text-xs">
                         <span className="text-muted-foreground">Restant</span>
                         <span
-                          className={`font-semibold ${
+                          className={`font-semibold tabular-nums ${
                             isOverpaid
-                              ? 'text-red-600'
+                              ? 'text-destructive'
                               : isFullyPaid
-                                ? 'text-green-600'
-                                : 'text-orange-600'
+                                ? 'text-success'
+                                : 'text-destructive'
                           }`}
                         >
                           {isOverpaid
@@ -410,44 +471,57 @@ export default function SalariesPage() {
                   )}
 
                   {isExpanded && (
-                    <div className="border-t pt-3" onClick={(event) => event.stopPropagation()}>
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                    <div
+                      className="border-t border-border/50 pt-3"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                         {isAllTime ? 'Historique complet' : 'Historique des paiements'}
                       </p>
                       {historyLoading ? (
                         <p className="text-xs text-muted-foreground">Chargement...</p>
                       ) : employeeHistory.length === 0 ? (
                         <p className="text-xs text-muted-foreground">
-                          {isAllTime ? 'Aucun paiement enregistre' : 'Aucun paiement ce mois'}
+                          {isAllTime ? 'Aucun paiement enregistré' : 'Aucun paiement ce mois'}
                         </p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                           {employeeHistory.map((transaction) => (
-                            <div key={transaction.id} className="flex items-center justify-between text-xs">
-                              <div className="min-w-0">
-                                <span className="text-muted-foreground">{formatDate(transaction.date)}</span>
+                            <div
+                              key={transaction.id}
+                              className="flex items-center justify-between gap-2 rounded-xl bg-muted/40 px-2.5 py-1.5 text-xs"
+                            >
+                              <div className="min-w-0 flex items-center flex-wrap gap-1.5">
+                                <span className="tabular-nums text-muted-foreground">
+                                  {formatDate(transaction.date)}
+                                </span>
                                 <Badge
                                   variant="outline"
-                                  className={`ml-2 text-[10px] ${
+                                  className={`h-4 rounded-full px-1.5 text-[9px] font-medium ${
                                     isSalaryMonthDifferentFromEntryDate(transaction)
-                                      ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                      ? 'border-destructive/30 bg-warning-soft text-destructive'
                                       : ''
                                   }`}
                                 >
-                                  Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
+                                  {formatSalaryMonthLabel(
+                                    transaction.salary_month ?? transaction.date
+                                  )}
                                 </Badge>
                                 {transaction.is_internal && (
-                                  <Badge variant="secondary" className="ml-2 text-[10px]">
+                                  <Badge
+                                    variant="secondary"
+                                    className="h-4 rounded-full px-1.5 text-[9px] font-medium"
+                                  >
                                     Interne
                                   </Badge>
                                 )}
                                 {transaction.description && (
-                                  <span className="ml-2 truncate text-muted-foreground">
-                                    - {transaction.description}
+                                  <span className="truncate text-muted-foreground">
+                                    · {transaction.description}
                                   </span>
                                 )}
                               </div>
-                              <span className="ml-3 shrink-0 font-medium">
+                              <span className="shrink-0 tabular-nums font-semibold text-foreground">
                                 {formatTND(Math.abs(transaction.amount))}
                               </span>
                             </div>
@@ -456,8 +530,8 @@ export default function SalariesPage() {
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </button>
             )
           })}
         </div>

@@ -18,9 +18,7 @@ import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -220,280 +218,297 @@ export default function HistoryPage() {
   const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
 
   return (
-    <div className="w-full min-w-0">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold sm:text-2xl">Historique</h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+    <div className="space-y-6 max-w-[1400px] w-full min-w-0">
+      {/* Page header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[22px] sm:text-[28px] font-semibold tracking-tight leading-tight">
+            Historique
+          </h2>
+          <p className="mt-1 text-[13px] sm:text-sm text-muted-foreground">
             {visibleTransactions.length < transactions.length
-              ? `${visibleTransactions.length} / ${transactions.length} transactions`
+              ? `${visibleTransactions.length} sur ${transactions.length} transactions`
               : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
-            {hasActiveFilters ? ' (filtre)' : ''}
+            {hasActiveFilters ? ' · filtré' : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="gap-1.5 text-foreground hover:bg-muted"
+            >
               <X className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Reinitialiser</span>
+              <span className="hidden sm:inline">Réinitialiser</span>
             </Button>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowFilters(!showFilters)}
-            className="text-xs sm:hidden"
+            className="sm:hidden"
           >
-            <Search className="mr-1 h-3.5 w-3.5" />
+            <Search className="mr-1.5 h-3.5 w-3.5" />
             Filtres
           </Button>
         </div>
       </div>
 
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="pl-9"
-        />
-      </div>
+      {/* Compact filter bar — search + inline filters, no wrapping card */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+        <div className="relative w-full sm:max-w-xs sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-8 pl-8 text-[13px] rounded-lg"
+          />
+        </div>
 
-      <div className={`mb-4 space-y-3 ${showFilters ? 'block' : 'hidden'} sm:block`}>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <Label
-              htmlFor="history-category-filter"
-              className="shrink-0 text-xs text-muted-foreground"
-            >
-              Categories
-            </Label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger
-                id="history-category-filter"
-                className="min-w-0 flex-1 text-xs sm:text-sm"
-              >
-                <SelectValue placeholder="Categorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
-                {CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className={`${showFilters ? 'grid' : 'hidden'} grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center`}>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-8 w-full sm:w-auto min-w-0 sm:min-w-[130px] rounded-lg text-[13px]">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
+              {CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <div className="flex min-w-0 items-center gap-2">
-            <Label htmlFor="history-type-filter" className="shrink-0 text-xs text-muted-foreground">
-              Type
-            </Label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger
-                id="history-type-filter"
-                className="min-w-0 flex-1 text-xs sm:text-sm"
-              >
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tout</SelectItem>
-                <SelectItem value="expense">Depenses</SelectItem>
-                <SelectItem value="revenue">Recettes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="h-8 w-full sm:w-auto min-w-0 sm:min-w-[110px] rounded-lg text-[13px]">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tout</SelectItem>
+              <SelectItem value="expense">Dépenses</SelectItem>
+              <SelectItem value="revenue">Recettes</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Input
             type="date"
             value={startDate}
             onChange={(event) => setStartDate(event.target.value)}
-            className="text-xs sm:text-sm"
+            className="h-8 w-full sm:w-auto rounded-lg text-[13px]"
+            aria-label="Date de début"
           />
           <Input
             type="date"
             value={endDate}
             onChange={(event) => setEndDate(event.target.value)}
-            className="text-xs sm:text-sm"
+            className="h-8 w-full sm:w-auto rounded-lg text-[13px]"
+            aria-label="Date de fin"
           />
 
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2 sm:col-span-2">
+          <label
+            htmlFor="history-include-internal"
+            className="col-span-2 flex items-center gap-2 rounded-lg border border-border/70 px-2.5 h-8 cursor-pointer sm:col-span-1"
+          >
             <input
               id="history-include-internal"
               type="checkbox"
               checked={showInternalEntries}
               onChange={(event) => setShowInternalEntries(event.target.checked)}
-              className="h-4 w-4 rounded border-input"
+              className="h-3.5 w-3.5 rounded border-input"
             />
-            <Label
-              htmlFor="history-include-internal"
-              className="cursor-pointer text-xs text-muted-foreground sm:text-sm"
-            >
-              Entrees internes
-            </Label>
-          </div>
+            <span className="text-[12px] font-medium text-foreground">
+              Entrées internes
+            </span>
+          </label>
         </div>
       </div>
 
-      {transactions.length > 0 && (
-        <div className="mb-3 text-xs text-muted-foreground sm:text-sm">
-          Total:{' '}
-          <span className={`font-semibold ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {totalAmount >= 0 ? '+' : ''}
-            {formatTND(totalAmount)}
-          </span>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="py-8 text-center text-muted-foreground">Chargement...</p>
-      ) : transactions.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <p>Aucune transaction trouvee.</p>
-          {hasActiveFilters && (
-            <Button variant="link" onClick={clearFilters} className="mt-2">
-              Reinitialiser les filtres
-            </Button>
+      {/* List container */}
+      <div className="premium-surface premium-surface-airy surface-tint-gold rounded-2xl p-4 sm:p-6">
+        {/* List header — total on the left, count on the right (flipped) */}
+        <div className="mb-4 flex items-center justify-between gap-4">
+          {transactions.length > 0 ? (
+            <div>
+              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Total
+              </p>
+              <p
+                className={`text-base font-semibold tabular-nums ${
+                  totalAmount >= 0 ? 'text-success' : 'text-destructive'
+                }`}
+              >
+                {totalAmount >= 0 ? '+' : ''}
+                {formatTND(totalAmount)}
+              </p>
+            </div>
+          ) : (
+            <div />
           )}
+          <div className="text-right">
+            <h3 className="text-base font-semibold text-foreground">
+              {transactions.length > 0
+                ? `${visibleTransactions.length} affichée${visibleTransactions.length !== 1 ? 's' : ''}`
+                : 'Aucun résultat'}
+            </h3>
+            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Transactions
+            </p>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {visibleTransactions.map((transaction) => {
-            const config = categoryConfig[transaction.category]
-            const Icon = config.icon
-            const entityName = getEntityName(transaction)
-            const showSalaryMonth = transaction.category === 'Salaires'
-            const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
-            const showDescription =
-              (transaction.category === 'Fournisseurs' || transaction.category === 'Packaging') &&
-              !!transaction.description
-            const truncatedDescription =
-              showDescription && transaction.description!.length > 30
-                ? transaction.description!.slice(0, 30) + '...'
-                : transaction.description
 
-            return (
-              <Card key={transaction.id} className="gap-0 rounded-lg py-1 shadow-none sm:py-1.5">
-                <CardContent className="px-2 py-1 sm:px-2.5 sm:py-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`shrink-0 rounded-md p-1 ${config.color}`}>
-                      <Icon className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${config.textColor}`} />
-                    </div>
+        {loading ? (
+          <div className="space-y-2.5 py-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[52px] animate-pulse rounded-full bg-muted/50" />
+            ))}
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">Aucune transaction trouvée</p>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="mt-3 text-foreground"
+              >
+                Réinitialiser les filtres
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {visibleTransactions.map((transaction) => {
+              const config = categoryConfig[transaction.category]
+              const Icon = config.icon
+              const entityName = getEntityName(transaction)
+              const showSalaryMonth = transaction.category === 'Salaires'
+              const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
+              const showDescription =
+                (transaction.category === 'Fournisseurs' ||
+                  transaction.category === 'Packaging') &&
+                !!transaction.description
+              const truncatedDescription =
+                showDescription && transaction.description!.length > 30
+                  ? transaction.description!.slice(0, 30) + '...'
+                  : transaction.description
+              const isPositive = transaction.amount >= 0
 
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden">
-                        <p className="min-w-0 truncate text-xs font-medium sm:text-sm">
-                          {entityName || transaction.description || transaction.category}
-                        </p>
-                        <span
-                          className={`shrink-0 text-xs font-semibold sm:text-sm ${
-                            transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {transaction.amount >= 0 ? '+' : ''}
-                          {formatTND(transaction.amount)}
-                        </span>
-                      </div>
+              return (
+                <div
+                  key={transaction.id}
+                  className="row-surface group flex items-center gap-2 sm:gap-4 rounded-full pl-2 pr-3 sm:pr-4 py-2"
+                >
+                  <div
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${config.color}`}
+                  >
+                    <Icon className={`h-4 w-4 ${config.textColor}`} />
+                  </div>
 
-                      <div className="mt-0 flex items-start justify-between">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
-                          <span className="shrink-0 text-[10px] text-muted-foreground sm:text-xs">
-                            {formatDate(transaction.date)}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`border px-1 py-0 text-[8px] leading-tight sm:px-1.5 sm:text-[10px] ${config.color} ${config.textColor}`}
-                          >
-                            {transaction.category}
-                          </Badge>
-                          {transaction.is_internal && (
-                            <Badge variant="secondary" className="text-[8px] sm:text-[10px]">
-                              Interne
-                            </Badge>
-                          )}
-                          {showSalaryMonth && (
-                            <Badge
-                              variant="outline"
-                              className={`hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px] ${
-                                salaryMonthDiffers
-                                  ? 'border-orange-200 bg-orange-50 text-orange-700'
-                                  : ''
-                              }`}
-                            >
-                              Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
-                            </Badge>
-                          )}
-                          {showDescription && (
-                            <Badge
-                              variant="outline"
-                              className="hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px]"
-                            >
-                              {truncatedDescription}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {(canEditTransactions || canDeleteTransactions) && (
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            {canEditTransactions && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-muted-foreground hover:text-foreground sm:h-6 sm:w-6"
-                                onClick={() => setEditTarget(transaction)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            )}
-                            {canDeleteTransactions && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-destructive hover:text-destructive sm:h-6 sm:w-6"
-                                onClick={() => setDeleteTarget(transaction)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {showSalaryMonth && (
-                        <div className="mt-0.5 sm:hidden">
-                          <span
-                            className={`text-[10px] text-muted-foreground ${
-                              salaryMonthDiffers ? 'text-orange-700' : ''
-                            }`}
-                          >
-                            Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
-                          </span>
-                        </div>
-                      )}
-                      {showDescription && (
-                        <div className="mt-0.5 sm:hidden">
-                          <span className="text-[10px] text-muted-foreground">
-                            {truncatedDescription}
-                          </span>
-                        </div>
-                      )}
+                  <div className="min-w-0 flex-1 sm:flex-[2]">
+                    <p className="truncate text-[13px] font-medium text-foreground tracking-tight">
+                      {entityName || transaction.description || transaction.category}
+                    </p>
+                    <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {formatDate(transaction.date)}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">·</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {transaction.category}
+                      </span>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {visibleTransactions.length < transactions.length && (
-            <div className="pt-2 text-center">
-              <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)}>
-                Charger plus ({transactions.length - visibleTransactions.length} restants)
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+
+                  <div className="hidden lg:flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                    {transaction.is_internal && (
+                      <Badge
+                        variant="secondary"
+                        className="h-5 rounded-full px-2 text-[10px] font-medium"
+                      >
+                        Interne
+                      </Badge>
+                    )}
+                    {showSalaryMonth && (
+                      <Badge
+                        variant="outline"
+                        className={`h-5 rounded-full px-2 text-[10px] font-medium ${
+                          salaryMonthDiffers
+                            ? 'border-destructive/30 bg-warning-soft text-destructive'
+                            : ''
+                        }`}
+                      >
+                        Salaire:{' '}
+                        {formatSalaryMonthLabel(
+                          transaction.salary_month ?? transaction.date
+                        )}
+                      </Badge>
+                    )}
+                    {showDescription && (
+                      <Badge
+                        variant="outline"
+                        className="h-5 rounded-full px-2 text-[10px] font-medium truncate max-w-[200px]"
+                      >
+                        {truncatedDescription}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <span
+                    className={`shrink-0 text-[12px] sm:text-[13px] font-semibold tabular-nums tracking-tight whitespace-nowrap ${
+                      isPositive ? 'text-success' : 'text-destructive'
+                    }`}
+                  >
+                    {isPositive ? '+' : ''}
+                    {formatTND(transaction.amount)}
+                  </span>
+
+                  {(canEditTransactions || canDeleteTransactions) && (
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-100 sm:opacity-0 transition-opacity sm:group-hover:opacity-100">
+                      {canEditTransactions && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                          onClick={() => setEditTarget(transaction)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canDeleteTransactions && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteTarget(transaction)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {visibleTransactions.length < transactions.length && (
+              <div className="pt-3 text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded-full"
+                >
+                  Charger plus ({transactions.length - visibleTransactions.length} restantes)
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <DeleteConfirmDialog
         open={!!deleteTarget}
