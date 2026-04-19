@@ -10,18 +10,8 @@ import {
 } from '@/features/dashboard/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import type { Category } from '@/features/transactions/api'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { formatTND, formatDate } from '@/lib/format'
 import { toast } from 'sonner'
-import {
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
-  Scale,
-} from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -35,11 +25,31 @@ import {
   Cell,
   Legend,
 } from 'recharts'
+import {
+  GlassPanel,
+  PillStat,
+  AvatarCircle,
+  type Segment,
+  type SegmentColor,
+} from '@/components/system-ui/primitives'
+import {
+  PanelHeader,
+  KPIStrip,
+  type KPIMetricData,
+} from '@/components/system-ui/compounds'
 
-const PIE_COLORS = [
-  '#3b82f6', '#8b5cf6', '#f97316', '#eab308',
-  '#14b8a6', '#ec4899', '#6b7280',
+/* Identity palette used for charts — matches kit tokens. */
+const IDENTITY_COLORS = [
+  '#2D7CF6', // blue
+  '#D94BF4', // magenta
+  '#38D3D3', // cyan
+  '#FF9A18', // orange
+  '#D7D9DF', // silver
+  '#E8F21D', // chartreuse (keep last — lime-adjacent)
 ]
+
+const REVENUE_COLOR = '#38D3D3' // cyan — positive flow
+const EXPENSE_COLOR = '#D94BF4' // magenta — outflow
 
 interface RecentTx {
   id: string
@@ -68,6 +78,23 @@ function getEntityName(tx: RecentTx): string {
 function formatMonthLabel(dateStr: string): string {
   const d = new Date(dateStr)
   return d.toLocaleDateString('fr-TN', { month: 'short', year: '2-digit' })
+}
+
+const AVATAR_COLOR_ROTATION: SegmentColor[] = [
+  'blue',
+  'magenta',
+  'cyan',
+  'orange',
+  'silver',
+  'chartreuse',
+]
+
+function avatarColorForCategory(category: string): SegmentColor {
+  let hash = 0
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0
+  }
+  return AVATAR_COLOR_ROTATION[hash % AVATAR_COLOR_ROTATION.length]
 }
 
 export default function DashboardPage() {
@@ -100,7 +127,11 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) {
-    return <p className="text-muted-foreground">Chargement du tableau de bord...</p>
+    return (
+      <DashboardShell>
+        <p className="text-white/60 text-sm">Chargement du tableau de bord…</p>
+      </DashboardShell>
+    )
   }
 
   if (!stats) return null
@@ -111,201 +142,275 @@ export default function DashboardPage() {
     Dépenses: m.total_expenses,
   }))
 
+  const filteredBreakdown = breakdown.filter((b) => b.category !== 'Prêts')
+
+  const netPositive = stats.netThisMonth >= 0
+
+  const kpiMetrics: KPIMetricData[] = [
+    {
+      id: 'balance',
+      label: 'Solde total',
+      value: formatTND(stats.totalBalance),
+    },
+    {
+      id: 'revenue',
+      label: 'Recettes ce mois',
+      value: formatTND(stats.revenueThisMonth),
+    },
+    {
+      id: 'expenses',
+      label: 'Dépenses ce mois',
+      value: formatTND(stats.expensesThisMonth),
+    },
+    {
+      id: 'net',
+      label: 'Net ce mois',
+      value: `${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`,
+    },
+  ]
+
+  const kpiSegments: Segment[] = [
+    { value: Math.max(stats.totalBalance, 0), color: 'cyan', label: 'Solde' },
+    { value: stats.revenueThisMonth, color: 'blue', label: 'Recettes' },
+    { value: stats.expensesThisMonth, color: 'magenta', label: 'Dépenses' },
+    { value: Math.max(stats.netThisMonth, 0), color: 'chartreuse', label: 'Net' },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Tableau de bord</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Vue d'ensemble financière
-        </p>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Solde total</p>
-                <p className={`text-2xl font-bold mt-1 ${stats.totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatTND(stats.totalBalance)}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-muted">
-                <Wallet className="h-5 w-5 text-muted-foreground" />
-              </div>
+    <DashboardShell>
+      <div className="space-y-6">
+        <PanelHeader
+          leading={
+            <div className="flex flex-col gap-1">
+              <h1 className="text-white text-[28px] font-semibold leading-none tracking-tight">
+                Tableau de bord
+              </h1>
+              <p className="text-white/60 text-sm">Vue d&apos;ensemble financière</p>
             </div>
-          </CardContent>
-        </Card>
+          }
+          trailing={
+            <PillStat
+              variant="accent"
+              label="Net ce mois"
+              value={`${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`}
+            />
+          }
+        />
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Recettes ce mois</p>
-                <p className="text-2xl font-bold mt-1 text-green-600">
-                  {formatTND(stats.revenueThisMonth)}
+        {/* KPI Strip */}
+        <GlassPanel className="p-6 md:p-7">
+          <KPIStrip
+            metrics={kpiMetrics}
+            segments={kpiSegments}
+            barAriaLabel="Répartition solde, recettes, dépenses et net ce mois"
+          />
+        </GlassPanel>
+
+        {/* Charts row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <GlassPanel className="lg:col-span-2 p-6 md:p-7">
+            <div className="flex flex-col gap-5">
+              <PanelHeader
+                leading={
+                  <h2 className="text-white text-base font-semibold">
+                    Recettes vs Dépenses
+                  </h2>
+                }
+              />
+              {chartData.length === 0 ? (
+                <p className="text-sm text-white/46 text-center py-12">
+                  Pas encore de données mensuelles
                 </p>
-              </div>
-              <div className="p-3 rounded-full bg-green-50">
-                <ArrowUpRight className="h-5 w-5 text-green-600" />
-              </div>
+              ) : (
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <CartesianGrid
+                        stroke="rgba(255,255,255,0.06)"
+                        strokeDasharray="3 3"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        stroke="rgba(255,255,255,0.46)"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                      />
+                      <YAxis
+                        stroke="rgba(255,255,255,0.46)"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        formatter={(value) => formatTND(Number(value))}
+                        contentStyle={{
+                          background: 'rgba(20,20,20,0.95)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 12,
+                          color: '#fff',
+                          fontSize: 12,
+                        }}
+                        labelStyle={{ color: 'rgba(255,255,255,0.72)', fontWeight: 600 }}
+                        cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.72)' }}
+                        iconType="circle"
+                      />
+                      <Bar dataKey="Recettes" fill={REVENUE_COLOR} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="Dépenses" fill={EXPENSE_COLOR} radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </GlassPanel>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Dépenses ce mois</p>
-                <p className="text-2xl font-bold mt-1 text-red-600">
-                  {formatTND(stats.expensesThisMonth)}
+          <GlassPanel className="p-6 md:p-7">
+            <div className="flex flex-col gap-5">
+              <PanelHeader
+                leading={
+                  <h2 className="text-white text-base font-semibold">
+                    Dépenses par catégorie
+                  </h2>
+                }
+              />
+              {filteredBreakdown.length === 0 ? (
+                <p className="text-sm text-white/46 text-center py-12">
+                  Pas de dépenses ce mois
                 </p>
-              </div>
-              <div className="p-3 rounded-full bg-red-50">
-                <ArrowDownRight className="h-5 w-5 text-red-600" />
-              </div>
+              ) : (
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={filteredBreakdown}
+                        dataKey="total_amount"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={56}
+                        paddingAngle={3}
+                        stroke="#0A0B0A"
+                        strokeWidth={2}
+                        label={(props: { name?: string; percent?: number }) =>
+                          `${props.name || ''} ${((props.percent || 0) * 100).toFixed(0)}%`
+                        }
+                        labelLine={false}
+                        fontSize={11}
+                      >
+                        {filteredBreakdown.map((_, i) => (
+                          <Cell
+                            key={i}
+                            fill={IDENTITY_COLORS[i % IDENTITY_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => formatTND(Number(value))}
+                        contentStyle={{
+                          background: 'rgba(20,20,20,0.95)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 12,
+                          color: '#fff',
+                          fontSize: 12,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </GlassPanel>
+        </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Net ce mois</p>
-                <p className={`text-2xl font-bold mt-1 ${stats.netThisMonth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {stats.netThisMonth >= 0 ? '+' : ''}{formatTND(stats.netThisMonth)}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-muted">
-                <Scale className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Recent Transactions */}
+        <GlassPanel className="p-6 md:p-7">
+          <div className="flex flex-col gap-5">
+            <PanelHeader
+              leading={
+                <h2 className="text-white text-base font-semibold">
+                  Transactions récentes
+                </h2>
+              }
+            />
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Monthly Trend - Bar Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Recettes vs Dépenses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chartData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Pas encore de données mensuelles
+            {recent.length === 0 ? (
+              <p className="text-sm text-white/46 text-center py-6">
+                Aucune transaction pour le moment
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" fontSize={12} tickLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    formatter={(value) => formatTND(Number(value))}
-                    labelStyle={{ fontWeight: 'bold' }}
-                  />
-                  <Bar dataKey="Recettes" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Dépenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Category Breakdown - Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Dépenses par catégorie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {breakdown.filter((b) => b.category !== 'Prêts').length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Pas de dépenses ce mois
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={breakdown.filter((b) => b.category !== 'Prêts')}
-                    dataKey="total_amount"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    innerRadius={50}
-                    paddingAngle={2}
-                    label={(props: { name?: string; percent?: number }) =>
-                      `${props.name || ''} ${((props.percent || 0) * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                    fontSize={11}
-                  >
-                    {breakdown.filter((b) => b.category !== 'Prêts').map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatTND(Number(value))} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Transactions récentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recent.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Aucune transaction pour le moment
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recent.map((tx) => {
-                const config = categoryConfig[tx.category]
-                const Icon = config.icon
-                const entityName = getEntityName(tx)
-                return (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-md ${config.color}`}>
-                        <Icon className={`h-4 w-4 ${config.textColor}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {entityName || tx.category}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(tx.date)} · {tx.category}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`text-sm font-semibold ${
-                        tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}
+              <ul className="flex flex-col divide-y divide-white/[0.06]">
+                {recent.map((tx) => {
+                  const Icon = categoryConfig[tx.category].icon
+                  const entityName = getEntityName(tx)
+                  const positive = tx.amount >= 0
+                  return (
+                    <li
+                      key={tx.id}
+                      className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                     >
-                      {tx.amount >= 0 ? '+' : ''}
-                      {formatTND(tx.amount)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <AvatarCircle
+                          name={entityName || tx.category}
+                          color={avatarColorForCategory(tx.category)}
+                          size="md"
+                          badge={
+                            <span
+                              className="inline-flex size-4 items-center justify-center rounded-full bg-[#0A0B0A] ring-1 ring-white/[0.08]"
+                              aria-hidden
+                            >
+                              <Icon className="size-2.5 text-white/80" />
+                            </span>
+                          }
+                        />
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <p className="truncate text-sm font-medium text-white">
+                            {entityName || tx.category}
+                          </p>
+                          <p className="truncate text-[11px] text-white/46">
+                            {formatDate(tx.date)} · {tx.category}
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 text-sm font-semibold tracking-tight ${
+                          positive ? 'text-[#B8EB3C]' : 'text-white/85'
+                        }`}
+                      >
+                        {positive ? '+' : ''}
+                        {formatTND(tx.amount)}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </GlassPanel>
+      </div>
+    </DashboardShell>
+  )
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="dark relative -m-4 md:-m-8 min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-4rem)] bg-[#0A0B0A] text-white overflow-hidden">
+      {/* Ambient atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div className="relative z-10 p-4 md:p-8">{children}</div>
     </div>
   )
 }

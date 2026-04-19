@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,7 +76,8 @@
 }
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
+    --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -126,4 +128,176 @@
   html {
     @apply font-sans;
     }
+}
+
+/* ─── system-ui kit tokens ─────────────────────────────────────────────────
+ * Ported from system-ui-reference/design-kit/tokens/index.ts.
+ * Raw CSS variables on :root; Tailwind v4 utility bindings in @theme inline below.
+ * Coexists with shadcn tokens — do not remove shadcn variables.
+ */
+:root {
+    --kit-color-bg-app: #0A0B0A;
+    --kit-color-bg-shell: #9B9B95;
+
+    --kit-color-surface-glass: rgba(255, 255, 255, 0.04);
+    --kit-color-surface-glass-raised: rgba(255, 255, 255, 0.07);
+    --kit-color-surface-glass-selected: rgba(255, 255, 255, 0.18);
+    --kit-color-surface-control: rgba(255, 255, 255, 0.06);
+    --kit-color-surface-control-inverse: rgba(255, 255, 255, 0.95);
+    --kit-color-surface-control-muted: #C7C9CE;
+
+    --kit-color-border-soft: rgba(255, 255, 255, 0.08);
+    --kit-color-border-faint: rgba(255, 255, 255, 0.05);
+
+    --kit-color-text-primary: #FFFFFF;
+    --kit-color-text-secondary: rgba(255, 255, 255, 0.72);
+    --kit-color-text-tertiary: rgba(255, 255, 255, 0.46);
+    --kit-color-text-inverse: #0B0B0B;
+    --kit-color-text-inverse-muted: rgba(11, 11, 11, 0.55);
+
+    --kit-color-accent-primary: #DFFF2F;
+    --kit-color-accent-info: #2D7CF6;
+
+    --kit-color-identity-blue: #2D7CF6;
+    --kit-color-identity-magenta: #D94BF4;
+    --kit-color-identity-chartreuse: #E8F21D;
+    --kit-color-identity-silver: #D7D9DF;
+    --kit-color-identity-orange: #FF9A18;
+    --kit-color-identity-cyan: #38D3D3;
+
+    --kit-color-glow-green: rgba(154, 255, 90, 0.10);
+    --kit-color-glow-teal: rgba(92, 214, 180, 0.10);
+    --kit-color-shadow-ambient: rgba(0, 0, 0, 0.35);
+
+    --kit-radius-app: 32px;
+    --kit-radius-panel: 28px;
+    --kit-radius-card: 20px;
+    --kit-radius-pill: 9999px;
+    --kit-radius-round: 50%;
+
+    --kit-space-1: 4px;
+    --kit-space-2: 8px;
+    --kit-space-3: 12px;
+    --kit-space-4: 16px;
+    --kit-space-5: 20px;
+    --kit-space-6: 24px;
+    --kit-space-7: 32px;
+
+    --kit-size-icon-sm: 32px;
+    --kit-size-icon-md: 40px;
+    --kit-size-icon-lg: 48px;
+    --kit-size-avatar-sm: 24px;
+    --kit-size-avatar-md: 36px;
+    --kit-size-avatar-lg: 56px;
+    --kit-size-pill-sm: 32px;
+    --kit-size-pill-md: 40px;
+    --kit-size-pill-lg: 48px;
+    --kit-size-bar-sm: 4px;
+    --kit-size-bar-md: 10px;
+    --kit-size-bar-lg: 16px;
+
+    --kit-blur-panel: 20px;
+    --kit-blur-control: 12px;
+    --kit-shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --kit-shadow-control: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@theme inline {
+    /* Backgrounds */
+    --color-bg-app: var(--kit-color-bg-app);
+    --color-bg-shell: var(--kit-color-bg-shell);
+
+    /* Glass surfaces */
+    --color-surface-glass: var(--kit-color-surface-glass);
+    --color-surface-glass-raised: var(--kit-color-surface-glass-raised);
+    --color-surface-glass-selected: var(--kit-color-surface-glass-selected);
+
+    /* Control surfaces */
+    --color-surface-control: var(--kit-color-surface-control);
+    --color-surface-control-inverse: var(--kit-color-surface-control-inverse);
+    --color-surface-control-muted: var(--kit-color-surface-control-muted);
+
+    /* Kit borders (distinct from shadcn --color-border) */
+    --color-border-soft: var(--kit-color-border-soft);
+    --color-border-faint: var(--kit-color-border-faint);
+
+    /* Kit text (prefixed to avoid shadcn foreground clashes) */
+    --color-text-kit-primary: var(--kit-color-text-primary);
+    --color-text-kit-secondary: var(--kit-color-text-secondary);
+    --color-text-kit-tertiary: var(--kit-color-text-tertiary);
+    --color-text-kit-inverse: var(--kit-color-text-inverse);
+    --color-text-kit-inverse-muted: var(--kit-color-text-inverse-muted);
+
+    /* Accents */
+    --color-accent-primary: var(--kit-color-accent-primary);
+    --color-accent-info: var(--kit-color-accent-info);
+
+    /* Identity palette */
+    --color-identity-blue: var(--kit-color-identity-blue);
+    --color-identity-magenta: var(--kit-color-identity-magenta);
+    --color-identity-chartreuse: var(--kit-color-identity-chartreuse);
+    --color-identity-silver: var(--kit-color-identity-silver);
+    --color-identity-orange: var(--kit-color-identity-orange);
+    --color-identity-cyan: var(--kit-color-identity-cyan);
+
+    /* Atmosphere */
+    --color-glow-green: var(--kit-color-glow-green);
+    --color-glow-teal: var(--kit-color-glow-teal);
+
+    /* Kit radii (coexist with shadcn --radius-sm/md/lg/xl/...) */
+    --radius-app: var(--kit-radius-app);
+    --radius-panel: var(--kit-radius-panel);
+    --radius-card-kit: var(--kit-radius-card);
+    --radius-pill: var(--kit-radius-pill);
+
+    /* Kit spacing utilities: p-kit-4, gap-kit-6, etc. */
+    --spacing-kit-1: var(--kit-space-1);
+    --spacing-kit-2: var(--kit-space-2);
+    --spacing-kit-3: var(--kit-space-3);
+    --spacing-kit-4: var(--kit-space-4);
+    --spacing-kit-5: var(--kit-space-5);
+    --spacing-kit-6: var(--kit-space-6);
+    --spacing-kit-7: var(--kit-space-7);
+
+    /* Typography scale */
+    --text-display-lg: 40px;
+    --text-display-lg--line-height: 1.05;
+    --text-display-lg--letter-spacing: -0.02em;
+    --text-display-lg--font-weight: 700;
+
+    --text-heading-md: 20px;
+    --text-heading-md--line-height: 1.2;
+    --text-heading-md--font-weight: 600;
+
+    --text-panel-title: 16px;
+    --text-panel-title--line-height: 1.3;
+    --text-panel-title--font-weight: 600;
+
+    --text-stat-xl: 28px;
+    --text-stat-xl--line-height: 1;
+    --text-stat-xl--letter-spacing: -0.02em;
+    --text-stat-xl--font-weight: 600;
+
+    --text-stat-lg: 20px;
+    --text-stat-lg--line-height: 1;
+    --text-stat-lg--letter-spacing: -0.01em;
+    --text-stat-lg--font-weight: 600;
+
+    --text-body-md: 13px;
+    --text-body-md--line-height: 1.5;
+    --text-body-md--font-weight: 400;
+
+    --text-body-sm: 11px;
+    --text-body-sm--line-height: 1.4;
+    --text-body-sm--font-weight: 400;
+
+    --text-micro: 10px;
+    --text-micro--line-height: 1.3;
+    --text-micro--font-weight: 400;
+
+    /* Blur + shadow utilities */
+    --blur-kit-panel: var(--kit-blur-panel);
+    --blur-kit-control: var(--kit-blur-control);
+    --shadow-kit-panel: var(--kit-shadow-panel);
+    --shadow-kit-control: var(--kit-shadow-control);
 }
