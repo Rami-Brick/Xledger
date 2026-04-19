@@ -36,17 +36,17 @@ function LoginRoute() {
 }
 
 function HomeRedirect() {
-  const { canCreateTransactions, loading } = useRole()
+  const { loading } = useRole()
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Chargement...</p>
+        <p className="text-white/60">Chargement...</p>
       </div>
     )
   }
 
-  return canCreateTransactions ? <AddTransactionPage /> : <DashboardPage />
+  return <Navigate to="/dashboard" replace />
 }
 
 function App() {

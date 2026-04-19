@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Pencil, Search, Trash2, X } from 'lucide-react'
+import { MoreHorizontal, Pencil, Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
 import {
@@ -16,9 +16,6 @@ import {
 import { categoryConfig } from '@/features/transactions/categories'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -28,7 +25,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AvatarCircle,
+  CircularIconButton,
+  GlassPanel,
+  PillButton,
+  type SegmentColor,
+} from '@/components/system-ui/primitives'
+import { PanelHeader } from '@/components/system-ui/compounds'
 import { formatDate, formatTND } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 interface TransactionRow {
   id: string
@@ -70,6 +83,23 @@ function getCategoryFilterFromSearchParams(searchParams: URLSearchParams) {
 
 function getIncludeInternalFromSearchParams(searchParams: URLSearchParams) {
   return searchParams.get('includeInternal') === 'true'
+}
+
+const AVATAR_COLOR_ROTATION: SegmentColor[] = [
+  'blue',
+  'magenta',
+  'cyan',
+  'orange',
+  'silver',
+  'chartreuse',
+]
+
+function avatarColorForCategory(category: string): SegmentColor {
+  let hash = 0
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash * 31 + category.charCodeAt(i)) >>> 0
+  }
+  return AVATAR_COLOR_ROTATION[hash % AVATAR_COLOR_ROTATION.length]
 }
 
 const PAGE_SIZE = 50
@@ -218,281 +248,321 @@ export default function HistoryPage() {
     endDate ||
     showInternalEntries
   const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
+  const showRowActions = canEditTransactions || canDeleteTransactions
 
   return (
-    <div className="w-full min-w-0">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold sm:text-2xl">Historique</h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            {visibleTransactions.length < transactions.length
-              ? `${visibleTransactions.length} / ${transactions.length} transactions`
-              : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
-            {hasActiveFilters ? ' (filtre)' : ''}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-xs">
-              <X className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Reinitialiser</span>
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="text-xs sm:hidden"
-          >
-            <Search className="mr-1 h-3.5 w-3.5" />
-            Filtres
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      <div className={`mb-4 space-y-3 ${showFilters ? 'block' : 'hidden'} sm:block`}>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <Label
-              htmlFor="history-category-filter"
-              className="shrink-0 text-xs text-muted-foreground"
+    <div className="w-full min-w-0 space-y-4">
+      <PanelHeader
+        leading={
+          <div className="flex flex-col gap-1">
+            <p className="text-[11px] text-white/46">
+              {visibleTransactions.length < transactions.length
+                ? `${visibleTransactions.length} / ${transactions.length} transactions`
+                : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
+              {hasActiveFilters ? ' · filtré' : ''}
+            </p>
+            {transactions.length > 0 && (
+              <p className="text-xs text-white/72">
+                Total :{' '}
+                <span
+                  className={cn(
+                    'font-semibold tracking-tight',
+                    totalAmount >= 0 ? 'text-[#B8EB3C]' : 'text-[#FF9A18]',
+                  )}
+                >
+                  {totalAmount >= 0 ? '+' : ''}
+                  {formatTND(totalAmount)}
+                </span>
+              </p>
+            )}
+          </div>
+        }
+        trailing={
+          <div className="flex items-center gap-2">
+            {hasActiveFilters && (
+              <PillButton
+                variant="ghost"
+                size="sm"
+                leadingIcon={<X />}
+                onClick={clearFilters}
+              >
+                Réinitialiser
+              </PillButton>
+            )}
+            <PillButton
+              variant="glass"
+              size="sm"
+              leadingIcon={<Search />}
+              onClick={() => setShowFilters((v) => !v)}
+              className="sm:hidden"
             >
-              Categories
-            </Label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger
-                id="history-category-filter"
-                className="min-w-0 flex-1 text-xs sm:text-sm"
-              >
-                <SelectValue placeholder="Categorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes</SelectItem>
-                {CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              Filtres
+            </PillButton>
           </div>
+        }
+      />
 
-          <div className="flex min-w-0 items-center gap-2">
-            <Label htmlFor="history-type-filter" className="shrink-0 text-xs text-muted-foreground">
-              Type
-            </Label>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger
-                id="history-type-filter"
-                className="min-w-0 flex-1 text-xs sm:text-sm"
-              >
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tout</SelectItem>
-                <SelectItem value="expense">Depenses</SelectItem>
-                <SelectItem value="revenue">Recettes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
-
-          <div className="flex items-center gap-2 rounded-md border px-3 py-2 sm:col-span-2">
-            <input
-              id="history-include-internal"
-              type="checkbox"
-              checked={showInternalEntries}
-              onChange={(event) => setShowInternalEntries(event.target.checked)}
-              className="h-4 w-4 rounded border-input"
+      {/* Filters panel */}
+      <GlassPanel className="p-4 md:p-5">
+        <div className="flex flex-col gap-3">
+          {/* Search — always visible */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/46" />
+            <Input
+              placeholder="Rechercher..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] pl-10 text-sm text-white placeholder:text-white/46 focus-visible:border-white/30 focus-visible:ring-0"
             />
-            <Label
-              htmlFor="history-include-internal"
-              className="cursor-pointer text-xs text-muted-foreground sm:text-sm"
-            >
-              Entrees internes
-            </Label>
+          </div>
+
+          {/* Advanced filters — collapsible on mobile, always shown on desktop */}
+          <div className={cn('space-y-3', showFilters ? 'block' : 'hidden sm:block')}>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <Label
+                  htmlFor="history-category-filter"
+                  className="shrink-0 text-xs text-white/46"
+                >
+                  Categories
+                </Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger
+                    id="history-category-filter"
+                    className="min-w-0 flex-1 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm"
+                  >
+                    <SelectValue placeholder="Categorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-2">
+                <Label htmlFor="history-type-filter" className="shrink-0 text-xs text-white/46">
+                  Type
+                </Label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger
+                    id="history-type-filter"
+                    className="min-w-0 flex-1 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm"
+                  >
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tout</SelectItem>
+                    <SelectItem value="expense">Depenses</SelectItem>
+                    <SelectItem value="revenue">Recettes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm [color-scheme:dark]"
+              />
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm [color-scheme:dark]"
+              />
+
+              <label
+                htmlFor="history-include-internal"
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 sm:col-span-2"
+              >
+                <input
+                  id="history-include-internal"
+                  type="checkbox"
+                  checked={showInternalEntries}
+                  onChange={(event) => setShowInternalEntries(event.target.checked)}
+                  className="size-4 rounded border-white/20 bg-transparent accent-white"
+                />
+                <span className="text-xs text-white/72 sm:text-sm">Entrees internes</span>
+              </label>
+            </div>
           </div>
         </div>
-      </div>
+      </GlassPanel>
 
-      {transactions.length > 0 && (
-        <div className="mb-3 text-xs text-muted-foreground sm:text-sm">
-          Total:{' '}
-          <span className={`font-semibold ${totalAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {totalAmount >= 0 ? '+' : ''}
-            {formatTND(totalAmount)}
-          </span>
-        </div>
-      )}
-
+      {/* List */}
       {loading ? (
-        <p className="py-8 text-center text-muted-foreground">Chargement...</p>
+        <GlassPanel className="p-6">
+          <p className="py-6 text-center text-sm text-white/46">Chargement...</p>
+        </GlassPanel>
       ) : transactions.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <p>Aucune transaction trouvee.</p>
-          {hasActiveFilters && (
-            <Button variant="link" onClick={clearFilters} className="mt-2">
-              Reinitialiser les filtres
-            </Button>
-          )}
-        </div>
+        <GlassPanel className="p-6">
+          <div className="flex flex-col items-center gap-3 py-12 text-center text-white/60">
+            <p className="text-sm">Aucune transaction trouvee.</p>
+            {hasActiveFilters && (
+              <PillButton variant="light" size="sm" onClick={clearFilters}>
+                Réinitialiser les filtres
+              </PillButton>
+            )}
+          </div>
+        </GlassPanel>
       ) : (
-        <div className="space-y-2">
-          {visibleTransactions.map((transaction) => {
-            const config = categoryConfig[transaction.category]
-            const Icon = config.icon
-            const entityName = getEntityName(transaction)
-            const showSalaryMonth = transaction.category === 'Salaires'
-            const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
-            const showDescription =
-              (transaction.category === 'Fournisseurs' || transaction.category === 'Packaging') &&
-              !!transaction.description
-            const truncatedDescription =
-              showDescription && transaction.description!.length > 30
-                ? transaction.description!.slice(0, 30) + '...'
-                : transaction.description
+        <GlassPanel className="p-3 md:p-4">
+          <div className="flex flex-col gap-1">
+            {visibleTransactions.map((transaction) => {
+              const Icon = categoryConfig[transaction.category].icon
+              const entityName = getEntityName(transaction)
+              const showSalaryMonth = transaction.category === 'Salaires'
+              const salaryMonthDiffers = isSalaryMonthDifferentFromEntryDate(transaction)
+              const showDescription =
+                (transaction.category === 'Fournisseurs' ||
+                  transaction.category === 'Packaging') &&
+                !!transaction.description
+              const truncatedDescription =
+                showDescription && transaction.description!.length > 40
+                  ? transaction.description!.slice(0, 40) + '...'
+                  : transaction.description
+              const positive = transaction.amount >= 0
+              const displayName = entityName || transaction.description || transaction.category
 
-            return (
-              <Card key={transaction.id} className="gap-0 rounded-lg py-1 shadow-none sm:py-1.5">
-                <CardContent className="px-2 py-1 sm:px-2.5 sm:py-1">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`shrink-0 rounded-md p-1 ${config.color}`}>
-                      <Icon className={`h-3 w-3 sm:h-3.5 sm:w-3.5 ${config.textColor}`} />
-                    </div>
+              return (
+                <div
+                  key={transaction.id}
+                  className="grid items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors duration-150 hover:bg-white/[0.03] grid-cols-[auto_minmax(0,1fr)_auto]"
+                >
+                  <AvatarCircle
+                    name={displayName}
+                    color={avatarColorForCategory(transaction.category)}
+                    size="md"
+                    badge={
+                      <span
+                        className="inline-flex size-4 items-center justify-center rounded-full bg-[#0A0B0A] ring-1 ring-white/[0.08]"
+                        aria-hidden
+                      >
+                        <Icon className="size-2.5 text-white/80" />
+                      </span>
+                    }
+                  />
 
-                    <div className="min-w-0 flex-1 overflow-hidden">
-                      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 overflow-hidden">
-                        <p className="min-w-0 truncate text-xs font-medium sm:text-sm">
-                          {entityName || transaction.description || transaction.category}
-                        </p>
-                        <span
-                          className={`shrink-0 text-xs font-semibold sm:text-sm ${
-                            transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {transaction.amount >= 0 ? '+' : ''}
-                          {formatTND(transaction.amount)}
-                        </span>
-                      </div>
-
-                      <div className="mt-0 flex items-start justify-between">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
-                          <span className="shrink-0 text-[10px] text-muted-foreground sm:text-xs">
-                            {formatDate(transaction.date)}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={`border px-1 py-0 text-[8px] leading-tight sm:px-1.5 sm:text-[10px] ${config.color} ${config.textColor}`}
-                          >
-                            {transaction.category}
-                          </Badge>
-                          {transaction.is_internal && (
-                            <Badge variant="secondary" className="text-[8px] sm:text-[10px]">
-                              Interne
-                            </Badge>
-                          )}
-                          {showSalaryMonth && (
-                            <Badge
-                              variant="outline"
-                              className={`hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px] ${
-                                salaryMonthDiffers
-                                  ? 'border-orange-200 bg-orange-50 text-orange-700'
-                                  : ''
-                              }`}
-                            >
-                              Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
-                            </Badge>
-                          )}
-                          {showDescription && (
-                            <Badge
-                              variant="outline"
-                              className="hidden px-1 py-0 text-[8px] leading-tight sm:inline-flex sm:px-1.5 sm:text-[10px]"
-                            >
-                              {truncatedDescription}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {(canEditTransactions || canDeleteTransactions) && (
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            {canEditTransactions && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-muted-foreground hover:text-foreground sm:h-6 sm:w-6"
-                                onClick={() => setEditTarget(transaction)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            )}
-                            {canDeleteTransactions && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 text-destructive hover:text-destructive sm:h-6 sm:w-6"
-                                onClick={() => setDeleteTarget(transaction)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium text-white">
+                      {displayName}
+                    </span>
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/46">
+                      <span className="shrink-0">{formatDate(transaction.date)}</span>
+                      <span className="shrink-0">·</span>
+                      <span className="shrink-0">{transaction.category}</span>
+                      {transaction.is_internal && (
+                        <>
+                          <span className="shrink-0">·</span>
+                          <span className="shrink-0 text-white/72">Interne</span>
+                        </>
+                      )}
                       {showSalaryMonth && (
-                        <div className="mt-0.5 sm:hidden">
+                        <>
+                          <span className="shrink-0">·</span>
                           <span
-                            className={`text-[10px] text-muted-foreground ${
-                              salaryMonthDiffers ? 'text-orange-700' : ''
-                            }`}
+                            className={cn(
+                              'shrink-0',
+                              salaryMonthDiffers ? 'text-[#FF9A18]' : 'text-white/72',
+                            )}
                           >
-                            Salaire: {formatSalaryMonthLabel(transaction.salary_month ?? transaction.date)}
+                            Salaire :{' '}
+                            {formatSalaryMonthLabel(
+                              transaction.salary_month ?? transaction.date,
+                            )}
                           </span>
-                        </div>
+                        </>
                       )}
                       {showDescription && (
-                        <div className="mt-0.5 sm:hidden">
-                          <span className="text-[10px] text-muted-foreground">
+                        <>
+                          <span className="hidden shrink-0 sm:inline">·</span>
+                          <span className="hidden shrink-0 sm:inline">
                             {truncatedDescription}
                           </span>
-                        </div>
+                        </>
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-          {visibleTransactions.length < transactions.length && (
-            <div className="pt-2 text-center">
-              <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)}>
-                Charger plus ({transactions.length - visibleTransactions.length} restants)
-              </Button>
-            </div>
-          )}
-        </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={cn(
+                        'text-sm font-semibold tracking-tight tabular-nums',
+                        positive ? 'text-[#B8EB3C]' : 'text-white',
+                      )}
+                    >
+                      {positive ? '+' : ''}
+                      {formatTND(transaction.amount)}
+                    </span>
+
+                    {showRowActions && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <CircularIconButton
+                            variant="glass"
+                            size="sm"
+                            icon={<MoreHorizontal />}
+                            aria-label="Actions"
+                          />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          sideOffset={6}
+                          className="min-w-40 rounded-xl border border-white/[0.08] bg-[#141414] p-1.5 text-white shadow-xl ring-0"
+                        >
+                          {canEditTransactions && (
+                            <DropdownMenuItem
+                              className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                              onSelect={(e) => {
+                                e.preventDefault()
+                                setEditTarget(transaction)
+                              }}
+                            >
+                              <Pencil className="size-4" />
+                              Modifier
+                            </DropdownMenuItem>
+                          )}
+                          {canEditTransactions && canDeleteTransactions && (
+                            <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
+                          )}
+                          {canDeleteTransactions && (
+                            <DropdownMenuItem
+                              className="gap-2 rounded-lg px-2 py-2 text-sm text-[#FF9A18] focus:bg-[#FF9A18]/10 focus:text-[#FF9A18]"
+                              onSelect={(e) => {
+                                e.preventDefault()
+                                setDeleteTarget(transaction)
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {visibleTransactions.length < transactions.length && (
+              <div className="pt-3 text-center">
+                <PillButton
+                  variant="glass"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Charger plus ({transactions.length - visibleTransactions.length} restants)
+                </PillButton>
+              </div>
+            )}
+          </div>
+        </GlassPanel>
       )}
 
       <DeleteConfirmDialog

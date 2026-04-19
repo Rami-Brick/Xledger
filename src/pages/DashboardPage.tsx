@@ -25,6 +25,9 @@ import {
   Cell,
   Legend,
 } from 'recharts'
+import { Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useRole } from '@/lib/RoleProvider'
 import {
   GlassPanel,
   PillStat,
@@ -35,6 +38,7 @@ import {
 import {
   PanelHeader,
   KPIStrip,
+  PrimaryCTA,
   type KPIMetricData,
 } from '@/components/system-ui/compounds'
 
@@ -98,6 +102,8 @@ function avatarColorForCategory(category: string): SegmentColor {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
+  const { canCreateTransactions } = useRole()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthly, setMonthly] = useState<MonthlySummary[]>([])
   const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([])
@@ -181,19 +187,21 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <PanelHeader
           leading={
-            <div className="flex flex-col gap-1">
-              <h1 className="text-white text-[28px] font-semibold leading-none tracking-tight">
-                Tableau de bord
-              </h1>
-              <p className="text-white/60 text-sm">Vue d&apos;ensemble financière</p>
-            </div>
-          }
-          trailing={
             <PillStat
               variant="accent"
               label="Net ce mois"
               value={`${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`}
             />
+          }
+          trailing={
+            canCreateTransactions ? (
+              <PrimaryCTA
+                label="Ajouter une transaction"
+                icon={<Plus />}
+                aria-label="Ajouter une nouvelle transaction"
+                onClick={() => navigate('/ajouter')}
+              />
+            ) : undefined
           }
         />
 
@@ -398,19 +406,19 @@ export default function DashboardPage() {
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark relative -m-4 md:-m-8 min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-4rem)] bg-[#0A0B0A] text-white overflow-hidden">
-      {/* Ambient atmosphere */}
+    <div className="relative">
+      {/* Ambient atmosphere — positioned within the page content so it paints behind panels */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
         style={{ background: 'rgba(154,255,90,0.10)' }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
         style={{ background: 'rgba(92,214,180,0.10)' }}
       />
-      <div className="relative z-10 p-4 md:p-8">{children}</div>
+      <div className="relative z-10">{children}</div>
     </div>
   )
 }
