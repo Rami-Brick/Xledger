@@ -12,12 +12,7 @@ import SalairesForm from '@/features/transactions/forms/SalairesForm'
 import SimpleForm from '@/features/transactions/forms/SimpleForm'
 import SubcategoryForm from '@/features/transactions/forms/SubcategoryForm'
 import SubscriptionsForm from '@/features/transactions/forms/SubscriptionsForm'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  CircularIconButton,
-  GlassPanel,
-} from '@/components/system-ui/primitives'
+import { CircularIconButton } from '@/components/system-ui/primitives'
 import { cn } from '@/lib/utils'
 
 function getTodayDate() {
@@ -242,30 +237,35 @@ export default function AddTransactionPage() {
                 const config = categoryConfig[category]
                 const Icon = config.icon
                 const color = CATEGORY_COLOR[category]
+                const tintR = parseInt(color.bg.slice(1, 3), 16)
+                const tintG = parseInt(color.bg.slice(3, 5), 16)
+                const tintB = parseInt(color.bg.slice(5, 7), 16)
+                const tintBase = `rgba(${tintR}, ${tintG}, ${tintB}, 0.14)`
+                const tintHover = `rgba(${tintR}, ${tintG}, ${tintB}, 0.22)`
                 return (
                   <button
                     key={category}
                     type="button"
                     onClick={() => handleCategorySelect(category)}
+                    style={{ ['--tile-tint' as string]: tintBase, ['--tile-tint-hover' as string]: tintHover }}
                     className={cn(
-                      'group flex h-14 w-full items-center justify-between gap-3 rounded-full',
-                      'bg-white/95 pl-5 pr-1 text-black',
-                      'transition-[background-color,transform] duration-150',
-                      'hover:bg-white active:bg-white/85 active:scale-[0.99]',
-                      'focus-visible:outline-none focus-visible:ring-2',
-                      'focus-visible:ring-white/40 focus-visible:ring-offset-2',
-                      'focus-visible:ring-offset-black',
+                      'group relative flex h-28 w-full flex-col items-start justify-between overflow-hidden rounded-[28px]',
+                      'bg-[var(--tile-tint)] p-4 text-left backdrop-blur-2xl',
+                      'transition-[background-color,transform] duration-200',
+                      'hover:bg-[var(--tile-tint-hover)] active:scale-[0.98]',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
+                      'focus-visible:ring-offset-2 focus-visible:ring-offset-black',
                     )}
                   >
-                    <span className="min-w-0 truncate text-left text-sm font-semibold tracking-tight">
-                      {config.label}
-                    </span>
                     <span
                       aria-hidden="true"
-                      className="inline-flex size-12 shrink-0 items-center justify-center rounded-full [&>svg]:size-5"
+                      className="inline-flex size-12 shrink-0 items-center justify-center rounded-full shadow-lg [&>svg]:size-5"
                       style={{ backgroundColor: color.bg, color: color.fg }}
                     >
                       <Icon />
+                    </span>
+                    <span className="w-full truncate text-left text-sm font-semibold tracking-tight text-white">
+                      {config.label}
                     </span>
                   </button>
                 )
@@ -285,18 +285,30 @@ export default function AddTransactionPage() {
               <span className="text-xs text-white/60">Retour aux categories</span>
             </div>
 
-            <GlassPanel className="p-5 md:p-6">
-              <div className="flex flex-col gap-5">
-                {(() => {
-                  const config = categoryConfig[selectedCategory]
-                  const Icon = config.icon
-                  const isRevenue = config.type === 'revenue'
-                  const color = CATEGORY_COLOR[selectedCategory]
-                  return (
+            {(() => {
+              const config = categoryConfig[selectedCategory]
+              const Icon = config.icon
+              const isRevenue = config.type === 'revenue'
+              const color = CATEGORY_COLOR[selectedCategory]
+              return (
+                <div className="relative overflow-hidden rounded-3xl bg-white/[0.03] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl md:p-6">
+                  {/* Category color glow (top-left + bottom-right) */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-20 -left-20 h-64 w-64 rounded-full blur-3xl"
+                    style={{ background: `${color.bg}33` }}
+                  />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full blur-3xl"
+                    style={{ background: `${color.bg}22` }}
+                  />
+
+                  <div className="relative z-10 flex flex-col gap-5">
                     <div className="flex items-center gap-3">
                       <span
                         aria-hidden
-                        className="inline-flex size-14 shrink-0 items-center justify-center rounded-full [&>svg]:size-6"
+                        className="inline-flex size-14 shrink-0 items-center justify-center rounded-full shadow-lg [&>svg]:size-6"
                         style={{ backgroundColor: color.bg, color: color.fg }}
                       >
                         <Icon />
@@ -315,29 +327,41 @@ export default function AddTransactionPage() {
                         </span>
                       </div>
                     </div>
-                  )
-                })()}
 
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-xs text-white/72">
-                    Date
-                  </Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(event) => setDate(event.target.value)}
-                    className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] px-4 text-sm text-white [color-scheme:dark] focus-visible:border-white/30 focus-visible:ring-0"
-                  />
+                    <FloatingField label="Date">
+                      <input
+                        id="date"
+                        type="date"
+                        value={date}
+                        onChange={(event) => setDate(event.target.value)}
+                        className="w-full border-0 bg-transparent text-sm text-white outline-none [color-scheme:dark]"
+                      />
+                    </FloatingField>
+
+                    {/* Per-category form — shared shadcn inputs render against dark tokens */}
+                    {renderForm()}
+                  </div>
                 </div>
-
-                {/* Per-category form — shared shadcn inputs render against dark tokens */}
-                {renderForm()}
-              </div>
-            </GlassPanel>
+              )
+            })()}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function FloatingField({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <label className="flex flex-col gap-1 rounded-2xl bg-white/[0.04] px-4 pt-2.5 pb-3 backdrop-blur-sm transition-colors focus-within:bg-white/[0.06] focus-within:ring-1 focus-within:ring-white/20">
+      <span className="text-[11px] font-medium leading-none text-white/46">{label}</span>
+      {children}
+    </label>
   )
 }

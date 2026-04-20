@@ -1,4 +1,4 @@
-import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 interface InternalEntryFieldProps {
   checked: boolean
@@ -12,25 +12,34 @@ export default function InternalEntryField({
   categoryLabel,
 }: InternalEntryFieldProps) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-      <div className="flex items-start gap-3">
-        <input
-          id="is-internal"
-          type="checkbox"
-          checked={checked}
-          onChange={(event) => onCheckedChange(event.target.checked)}
-          className="mt-0.5 size-4 rounded border-white/20 bg-transparent accent-white"
-        />
-        <div className="space-y-1">
-          <Label htmlFor="is-internal" className="cursor-pointer text-sm text-white/90">
-            Entrée interne
-          </Label>
-          <p className="text-xs text-white/46">
-            Ne pas inclure cette entrée dans les totaux globaux ni dans l&apos;historique.
-            Elle restera visible dans les détails de la catégorie {categoryLabel}.
-          </p>
-        </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onCheckedChange(!checked)}
+      className="flex w-full items-center justify-between gap-4 rounded-2xl px-1 py-2 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+    >
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-sm font-medium text-white">Entrée interne</span>
+        <span className="text-[11px] text-white/46">
+          Ne pas inclure dans les totaux. Reste visible dans {categoryLabel}.
+        </span>
       </div>
-    </div>
+
+      <span
+        aria-hidden
+        className={cn(
+          'relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors duration-200',
+          checked ? 'bg-white/95' : 'bg-white/[0.10]',
+        )}
+      >
+        <span
+          className={cn(
+            'inline-block size-5 rounded-full shadow transition-all duration-200',
+            checked ? 'translate-x-[18px] bg-black' : 'translate-x-0.5 bg-white',
+          )}
+        />
+      </span>
+    </button>
   )
 }
