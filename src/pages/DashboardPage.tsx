@@ -32,15 +32,16 @@ import {
   GlassPanel,
   PillStat,
   AvatarCircle,
+  CircularIconButton,
   type Segment,
   type SegmentColor,
 } from '@/components/system-ui/primitives'
 import {
   PanelHeader,
-  KPIStrip,
   PrimaryCTA,
   type KPIMetricData,
 } from '@/components/system-ui/compounds'
+import { SegmentedBar } from '@/components/system-ui/primitives'
 
 /* Identity palette used for charts — matches kit tokens. */
 const IDENTITY_COLORS = [
@@ -195,23 +196,48 @@ export default function DashboardPage() {
           }
           trailing={
             canCreateTransactions ? (
-              <PrimaryCTA
-                label="Ajouter une transaction"
-                icon={<Plus />}
-                aria-label="Ajouter une nouvelle transaction"
-                onClick={() => navigate('/ajouter')}
-              />
+              <>
+                {/* Icon-only on mobile, full CTA on md+ */}
+                <CircularIconButton
+                  variant="light"
+                  size="md"
+                  icon={<Plus />}
+                  aria-label="Ajouter une nouvelle transaction"
+                  onClick={() => navigate('/ajouter')}
+                  className="md:hidden"
+                />
+                <PrimaryCTA
+                  label="Ajouter une transaction"
+                  icon={<Plus />}
+                  aria-label="Ajouter une nouvelle transaction"
+                  onClick={() => navigate('/ajouter')}
+                  className="hidden md:inline-flex"
+                />
+              </>
             ) : undefined
           }
         />
 
-        {/* KPI Strip */}
-        <GlassPanel className="p-6 md:p-7">
-          <KPIStrip
-            metrics={kpiMetrics}
-            segments={kpiSegments}
-            barAriaLabel="Répartition solde, recettes, dépenses et net ce mois"
-          />
+        {/* KPI Strip — 2×2 on mobile, row of 4 on md+ */}
+        <GlassPanel className="p-4 md:p-7">
+          <div className="flex flex-col gap-3 md:gap-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:flex md:gap-0">
+              {kpiMetrics.map((m) => (
+                <div key={m.id} className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className="truncate text-[17px] font-semibold leading-none tracking-tight text-white md:text-[28px]">
+                    {m.value}
+                  </span>
+                  <span className="truncate text-[11px] leading-snug text-white/46 md:text-[12px]">
+                    {m.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <SegmentedBar
+              segments={kpiSegments}
+              aria-label="Répartition solde, recettes, dépenses et net ce mois"
+            />
+          </div>
         </GlassPanel>
 
         {/* Charts row */}

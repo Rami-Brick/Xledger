@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MoreHorizontal, Pencil, Search, Trash2, X } from 'lucide-react'
+import { MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
 import {
@@ -17,7 +17,6 @@ import { categoryConfig } from '@/features/transactions/categories'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -32,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Popover as PopoverPrimitive } from 'radix-ui'
 import {
   AvatarCircle,
   CircularIconButton,
@@ -39,9 +39,18 @@ import {
   PillButton,
   type SegmentColor,
 } from '@/components/system-ui/primitives'
-import { PanelHeader } from '@/components/system-ui/compounds'
 import { formatDate, formatTND } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
+
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wide text-white/46">{label}</span>
+      {children}
+    </div>
+  )
+}
 
 interface TransactionRow {
   id: string
@@ -111,7 +120,7 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1)
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
   const [editTarget, setEditTarget] = useState<TransactionRow | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>(() =>
@@ -250,149 +259,201 @@ export default function HistoryPage() {
   const totalAmount = transactions.reduce((sum, transaction) => sum + transaction.amount, 0)
   const showRowActions = canEditTransactions || canDeleteTransactions
 
+  const activeFilterCount =
+    (categoryFilter !== 'all' ? 1 : 0) +
+    (typeFilter !== 'all' ? 1 : 0) +
+    (startDate ? 1 : 0) +
+    (endDate ? 1 : 0) +
+    (showInternalEntries ? 1 : 0)
+
   return (
-    <div className="w-full min-w-0 space-y-4">
-      <PanelHeader
-        leading={
-          <div className="flex flex-col gap-1">
-            <p className="text-[11px] text-white/46">
-              {visibleTransactions.length < transactions.length
-                ? `${visibleTransactions.length} / ${transactions.length} transactions`
-                : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
-              {hasActiveFilters ? ' · filtré' : ''}
-            </p>
-            {transactions.length > 0 && (
-              <p className="text-xs text-white/72">
-                Total :{' '}
-                <span
-                  className={cn(
-                    'font-semibold tracking-tight',
-                    totalAmount >= 0 ? 'text-[#B8EB3C]' : 'text-[#FF9A18]',
-                  )}
-                >
-                  {totalAmount >= 0 ? '+' : ''}
-                  {formatTND(totalAmount)}
-                </span>
-              </p>
+    <div className="relative w-full min-w-0">
+      {/* Ambient atmosphere */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
+      <div className="relative z-10 space-y-4">
+      {/* Top row — Total (left), count (middle), toolbar (right) */}
+      <div className="flex flex-wrap items-center gap-2">
+        {transactions.length > 0 && (
+          <span
+            className={cn(
+              'text-xl font-semibold tracking-tight tabular-nums md:text-2xl',
+              totalAmount >= 0 ? 'text-[#B8EB3C]' : 'text-[#FF9A18]',
+            )}
+          >
+            {totalAmount >= 0 ? '+' : ''}
+            {formatTND(totalAmount)}
+          </span>
+        )}
+        <span className="ml-auto text-[11px] text-white/46">
+          {visibleTransactions.length < transactions.length
+            ? `${visibleTransactions.length} / ${transactions.length} transactions`
+            : `${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}`}
+          {hasActiveFilters ? ' · filtré' : ''}
+        </span>
+
+        <div className="flex items-center gap-1.5">
+          {/* Search — circular icon button that expands into a pill input */}
+          <div className="flex items-center">
+            {searchOpen ? (
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/46" />
+                <Input
+                  autoFocus
+                  placeholder="Rechercher..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onBlur={() => {
+                    if (!search) setSearchOpen(false)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setSearch('')
+                      setSearchOpen(false)
+                    }
+                  }}
+                  className="h-8 w-48 rounded-full border-white/[0.08] bg-white/[0.06] pl-9 pr-3 text-xs text-white placeholder:text-white/46 focus-visible:border-white/30 focus-visible:ring-0"
+                />
+              </div>
+            ) : (
+              <CircularIconButton
+                variant="glass"
+                size="sm"
+                icon={<Search />}
+                aria-label="Rechercher"
+                onClick={() => setSearchOpen(true)}
+              />
             )}
           </div>
-        }
-        trailing={
-          <div className="flex items-center gap-2">
-            {hasActiveFilters && (
-              <PillButton
-                variant="ghost"
-                size="sm"
-                leadingIcon={<X />}
-                onClick={clearFilters}
+
+          {/* Filtres popover */}
+          <PopoverPrimitive.Root>
+            <PopoverPrimitive.Trigger asChild>
+              <button
+                type="button"
+                aria-label="Filtres"
+                className={cn(
+                  'relative inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 text-xs font-medium text-white/90',
+                  'transition-colors hover:bg-white/[0.10]',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+                )}
               >
-                Réinitialiser
-              </PillButton>
-            )}
-            <PillButton
+                <SlidersHorizontal className="size-3.5" />
+                Filtres
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-white/95 text-[10px] font-bold text-black">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </PopoverPrimitive.Trigger>
+
+            <PopoverPrimitive.Portal>
+              <PopoverPrimitive.Content
+                align="end"
+                sideOffset={8}
+                className="z-50 w-[min(calc(100vw-2rem),320px)] rounded-2xl border border-white/[0.08] bg-[#141414] p-3 text-white shadow-xl"
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-white/72">Filtres</span>
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-[10px] text-white/46 hover:text-white/80"
+                      >
+                        Réinitialiser
+                      </button>
+                    )}
+                  </div>
+
+                  <FilterField label="Catégorie">
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="h-8 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes</SelectItem>
+                        {CATEGORIES.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FilterField>
+
+                  <FilterField label="Type">
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="h-8 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tout</SelectItem>
+                        <SelectItem value="expense">Dépenses</SelectItem>
+                        <SelectItem value="revenue">Recettes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FilterField>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <FilterField label="Début">
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="h-8 rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark]"
+                      />
+                    </FilterField>
+                    <FilterField label="Fin">
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="h-8 rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark]"
+                      />
+                    </FilterField>
+                  </div>
+
+                  <label
+                    htmlFor="history-include-internal"
+                    className="flex cursor-pointer items-center gap-2 pt-1"
+                  >
+                    <input
+                      id="history-include-internal"
+                      type="checkbox"
+                      checked={showInternalEntries}
+                      onChange={(e) => setShowInternalEntries(e.target.checked)}
+                      className="size-3.5 rounded border-white/20 bg-transparent accent-white"
+                    />
+                    <span className="text-xs text-white/72">Entrées internes</span>
+                  </label>
+                </div>
+              </PopoverPrimitive.Content>
+            </PopoverPrimitive.Portal>
+          </PopoverPrimitive.Root>
+
+          {hasActiveFilters && (
+            <CircularIconButton
               variant="glass"
               size="sm"
-              leadingIcon={<Search />}
-              onClick={() => setShowFilters((v) => !v)}
-              className="sm:hidden"
-            >
-              Filtres
-            </PillButton>
-          </div>
-        }
-      />
-
-      {/* Filters panel */}
-      <GlassPanel className="p-4 md:p-5">
-        <div className="flex flex-col gap-3">
-          {/* Search — always visible */}
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/46" />
-            <Input
-              placeholder="Rechercher..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] pl-10 text-sm text-white placeholder:text-white/46 focus-visible:border-white/30 focus-visible:ring-0"
+              icon={<X />}
+              aria-label="Réinitialiser les filtres"
+              onClick={clearFilters}
+              className="hidden sm:inline-flex"
             />
-          </div>
-
-          {/* Advanced filters — collapsible on mobile, always shown on desktop */}
-          <div className={cn('space-y-3', showFilters ? 'block' : 'hidden sm:block')}>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <Label
-                  htmlFor="history-category-filter"
-                  className="shrink-0 text-xs text-white/46"
-                >
-                  Categories
-                </Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger
-                    id="history-category-filter"
-                    className="min-w-0 flex-1 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm"
-                  >
-                    <SelectValue placeholder="Categorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    {CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex min-w-0 items-center gap-2">
-                <Label htmlFor="history-type-filter" className="shrink-0 text-xs text-white/46">
-                  Type
-                </Label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger
-                    id="history-type-filter"
-                    className="min-w-0 flex-1 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm"
-                  >
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tout</SelectItem>
-                    <SelectItem value="expense">Depenses</SelectItem>
-                    <SelectItem value="revenue">Recettes</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm [color-scheme:dark]"
-              />
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="h-10 rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:text-sm [color-scheme:dark]"
-              />
-
-              <label
-                htmlFor="history-include-internal"
-                className="flex cursor-pointer items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 sm:col-span-2"
-              >
-                <input
-                  id="history-include-internal"
-                  type="checkbox"
-                  checked={showInternalEntries}
-                  onChange={(event) => setShowInternalEntries(event.target.checked)}
-                  className="size-4 rounded border-white/20 bg-transparent accent-white"
-                />
-                <span className="text-xs text-white/72 sm:text-sm">Entrees internes</span>
-              </label>
-            </div>
-          </div>
+          )}
         </div>
-      </GlassPanel>
+      </div>
 
       {/* List */}
       {loading ? (
@@ -432,8 +493,14 @@ export default function HistoryPage() {
               return (
                 <div
                   key={transaction.id}
-                  className="grid items-center gap-3 rounded-2xl px-2 py-2.5 transition-colors duration-150 hover:bg-white/[0.03] grid-cols-[auto_minmax(0,1fr)_auto]"
+                  className="group grid items-center gap-3 rounded-2xl px-2 py-3 md:py-3.5 grid-cols-[8px_36px_minmax(0,1fr)_auto]"
                 >
+                  {/* Playground-style selection dot — fills on hover */}
+                  <span
+                    aria-hidden
+                    className="size-2 rounded-full bg-white opacity-0 transition-opacity duration-150 group-hover:opacity-60"
+                  />
+
                   <AvatarCircle
                     name={displayName}
                     color={avatarColorForCategory(transaction.category)}
@@ -449,10 +516,10 @@ export default function HistoryPage() {
                   />
 
                   <div className="min-w-0 flex flex-col gap-0.5">
-                    <span className="truncate text-sm font-medium text-white">
+                    <span className="truncate text-sm font-medium text-white md:text-[15px]">
                       {displayName}
                     </span>
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/46">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0 text-[12px] text-white/60 md:text-[12.5px]">
                       <span className="shrink-0">{formatDate(transaction.date)}</span>
                       <span className="shrink-0">·</span>
                       <span className="shrink-0">{transaction.category}</span>
@@ -490,9 +557,10 @@ export default function HistoryPage() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
+                    {/* Amount pill — small, inline, kit-style */}
                     <span
                       className={cn(
-                        'text-sm font-semibold tracking-tight tabular-nums',
+                        'inline-flex h-8 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] font-semibold tracking-tight tabular-nums',
                         positive ? 'text-[#B8EB3C]' : 'text-white',
                       )}
                     >
@@ -580,6 +648,7 @@ export default function HistoryPage() {
         transaction={editTarget}
         onSuccess={fetchTransactions}
       />
+      </div>
     </div>
   )
 }

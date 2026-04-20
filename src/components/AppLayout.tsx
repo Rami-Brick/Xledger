@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
+  BarChart3,
+  ChevronDown,
   LogOut,
   ScrollText,
   Settings,
@@ -14,9 +16,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarCircle, PillButton } from '@/components/system-ui/primitives'
@@ -32,7 +31,6 @@ const primaryTabs: PrimaryTab[] = [
   { id: 'dashboard', to: '/dashboard', label: 'Tableau de bord' },
   { id: 'history', to: '/historique', label: 'Historique' },
   { id: 'categories', to: '/categories', label: 'Categories' },
-  { id: 'reports', to: '/rapports', label: 'Rapports' },
 ]
 
 const settingsItems = [
@@ -68,6 +66,7 @@ export default function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
+  const [settingsExpanded, setSettingsExpanded] = useState(false)
 
   // Pin the app to dark mode — the system-ui kit is dark-only.
   useEffect(() => {
@@ -85,7 +84,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-[#0A0B0A] text-white">
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-4 md:px-6 md:py-6">
+      <div className="mx-auto w-full max-w-[1400px] px-2 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6">
         {/* Top row — tabs centered, profile right. No bar, no border. */}
         <div className="flex items-center gap-4">
           <nav
@@ -104,7 +103,7 @@ export default function AppLayout() {
                     onClick={() => {
                       if (!isActive) navigate(tab.to)
                     }}
-                    className="shrink-0"
+                    className="shrink-0 h-8 px-3 text-xs md:h-10 md:px-5 md:text-sm"
                   >
                     {tab.label}
                   </PillButton>
@@ -140,6 +139,18 @@ export default function AppLayout() {
                 </DropdownMenuLabel>
               )}
 
+              <DropdownMenuItem
+                className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setProfileOpen(false)
+                  navigate('/rapports')
+                }}
+              >
+                <BarChart3 className="size-4" />
+                Rapports
+              </DropdownMenuItem>
+
               {canManage && (
                 <>
                   <DropdownMenuItem
@@ -154,21 +165,29 @@ export default function AppLayout() {
                     Journal
                   </DropdownMenuItem>
 
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger
-                      className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white data-[state=open]:bg-white/[0.06] data-[state=open]:text-white"
-                    >
-                      <Settings className="size-4" />
-                      Parametres
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent
-                      className="min-w-52 rounded-xl border border-white/[0.08] bg-[#141414] p-1.5 text-white shadow-xl ring-0"
-                      sideOffset={4}
-                    >
+                  <DropdownMenuItem
+                    className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setSettingsExpanded((v) => !v)
+                    }}
+                  >
+                    <Settings className="size-4" />
+                    <span className="flex-1">Paramètres</span>
+                    <ChevronDown
+                      className={cn(
+                        'size-4 text-white/46 transition-transform duration-150',
+                        settingsExpanded && 'rotate-180',
+                      )}
+                    />
+                  </DropdownMenuItem>
+
+                  {settingsExpanded && (
+                    <div className="flex flex-col">
                       {settingsItems.map((item) => (
                         <DropdownMenuItem
                           key={item.to}
-                          className="rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                          className="rounded-lg px-2 py-1.5 pl-9 text-[13px] text-white/72 focus:bg-white/[0.06] focus:text-white"
                           onSelect={(e) => {
                             e.preventDefault()
                             setProfileOpen(false)
@@ -178,8 +197,8 @@ export default function AppLayout() {
                           {item.label}
                         </DropdownMenuItem>
                       ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
+                    </div>
+                  )}
 
                   <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
                 </>
