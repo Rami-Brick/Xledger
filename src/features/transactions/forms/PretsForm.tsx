@@ -120,10 +120,10 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
             Rendu
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/46">
           {isRendu
-            ? 'La societe rembourse - argent qui sort'
-            : 'La societe recoit un pret - argent qui entre'}
+            ? 'La société rembourse — argent qui sort'
+            : 'La société reçoit un prêt — argent qui entre'}
         </p>
       </div>
 
@@ -145,20 +145,20 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
       </div>
 
       {selectedBalance && (
-        <div className="space-y-2 rounded-md bg-muted p-4 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total recu</span>
-            <span className="font-medium">{formatTND(selectedBalance.total_lent)}</span>
+        <div className="space-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm">
+          <div className="flex justify-between text-white/80">
+            <span className="text-white/60">Total reçu</span>
+            <span className="font-medium tabular-nums text-white">{formatTND(selectedBalance.total_lent)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total rendu</span>
-            <span className="font-medium">{formatTND(selectedBalance.total_repaid)}</span>
+          <div className="flex justify-between text-white/80">
+            <span className="text-white/60">Total rendu</span>
+            <span className="font-medium tabular-nums text-white">{formatTND(selectedBalance.total_repaid)}</span>
           </div>
-          <div className="flex justify-between border-t pt-2">
-            <span className="font-medium">Reste a rendre</span>
+          <div className="flex justify-between border-t border-white/[0.06] pt-2">
+            <span className="font-medium text-white">Reste à rendre</span>
             <span
-              className={`font-bold ${
-                selectedBalance.remaining > 0 ? 'text-orange-600' : 'text-green-600'
+              className={`font-bold tabular-nums ${
+                selectedBalance.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
               }`}
             >
               {formatTND(selectedBalance.remaining)}

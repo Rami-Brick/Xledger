@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  MoreHorizontal,
   Pencil,
   Plus,
   Trash2,
@@ -25,13 +26,23 @@ import { getSubcategories, type Subcategory } from '@/features/subcategories/api
 import { getSubscriptions, type Subscription } from '@/features/subscriptions/api'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
 import EditTransactionDialog from '@/features/transactions/EditTransactionDialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  CircularIconButton,
+  GlassPanel,
+  PillButton,
+} from '@/components/system-ui/primitives'
+import { PrimaryCTA } from '@/components/system-ui/compounds'
 import { useRole } from '@/lib/RoleProvider'
 import { formatDate, formatTND } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
 interface CategorySummary {
   category: string
@@ -72,6 +83,20 @@ interface LoanBalance {
 
 const LOAN_HISTORY_PAGE_SIZE = 5
 
+// Distinct hex per category — mirrors AddTransactionPage so colors stay consistent.
+const CATEGORY_COLOR: Record<Category, { bg: string; fg: string }> = {
+  Salaires:       { bg: '#2D7CF6', fg: '#FFFFFF' },
+  'Charges fixes':{ bg: '#D94BF4', fg: '#FFFFFF' },
+  Fournisseurs:   { bg: '#FF9A18', fg: '#0A0B0A' },
+  Transport:      { bg: '#FFC933', fg: '#0A0B0A' },
+  Packaging:      { bg: '#38D3D3', fg: '#0A0B0A' },
+  Sponsoring:     { bg: '#FF5DA2', fg: '#FFFFFF' },
+  Subscriptions:  { bg: '#8B5CF6', fg: '#FFFFFF' },
+  'Prêts':        { bg: '#F97316', fg: '#0A0B0A' },
+  Divers:         { bg: '#D7D9DF', fg: '#0A0B0A' },
+  Recettes:       { bg: '#B8EB3C', fg: '#0A0B0A' },
+}
+
 function getEntityName(transaction: TransactionRow): string {
   if (transaction.employees) return transaction.employees.name
   if (transaction.fixed_charges) return transaction.fixed_charges.name
@@ -91,6 +116,24 @@ function getCurrentMonthRange() {
 
 function getLoanEntryType(amount: number) {
   return amount >= 0 ? 'Recu' : 'Rendu'
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative w-full min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div className="relative z-10 space-y-5">{children}</div>
+    </div>
+  )
 }
 
 export default function CategoriesPage() {
@@ -277,53 +320,60 @@ export default function CategoriesPage() {
     }))
   }
 
+  // ─── Grid state ─────────────────────────────────────────────────────────────
   if (!selectedCategory) {
     return (
-      <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Categories</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Vue d'ensemble par categorie - ce mois</p>
-        </div>
+      <Shell>
+        <p className="text-sm text-white/60">Vue d&apos;ensemble par catégorie — ce mois.</p>
 
         {loading ? (
-          <p className="py-8 text-center text-muted-foreground">Chargement...</p>
+          <p className="py-8 text-center text-sm text-white/46">Chargement...</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {summaries.map((summary) => {
               const config = categoryConfig[summary.category as Category]
               const Icon = config.icon
+              const color = CATEGORY_COLOR[summary.category as Category]
 
               return (
-                <Card
+                <button
                   key={summary.category}
-                  className={`cursor-pointer border-2 transition-all hover:shadow-md ${config.color}`}
+                  type="button"
                   onClick={() => openDetail(summary.category as Category)}
+                  className={cn(
+                    'group flex flex-col gap-3 rounded-[20px] border border-white/[0.08]',
+                    'bg-white/[0.04] p-4 text-left transition-colors duration-150',
+                    'hover:bg-white/[0.08] hover:border-white/[0.14]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
+                    'focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+                  )}
                 >
-                  <CardContent className="px-3 py-5">
-                    <div className="flex flex-col items-center gap-2 text-center">
-                      <Icon className={`h-7 w-7 ${config.textColor}`} />
-                      <span className={`text-xs font-medium sm:text-sm ${config.textColor}`}>
-                        {config.label}
-                      </span>
-                    </div>
-                    <div className="mt-3 space-y-1 text-center">
-                      <p className="text-lg font-bold">{formatTND(summary.total)}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {summary.count} transaction{summary.count !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  <span
+                    aria-hidden
+                    className="inline-flex size-10 items-center justify-center rounded-full [&>svg]:size-[18px]"
+                    style={{ backgroundColor: color.bg, color: color.fg }}
+                  >
+                    <Icon />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-white">{config.label}</p>
+                    <p className="mt-1 text-lg font-semibold tracking-tight tabular-nums text-white">
+                      {formatTND(summary.total)}
+                    </p>
+                  </div>
+                </button>
               )
             })}
           </div>
         )}
-      </div>
+      </Shell>
     )
   }
 
+  // ─── Detail state ───────────────────────────────────────────────────────────
   const config = categoryConfig[selectedCategory]
   const Icon = config.icon
+  const color = CATEGORY_COLOR[selectedCategory]
 
   const renderEntities = () => {
     switch (selectedCategory) {
@@ -332,19 +382,22 @@ export default function CategoriesPage() {
         if (activeCharges.length === 0) return null
 
         return (
-          <Card>
-            <CardContent className="pb-3 pt-5">
-              <p className="mb-3 text-sm font-medium">Charges enregistrees</p>
-              <div className="space-y-2">
-                {activeCharges.map((charge) => (
-                  <div key={charge.id} className="flex items-center justify-between py-1 text-sm">
-                    <span>{charge.name}</span>
-                    <span className="text-muted-foreground">{formatTND(charge.default_amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <GlassPanel className="p-5">
+            <p className="mb-3 text-xs font-medium text-white/72">Charges enregistrées</p>
+            <div className="flex flex-col gap-1">
+              {activeCharges.map((charge) => (
+                <div
+                  key={charge.id}
+                  className="flex items-center justify-between py-1.5 text-sm"
+                >
+                  <span className="text-white">{charge.name}</span>
+                  <span className="text-white/60 tabular-nums">
+                    {formatTND(charge.default_amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
         )
       }
 
@@ -353,21 +406,22 @@ export default function CategoriesPage() {
         if (activeProducts.length === 0) return null
 
         return (
-          <Card>
-            <CardContent className="pb-3 pt-5">
-              <p className="mb-3 text-sm font-medium">Produits actifs</p>
-              <div className="space-y-2">
-                {activeProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between py-1 text-sm">
-                    <span>{product.name}</span>
-                    {product.description && (
-                      <span className="text-xs text-muted-foreground">{product.description}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <GlassPanel className="p-5">
+            <p className="mb-3 text-xs font-medium text-white/72">Produits actifs</p>
+            <div className="flex flex-col gap-1">
+              {activeProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between gap-3 py-1.5 text-sm"
+                >
+                  <span className="text-white">{product.name}</span>
+                  {product.description && (
+                    <span className="shrink-0 text-xs text-white/46">{product.description}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
         )
       }
 
@@ -379,18 +433,19 @@ export default function CategoriesPage() {
         if (activeSubcategories.length === 0) return null
 
         return (
-          <Card>
-            <CardContent className="pb-3 pt-5">
-              <p className="mb-3 text-sm font-medium">Sous-categories</p>
-              <div className="flex flex-wrap gap-2">
-                {activeSubcategories.map((subcategory) => (
-                  <Badge key={subcategory.id} variant="outline">
-                    {subcategory.name}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <GlassPanel className="p-5">
+            <p className="mb-3 text-xs font-medium text-white/72">Sous-catégories</p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeSubcategories.map((subcategory) => (
+                <span
+                  key={subcategory.id}
+                  className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs text-white/80"
+                >
+                  {subcategory.name}
+                </span>
+              ))}
+            </div>
+          </GlassPanel>
         )
       }
 
@@ -399,19 +454,22 @@ export default function CategoriesPage() {
         if (activeSubscriptions.length === 0) return null
 
         return (
-          <Card>
-            <CardContent className="pb-3 pt-5">
-              <p className="mb-3 text-sm font-medium">Abonnements actifs</p>
-              <div className="space-y-2">
-                {activeSubscriptions.map((subscription) => (
-                  <div key={subscription.id} className="flex items-center justify-between py-1 text-sm">
-                    <span>{subscription.name}</span>
-                    <span className="text-muted-foreground">{formatTND(subscription.default_amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <GlassPanel className="p-5">
+            <p className="mb-3 text-xs font-medium text-white/72">Abonnements actifs</p>
+            <div className="flex flex-col gap-1">
+              {activeSubscriptions.map((subscription) => (
+                <div
+                  key={subscription.id}
+                  className="flex items-center justify-between py-1.5 text-sm"
+                >
+                  <span className="text-white">{subscription.name}</span>
+                  <span className="text-white/60 tabular-nums">
+                    {formatTND(subscription.default_amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
         )
       }
 
@@ -424,175 +482,178 @@ export default function CategoriesPage() {
 
         return (
           <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              <Card>
-                <CardContent className="px-3 pb-4 pt-4">
-                  <p className="text-xs text-muted-foreground">Total recu</p>
-                  <p className="mt-1 text-base font-bold">{formatTND(totalReceived)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="px-3 pb-4 pt-4">
-                  <p className="text-xs text-muted-foreground">Total rendu</p>
-                  <p className="mt-1 text-base font-bold text-green-600">{formatTND(totalReturned)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="px-3 pb-4 pt-4">
-                  <p className="text-xs text-muted-foreground">Reste</p>
-                  <p className={`mt-1 text-base font-bold ${totalRemaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                    {formatTND(totalRemaining)}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <GlassPanel className="p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <StatCell label="Total recu" value={formatTND(totalReceived)} />
+                <StatCell
+                  label="Total rendu"
+                  value={formatTND(totalReturned)}
+                  valueClassName="text-[#B8EB3C]"
+                />
+                <StatCell
+                  label="Reste"
+                  value={formatTND(totalRemaining)}
+                  valueClassName={
+                    totalRemaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
+                  }
+                />
+              </div>
+            </GlassPanel>
 
             {loanBalances.length > 0 && (
-              <Card>
-                <CardContent className="pb-3 pt-5">
-                  <p className="mb-1 text-sm font-medium">Soldes par personne</p>
-                  <p className="mb-3 text-xs text-muted-foreground">
-                    Cliquez sur une personne pour voir l'historique.
+              <GlassPanel className="p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-white/72">Soldes par personne</p>
+                  <p className="mt-1 text-[11px] text-white/46">
+                    Cliquez sur une personne pour voir l&apos;historique.
                   </p>
-                  <div className="space-y-3">
-                    {loanBalances.map((balance) => {
-                      const percent =
-                        balance.total_lent > 0
-                          ? Math.min((balance.total_repaid / balance.total_lent) * 100, 100)
-                          : 0
-                      const isExpanded = expandedLoanContactId === balance.loan_contact_id
-                      const entries = categoryTransactions.filter(
-                        (transaction) => transaction.loan_contact_id === balance.loan_contact_id
-                      )
-                      const visibleCount =
-                        loanHistoryVisibleCount[balance.loan_contact_id] || LOAN_HISTORY_PAGE_SIZE
-                      const visibleEntries = entries.slice(0, visibleCount)
-                      const hasMore = entries.length > visibleEntries.length
+                </div>
+                <div className="flex flex-col gap-2">
+                  {loanBalances.map((balance) => {
+                    const percent =
+                      balance.total_lent > 0
+                        ? Math.min((balance.total_repaid / balance.total_lent) * 100, 100)
+                        : 0
+                    const isExpanded = expandedLoanContactId === balance.loan_contact_id
+                    const entries = categoryTransactions.filter(
+                      (transaction) => transaction.loan_contact_id === balance.loan_contact_id
+                    )
+                    const visibleCount =
+                      loanHistoryVisibleCount[balance.loan_contact_id] || LOAN_HISTORY_PAGE_SIZE
+                    const visibleEntries = entries.slice(0, visibleCount)
+                    const hasMore = entries.length > visibleEntries.length
 
-                      return (
-                        <div key={balance.loan_contact_id} className="rounded-md border">
-                          <button
-                            type="button"
-                            onClick={() => toggleLoanHistory(balance.loan_contact_id)}
-                            className="w-full p-4 text-left"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1 space-y-1.5">
-                                <div className="flex items-center justify-between gap-3 text-sm">
-                                  <span className="truncate font-medium">{balance.name}</span>
-                                  <span className={`shrink-0 text-xs font-semibold ${balance.remaining > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                                    {balance.remaining > 0
-                                      ? `Reste: ${formatTND(balance.remaining)}`
-                                      : 'Solde'}
-                                  </span>
-                                </div>
-                                <Progress
-                                  value={percent}
-                                  className={`h-1.5 ${
-                                    balance.remaining <= 0
-                                      ? '[&>div]:bg-green-500'
-                                      : '[&>div]:bg-blue-500'
-                                  }`}
-                                />
-                                <div className="flex justify-between text-[10px] text-muted-foreground">
-                                  <span>Rendu: {formatTND(balance.total_repaid)}</span>
-                                  <span>Recu: {formatTND(balance.total_lent)}</span>
-                                </div>
+                    return (
+                      <div
+                        key={balance.loan_contact_id}
+                        className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleLoanHistory(balance.loan_contact_id)}
+                          className="w-full p-4 text-left transition-colors hover:bg-white/[0.03]"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                              <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="truncate font-medium text-white">
+                                  {balance.name}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'shrink-0 text-xs font-semibold tabular-nums',
+                                    balance.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]',
+                                  )}
+                                >
+                                  {balance.remaining > 0
+                                    ? `Reste : ${formatTND(balance.remaining)}`
+                                    : 'Soldé'}
+                                </span>
                               </div>
-                              <span className="shrink-0 text-muted-foreground">
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </span>
+                              <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all',
+                                    balance.remaining <= 0 ? 'bg-[#B8EB3C]' : 'bg-[#2D7CF6]',
+                                  )}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-between text-[10px] text-white/46">
+                                <span>Rendu : {formatTND(balance.total_repaid)}</span>
+                                <span>Recu : {formatTND(balance.total_lent)}</span>
+                              </div>
                             </div>
-                          </button>
-
-                          {isExpanded && (
-                            <div className="space-y-2 border-t px-4 py-3">
-                              {entries.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
-                                  Aucune entree pour cette personne.
-                                </p>
+                            <span className="shrink-0 text-white/46">
+                              {isExpanded ? (
+                                <ChevronUp className="size-4" />
                               ) : (
-                                <>
-                                  {visibleEntries.map((transaction) => (
+                                <ChevronDown className="size-4" />
+                              )}
+                            </span>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                            {entries.length === 0 ? (
+                              <p className="text-sm text-white/46">
+                                Aucune entree pour cette personne.
+                              </p>
+                            ) : (
+                              <>
+                                {visibleEntries.map((transaction) => {
+                                  const positive = transaction.amount >= 0
+                                  return (
                                     <div
                                       key={transaction.id}
-                                      className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2"
+                                      className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2"
                                     >
-                                      <div className="min-w-0 space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className="text-sm font-medium">
+                                      <div className="min-w-0 space-y-0.5">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className="text-sm font-medium text-white">
                                             {getLoanEntryType(transaction.amount)}
                                           </span>
                                           {transaction.is_internal && (
-                                            <Badge variant="secondary" className="text-[10px]">
+                                            <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0 text-[10px] text-white/72">
                                               Interne
-                                            </Badge>
+                                            </span>
                                           )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-[11px] text-white/46">
                                           {formatDate(transaction.date)}
-                                          {transaction.description ? ` - ${transaction.description}` : ''}
+                                          {transaction.description ? ` · ${transaction.description}` : ''}
                                         </p>
                                       </div>
 
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                          {transaction.amount >= 0 ? '+' : ''}
+                                      <div className="flex shrink-0 items-center gap-1.5">
+                                        <span
+                                          className={cn(
+                                            'inline-flex h-7 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] font-semibold tabular-nums',
+                                            positive ? 'text-[#B8EB3C]' : 'text-white',
+                                          )}
+                                        >
+                                          {positive ? '+' : ''}
                                           {formatTND(transaction.amount)}
                                         </span>
                                         {(canEditTransactions || canDeleteTransactions) && (
-                                          <div className="flex items-center gap-1">
-                                            {canEditTransactions && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                                onClick={() => setEditTarget(transaction)}
-                                              >
-                                                <Pencil className="h-3.5 w-3.5" />
-                                              </Button>
-                                            )}
-                                            {canDeleteTransactions && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                                onClick={() => setDeleteTarget(transaction)}
-                                              >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                              </Button>
-                                            )}
-                                          </div>
+                                          <RowActions
+                                            onEdit={
+                                              canEditTransactions
+                                                ? () => setEditTarget(transaction)
+                                                : undefined
+                                            }
+                                            onDelete={
+                                              canDeleteTransactions
+                                                ? () => setDeleteTarget(transaction)
+                                                : undefined
+                                            }
+                                          />
                                         )}
                                       </div>
                                     </div>
-                                  ))}
+                                  )
+                                })}
 
-                                  {hasMore && (
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleShowMoreLoanEntries(balance.loan_contact_id)}
-                                      className="w-full"
-                                    >
-                                      Voir plus
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                                {hasMore && (
+                                  <PillButton
+                                    variant="glass"
+                                    size="sm"
+                                    onClick={() => handleShowMoreLoanEntries(balance.loan_contact_id)}
+                                    className="self-center"
+                                  >
+                                    Voir plus
+                                  </PillButton>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </GlassPanel>
             )}
           </div>
         )
@@ -604,118 +665,153 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Button
-          variant="ghost"
+    <Shell>
+      {/* Back button + header */}
+      <div className="flex items-center gap-3">
+        <CircularIconButton
+          variant="glass"
           size="sm"
+          icon={<ArrowLeft />}
+          aria-label="Toutes les categories"
           onClick={() => setSelectedCategory(null)}
-          className="mb-3 gap-2 text-muted-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Toutes les categories
-        </Button>
+        />
+        <span className="text-xs text-white/60">Toutes les catégories</span>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`rounded-md p-2.5 ${config.color}`}>
-            <Icon className={`h-6 w-6 ${config.textColor}`} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold">{config.label}</h2>
-            <p className="text-sm text-muted-foreground">Vue detaillee</p>
+          <span
+            aria-hidden
+            className="inline-flex size-14 shrink-0 items-center justify-center rounded-full [&>svg]:size-6"
+            style={{ backgroundColor: color.bg, color: color.fg }}
+          >
+            <Icon />
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <h2 className="text-lg font-semibold leading-none text-white md:text-xl">
+              {config.label}
+            </h2>
+            <span className="mt-1 text-[11px] text-white/46">Vue détaillée</span>
           </div>
         </div>
+
+        {canCreateTransactions && (
+          <>
+            <CircularIconButton
+              variant="light"
+              size="md"
+              icon={<Plus />}
+              aria-label={`Ajouter une transaction ${config.label}`}
+              onClick={() =>
+                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+              }
+              className="md:hidden"
+            />
+            <PrimaryCTA
+              label={`Ajouter ${config.label}`}
+              icon={<Plus />}
+              aria-label={`Ajouter une transaction ${config.label}`}
+              onClick={() =>
+                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+              }
+              className="hidden md:inline-flex"
+            />
+          </>
+        )}
       </div>
 
       {detailLoading ? (
-        <p className="py-8 text-center text-muted-foreground">Chargement...</p>
+        <p className="py-8 text-center text-sm text-white/46">Chargement...</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            <Card>
-              <CardContent className="px-3 pb-4 pt-4">
-                <p className="text-xs text-muted-foreground">Ce mois</p>
-                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(thisMonthTotal)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="px-3 pb-4 pt-4">
-                <p className="text-xs text-muted-foreground">Mois dernier</p>
-                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(lastMonthTotal)}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="px-3 pb-4 pt-4">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="mt-1 text-base font-bold sm:text-lg">{formatTND(allTimeTotal)}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {canCreateTransactions && (
-            <Button
-              onClick={() => navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)}
-              className="w-full gap-2 sm:w-auto"
-            >
-              <Plus className="h-4 w-4" />
-              Ajouter une transaction {config.label}
-            </Button>
-          )}
+          <GlassPanel className="p-4 md:p-5">
+            <div className="grid grid-cols-3 gap-3">
+              <StatCell label="Ce mois" value={formatTND(thisMonthTotal)} />
+              <StatCell label="Mois dernier" value={formatTND(lastMonthTotal)} />
+              <StatCell label="Total" value={formatTND(allTimeTotal)} />
+            </div>
+          </GlassPanel>
 
           {renderEntities()}
 
           {selectedCategory !== 'Prêts' && (
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-medium">Transactions recentes</p>
-                <Button
+            <GlassPanel className="p-3 md:p-4">
+              <div className="flex items-center justify-between px-2 pb-2">
+                <p className="text-xs font-medium text-white/72">Transactions récentes</p>
+                <PillButton
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/historique?category=${encodeURIComponent(selectedCategory)}`)}
-                  className="gap-1 text-xs"
+                  trailingIcon={<ArrowRight />}
+                  onClick={() =>
+                    navigate(`/historique?category=${encodeURIComponent(selectedCategory)}`)
+                  }
                 >
-                  Voir tout <ArrowRight className="h-3 w-3" />
-                </Button>
+                  Voir tout
+                </PillButton>
               </div>
 
               {categoryTransactions.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">Aucune transaction</p>
+                <p className="py-6 text-center text-sm text-white/46">Aucune transaction</p>
               ) : (
-                <div className="space-y-2">
+                <div className="flex flex-col">
                   {categoryTransactions.map((transaction) => {
                     const entityName = getEntityName(transaction)
+                    const displayName =
+                      entityName || transaction.description || selectedCategory
+                    const positive = transaction.amount >= 0
 
                     return (
-                      <Card key={transaction.id}>
-                        <CardContent className="px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <p className="truncate text-sm font-medium">
-                                  {entityName || transaction.description || selectedCategory}
-                                </p>
-                                {transaction.is_internal && (
-                                  <Badge variant="secondary" className="shrink-0 text-[10px]">
-                                    Interne
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {formatDate(transaction.date)}
-                              </p>
-                            </div>
-
-                            <span className={`shrink-0 text-sm font-semibold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {transaction.amount >= 0 ? '+' : ''}
-                              {formatTND(transaction.amount)}
-                            </span>
+                      <div
+                        key={transaction.id}
+                        className="group grid items-center gap-3 rounded-2xl px-2 py-3 grid-cols-[minmax(0,1fr)_auto]"
+                      >
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate text-sm font-medium text-white">
+                              {displayName}
+                            </p>
+                            {transaction.is_internal && (
+                              <span className="shrink-0 rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0 text-[10px] text-white/72">
+                                Interne
+                              </span>
+                            )}
                           </div>
-                        </CardContent>
-                      </Card>
+                          <p className="text-[11px] text-white/46">
+                            {formatDate(transaction.date)}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'inline-flex h-8 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-3 text-[13px] font-semibold tabular-nums',
+                              positive ? 'text-[#B8EB3C]' : 'text-white',
+                            )}
+                          >
+                            {positive ? '+' : ''}
+                            {formatTND(transaction.amount)}
+                          </span>
+                          {(canEditTransactions || canDeleteTransactions) && (
+                            <RowActions
+                              onEdit={
+                                canEditTransactions
+                                  ? () => setEditTarget(transaction)
+                                  : undefined
+                              }
+                              onDelete={
+                                canDeleteTransactions
+                                  ? () => setDeleteTarget(transaction)
+                                  : undefined
+                              }
+                            />
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
               )}
-            </div>
+            </GlassPanel>
           )}
         </>
       )}
@@ -740,6 +836,84 @@ export default function CategoriesPage() {
           }
         }}
       />
+    </Shell>
+  )
+}
+
+function StatCell({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string
+  value: string
+  valueClassName?: string
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="truncate text-[11px] text-white/46">{label}</span>
+      <span
+        className={cn(
+          'truncate text-base font-semibold tracking-tight tabular-nums text-white md:text-lg',
+          valueClassName,
+        )}
+      >
+        {value}
+      </span>
     </div>
+  )
+}
+
+function RowActions({
+  onEdit,
+  onDelete,
+}: {
+  onEdit?: () => void
+  onDelete?: () => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <CircularIconButton
+          variant="glass"
+          size="sm"
+          icon={<MoreHorizontal />}
+          aria-label="Actions"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={6}
+        className="min-w-40 rounded-xl border border-white/[0.08] bg-[#141414] p-1.5 text-white shadow-xl ring-0"
+      >
+        {onEdit && (
+          <DropdownMenuItem
+            className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+            onSelect={(e) => {
+              e.preventDefault()
+              onEdit()
+            }}
+          >
+            <Pencil className="size-4" />
+            Modifier
+          </DropdownMenuItem>
+        )}
+        {onEdit && onDelete && (
+          <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
+        )}
+        {onDelete && (
+          <DropdownMenuItem
+            className="gap-2 rounded-lg px-2 py-2 text-sm text-[#FF9A18] focus:bg-[#FF9A18]/10 focus:text-[#FF9A18]"
+            onSelect={(e) => {
+              e.preventDefault()
+              onDelete()
+            }}
+          >
+            <Trash2 className="size-4" />
+            Supprimer
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

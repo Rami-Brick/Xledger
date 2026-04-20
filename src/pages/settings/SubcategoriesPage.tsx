@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
 import { Navigate } from 'react-router-dom'
+import { MoreHorizontal, Pencil, Plus, Power, Trash2 } from 'lucide-react'
 import {
   getSubcategories,
   createSubcategory,
@@ -12,12 +13,22 @@ import {
 } from '@/features/subcategories/api'
 import SubcategoryFormDialog from '@/features/subcategories/SubcategoryFormDialog'
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  CircularIconButton,
+  GlassPanel,
+  PillButton,
+} from '@/components/system-ui/primitives'
+import { PrimaryCTA } from '@/components/system-ui/compounds'
+import { SettingsItemTitle } from '@/components/system-ui/settings/SettingsListPage'
 import { toast } from 'sonner'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 type GroupKey = 'Transport' | 'Packaging'
 
@@ -41,7 +52,14 @@ export default function SubcategoriesPage() {
     }
   }
 
-  useEffect(() => { fetchSubcategories() }, [])
+  useEffect(() => {
+    fetchSubcategories()
+  }, [])
+
+  const currentItems = useMemo(
+    () => subcategories.filter((s) => s.category === activeTab),
+    [subcategories, activeTab],
+  )
 
   if (roleLoading) return null
   if (!canManage) return <Navigate to="/" replace />
@@ -93,82 +111,165 @@ export default function SubcategoriesPage() {
     }
   }
 
-  const renderList = (group: GroupKey) => {
-    const items = subcategories.filter((s) => s.category === group)
-    if (items.length === 0) {
-      return (
-        <p className="text-sm text-muted-foreground py-8 text-center">
-          Aucune sous-catégorie.
-        </p>
-      )
-    }
-    return (
-      <div className="space-y-2">
-        {items.map((sub) => (
-          <Card key={sub.id} className={!sub.is_active ? 'opacity-50' : ''}>
-            <CardContent className="py-3 px-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-medium text-sm">{sub.name}</p>
-                  <Badge variant={sub.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                    {sub.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(sub)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleActive(sub)}>
-                    <span className="text-xs">{sub.is_active ? 'Off' : 'On'}</span>
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(sub)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
-  }
-
-  if (loading) return <p className="text-muted-foreground">Chargement...</p>
+  const tabs: { key: GroupKey; label: string }[] = [
+    { key: 'Transport', label: 'Transport' },
+    { key: 'Packaging', label: 'Packaging' },
+  ]
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Sous-catégories</h2>
-        <p className="text-muted-foreground text-sm mt-1">
-          Gérez les sous-catégories Transport et Packaging
-        </p>
-      </div>
+    <div className="relative w-full min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as GroupKey)}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="Transport">
-              Transport
-              <span className="ml-2 text-xs text-muted-foreground">
-                ({subcategories.filter((s) => s.category === 'Transport').length})
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="Packaging">
-              Packaging
-              <span className="ml-2 text-xs text-muted-foreground">
-                ({subcategories.filter((s) => s.category === 'Packaging').length})
-              </span>
-            </TabsTrigger>
-          </TabsList>
-          <Button variant="outline" size="sm" onClick={handleAdd} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Ajouter
-          </Button>
+      <div className="relative z-10 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h1 className="text-xl font-semibold tracking-tight text-white md:text-2xl">
+              Sous-catégories
+            </h1>
+            <p className="text-xs text-white/60 md:text-sm">
+              Gérez les sous-catégories Transport et Packaging.
+            </p>
+          </div>
+
+          <CircularIconButton
+            variant="light"
+            size="md"
+            icon={<Plus />}
+            aria-label="Ajouter une sous-catégorie"
+            onClick={handleAdd}
+            className="md:hidden"
+          />
+          <PrimaryCTA
+            label="Ajouter une sous-catégorie"
+            icon={<Plus />}
+            aria-label="Ajouter une sous-catégorie"
+            onClick={handleAdd}
+            className="hidden md:inline-flex"
+          />
         </div>
 
-        <TabsContent value="Transport">{renderList('Transport')}</TabsContent>
-        <TabsContent value="Packaging">{renderList('Packaging')}</TabsContent>
-      </Tabs>
+        <nav
+          aria-label="Groupes de sous-catégories"
+          className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {tabs.map((tab) => {
+            const isActive = tab.key === activeTab
+            const count = subcategories.filter((s) => s.category === tab.key).length
+            return (
+              <PillButton
+                key={tab.key}
+                variant={isActive ? 'light' : 'ghost'}
+                size="sm"
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => setActiveTab(tab.key)}
+                className="shrink-0"
+              >
+                {tab.label}
+                <span
+                  className={cn(
+                    'ml-1 rounded-full px-1.5 text-[10px] font-semibold',
+                    isActive ? 'bg-black/10 text-black/70' : 'bg-white/[0.08] text-white/60',
+                  )}
+                >
+                  {count}
+                </span>
+              </PillButton>
+            )
+          })}
+        </nav>
+
+        {loading ? (
+          <GlassPanel className="p-6">
+            <p className="py-6 text-center text-sm text-white/46">Chargement…</p>
+          </GlassPanel>
+        ) : currentItems.length === 0 ? (
+          <GlassPanel className="p-6">
+            <p className="py-12 text-center text-sm text-white/60">
+              Aucune sous-catégorie.
+            </p>
+          </GlassPanel>
+        ) : (
+          <GlassPanel className="p-3 md:p-4">
+            <div className="flex flex-col">
+              {currentItems.map((item) => {
+                const inactive = item.is_active === false
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      'flex items-center justify-between gap-3 rounded-2xl px-2 py-3',
+                      inactive && 'opacity-50',
+                    )}
+                  >
+                    <SettingsItemTitle
+                      name={item.name}
+                      isActive={item.is_active ?? true}
+                      activeLabel="Active"
+                      inactiveLabel="Inactive"
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <CircularIconButton
+                          variant="glass"
+                          size="sm"
+                          icon={<MoreHorizontal />}
+                          aria-label="Actions"
+                        />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        sideOffset={6}
+                        className="min-w-44 rounded-xl border border-white/[0.08] bg-[#141414] p-1.5 text-white shadow-xl ring-0"
+                      >
+                        <DropdownMenuItem
+                          className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            handleEdit(item)
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            handleToggleActive(item)
+                          }}
+                        >
+                          <Power className="size-4" />
+                          {inactive ? 'Réactiver' : 'Désactiver'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
+                        <DropdownMenuItem
+                          className="gap-2 rounded-lg px-2 py-2 text-sm text-[#FF9A18] focus:bg-[#FF9A18]/10 focus:text-[#FF9A18]"
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            setDeleteTarget(item)
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )
+              })}
+            </div>
+          </GlassPanel>
+        )}
+      </div>
 
       <SubcategoryFormDialog
         open={dialogOpen}

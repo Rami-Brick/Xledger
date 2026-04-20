@@ -238,23 +238,23 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
       </div>
 
       {selectedStatus && (
-        <div className="space-y-2 rounded-md bg-muted p-4 text-sm">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="space-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-white/46">
             Calculs pour {salaryMonthLabel}
           </p>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Salaire de base</span>
-            <span className="font-medium">{formatTND(selectedStatus.base_salary)}</span>
+          <div className="flex justify-between text-white/80">
+            <span className="text-white/60">Salaire de base</span>
+            <span className="font-medium tabular-nums text-white">{formatTND(selectedStatus.base_salary)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Paye ce mois</span>
-            <span className="font-medium">{formatTND(selectedStatus.paid_this_month)}</span>
+          <div className="flex justify-between text-white/80">
+            <span className="text-white/60">Payé ce mois</span>
+            <span className="font-medium tabular-nums text-white">{formatTND(selectedStatus.paid_this_month)}</span>
           </div>
-          <div className="flex justify-between border-t pt-2">
-            <span className="font-medium">Restant</span>
+          <div className="flex justify-between border-t border-white/[0.06] pt-2">
+            <span className="font-medium text-white">Restant</span>
             <span
-              className={`font-bold ${
-                selectedStatus.remaining > 0 ? 'text-orange-600' : 'text-green-600'
+              className={`font-bold tabular-nums ${
+                selectedStatus.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
               }`}
             >
               {formatTND(selectedStatus.remaining)}

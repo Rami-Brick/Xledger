@@ -5,12 +5,7 @@ import {
   type Category,
 } from '@/features/transactions/api'
 import { getLoanBalances } from '@/features/loan-contacts/api'
-import { categoryConfig } from '@/features/transactions/categories'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -42,9 +37,39 @@ import {
   Cell,
   LineChart,
 } from 'recharts'
+import { GlassPanel, PillButton } from '@/components/system-ui/primitives'
+import { cn } from '@/lib/utils'
 
-const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#eab308', '#14b8a6', '#ec4899', '#6b7280']
+/* Identity palette for charts — matches dashboard/categories pages. */
+const CHART_COLORS = ['#2D7CF6', '#D94BF4', '#38D3D3', '#FF9A18', '#D7D9DF', '#E8F21D', '#8B5CF6']
+
+/* Category-specific colors for tag chips (reuses AddTransactionPage colors). */
+const CATEGORY_COLOR: Record<string, { bg: string; fg: string }> = {
+  Salaires:        { bg: '#2D7CF6', fg: '#FFFFFF' },
+  'Charges fixes': { bg: '#D94BF4', fg: '#FFFFFF' },
+  Fournisseurs:    { bg: '#FF9A18', fg: '#0A0B0A' },
+  Transport:       { bg: '#FFC933', fg: '#0A0B0A' },
+  Packaging:       { bg: '#38D3D3', fg: '#0A0B0A' },
+  Sponsoring:      { bg: '#FF5DA2', fg: '#FFFFFF' },
+  Subscriptions:   { bg: '#8B5CF6', fg: '#FFFFFF' },
+  'Prêts':         { bg: '#F97316', fg: '#0A0B0A' },
+  Divers:          { bg: '#D7D9DF', fg: '#0A0B0A' },
+  Recettes:        { bg: '#B8EB3C', fg: '#0A0B0A' },
+}
+
+const REVENUE_COLOR = '#38D3D3' // cyan
+const EXPENSE_COLOR = '#D94BF4' // magenta
+const NET_COLOR = '#E8F21D'     // chartreuse (only shown on one chart — still scarce)
+
 const SUBCATEGORY_CATEGORIES = new Set<Category>(['Transport', 'Packaging'])
+
+const TOOLTIP_STYLE = {
+  background: 'rgba(20,20,20,0.95)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 12,
+  color: '#fff',
+  fontSize: 12,
+}
 
 interface MonthlySummaryRow {
   month: string
@@ -101,6 +126,19 @@ interface SubcategoryBreakdownRow {
   name: string
   total: number
   count: number
+}
+
+interface ExportTxRow {
+  date: string
+  category: string
+  description: string | null
+  amount: number | string
+  employees: { name: string } | null
+  fixed_charges: { name: string } | null
+  products: { name: string } | null
+  subcategories: { name: string } | null
+  subscriptions: { name: string } | null
+  loan_contacts: { name: string } | null
 }
 
 function getDefaultDateRange() {
@@ -161,6 +199,43 @@ function downloadCSV(data: ExportTransaction[], filename: string) {
   a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative w-full min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div className="relative z-10 min-w-0 space-y-5 overflow-x-hidden">{children}</div>
+    </div>
+  )
+}
+
+function CategoryChip({ category }: { category: string }) {
+  const color = CATEGORY_COLOR[category]
+  if (!color) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] text-white/80">
+        {category}
+      </span>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+      style={{ backgroundColor: color.bg, color: color.fg }}
+    >
+      {category}
+    </span>
+  )
 }
 
 export default function ReportsPage() {
@@ -488,7 +563,7 @@ export default function ReportsPage() {
 
       if (error) throw error
 
-      const exportData: ExportTransaction[] = (data || []).map((tx: any) => ({
+      const exportData: ExportTransaction[] = ((data as unknown as ExportTxRow[]) || []).map((tx) => ({
         date: tx.date,
         category: tx.category,
         description: tx.description,
@@ -553,134 +628,144 @@ export default function ReportsPage() {
   ]
 
   return (
-    <div className="min-w-0 space-y-5 overflow-x-hidden">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Rapports</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Analyses financieres</p>
+    <Shell>
+      {/* Compact filter toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <PillButton
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const now = new Date()
+              setStartDate(
+                new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+              )
+              setEndDate(now.toISOString().split('T')[0])
+            }}
+          >
+            Ce mois
+          </PillButton>
+          <PillButton
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const now = new Date()
+              setStartDate(new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0])
+              setEndDate(now.toISOString().split('T')[0])
+            }}
+          >
+            Cette année
+          </PillButton>
+          <PillButton
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setStartDate('2020-01-01')
+              setEndDate(new Date().toISOString().split('T')[0])
+            }}
+          >
+            Tout
+          </PillButton>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            aria-label="Date de début"
+            className="h-8 w-[140px] rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark] focus-visible:border-white/30 focus-visible:ring-0"
+          />
+          <span className="text-xs text-white/46">—</span>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            aria-label="Date de fin"
+            className="h-8 w-[140px] rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark] focus-visible:border-white/30 focus-visible:ring-0"
+          />
         </div>
-        <Button
+        <PillButton
+          variant="glass"
+          size="sm"
+          leadingIcon={<Download />}
           onClick={handleExportCSV}
           disabled={exporting}
-          variant="outline"
-          size="sm"
-          className="w-full gap-2 sm:w-auto"
         >
-          <Download className="h-4 w-4" />
-          {exporting ? 'Export...' : 'Exporter CSV'}
-        </Button>
+          {exporting ? 'Export…' : 'Exporter CSV'}
+        </PillButton>
       </div>
 
-      <Card>
-        <CardContent className="pt-4 pb-3">
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Debut</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Fin</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const now = new Date()
-                  setStartDate(
-                    new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-                  )
-                  setEndDate(now.toISOString().split('T')[0])
-                }}
-              >
-                Ce mois
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const now = new Date()
-                  setStartDate(new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0])
-                  setEndDate(now.toISOString().split('T')[0])
-                }}
-              >
-                Cette annee
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setStartDate('2020-01-01')
-                  setEndDate(new Date().toISOString().split('T')[0])
-                }}
-              >
-                Tout
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`border-b-2 px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors sm:px-4 sm:text-sm ${
-              activeTab === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* Tab pills */}
+      <nav
+        aria-label="Onglets rapports"
+        className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {tabs.map((tab) => {
+          const isActive = tab.key === activeTab
+          return (
+            <PillButton
+              key={tab.key}
+              variant={isActive ? 'light' : 'ghost'}
+              size="sm"
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => setActiveTab(tab.key)}
+              className="shrink-0"
+            >
+              {tab.label}
+            </PillButton>
+          )
+        })}
+      </nav>
 
       {loading ? (
-        <p className="py-8 text-center text-muted-foreground">Chargement...</p>
+        <p className="py-8 text-center text-sm text-white/46">Chargement...</p>
       ) : (
         <>
           {activeTab === 'monthly' && (
             <div className="space-y-4">
               {chartData.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm sm:text-base">Evolution mensuelle</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-2 sm:px-6">
+                <GlassPanel className="p-4 md:p-5">
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-sm font-semibold text-white md:text-base">
+                      Évolution mensuelle
+                    </h2>
                     <div className="w-full overflow-x-auto">
                       <div className="min-w-[340px]">
                         <ResponsiveContainer width="100%" height={240}>
                           <ComposedChart data={chartData} margin={{ left: -10, right: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="month" fontSize={10} tickLine={false} />
+                            <CartesianGrid
+                              stroke="rgba(255,255,255,0.06)"
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="month"
+                              stroke="rgba(255,255,255,0.46)"
+                              fontSize={10}
+                              tickLine={false}
+                              axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                            />
                             <YAxis
+                              stroke="rgba(255,255,255,0.46)"
                               fontSize={10}
                               tickLine={false}
                               axisLine={false}
                               tickFormatter={formatCompact}
                               width={44}
                             />
-                            <Tooltip formatter={(value) => formatTND(Number(value))} />
-                            <Legend />
-                            <Bar dataKey="Recettes" fill="#22c55e" radius={[3, 3, 0, 0]} />
-                            <Bar dataKey="Depenses" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                            <Tooltip
+                              formatter={(value) => formatTND(Number(value))}
+                              contentStyle={TOOLTIP_STYLE}
+                              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                            />
+                            <Legend
+                              wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.72)' }}
+                              iconType="circle"
+                            />
+                            <Bar dataKey="Recettes" fill={REVENUE_COLOR} radius={[5, 5, 0, 0]} />
+                            <Bar dataKey="Depenses" fill={EXPENSE_COLOR} radius={[5, 5, 0, 0]} />
                             <Line
                               type="monotone"
                               dataKey="Net"
-                              stroke="#6366f1"
+                              stroke={NET_COLOR}
                               strokeWidth={2}
                               strokeDasharray="5 5"
                               dot={false}
@@ -689,18 +774,18 @@ export default function ReportsPage() {
                         </ResponsiveContainer>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassPanel>
               )}
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm sm:text-base">Recettes quotidiennes</CardTitle>
-                </CardHeader>
-                <CardContent>
+              <GlassPanel className="p-4 md:p-5">
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-sm font-semibold text-white md:text-base">
+                    Recettes quotidiennes
+                  </h2>
                   {showDailyChart ? (
                     dailyChartData.length === 0 ? (
-                      <p className="py-8 text-center text-sm text-muted-foreground">
+                      <p className="py-8 text-center text-sm text-white/46">
                         Aucune recette sur cette periode
                       </p>
                     ) : (
@@ -708,25 +793,35 @@ export default function ReportsPage() {
                         <div className="min-w-[340px]">
                           <ResponsiveContainer width="100%" height={220}>
                             <LineChart data={dailyChartData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <CartesianGrid
+                                stroke="rgba(255,255,255,0.06)"
+                                strokeDasharray="3 3"
+                                vertical={false}
+                              />
                               <XAxis
                                 dataKey="date"
+                                stroke="rgba(255,255,255,0.46)"
                                 fontSize={10}
                                 tickLine={false}
+                                axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
                                 interval="preserveStartEnd"
                               />
                               <YAxis
+                                stroke="rgba(255,255,255,0.46)"
                                 fontSize={10}
                                 tickLine={false}
                                 axisLine={false}
                                 tickFormatter={formatCompact}
                                 width={44}
                               />
-                              <Tooltip formatter={(value) => formatTND(Number(value))} />
+                              <Tooltip
+                                formatter={(value) => formatTND(Number(value))}
+                                contentStyle={TOOLTIP_STYLE}
+                              />
                               <Line
                                 type="monotone"
                                 dataKey="amount"
-                                stroke="#22c55e"
+                                stroke={REVENUE_COLOR}
                                 strokeWidth={2}
                                 dot={false}
                               />
@@ -736,48 +831,41 @@ export default function ReportsPage() {
                       </div>
                     )
                   ) : (
-                    <p className="py-4 text-sm text-muted-foreground">
+                    <p className="py-4 text-sm text-white/46">
                       Ce graphique est disponible uniquement pour des periodes de 90 jours ou moins.
                     </p>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </GlassPanel>
 
               <div className="space-y-2">
                 {monthlySummary.length === 0 ? (
-                  <p className="py-8 text-center text-muted-foreground">Aucune donnee</p>
+                  <p className="py-8 text-center text-sm text-white/46">Aucune donnee</p>
                 ) : (
                   [...monthlySummary].reverse().map((row) => (
-                    <Card key={row.month}>
-                      <CardContent className="px-3 py-3 sm:px-4">
-                        <p className="mb-2 text-sm font-medium">{formatMonthLabel(row.month)}</p>
-                        <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
-                          <div className="flex items-center justify-between sm:block">
-                            <p className="text-xs text-muted-foreground">Recettes</p>
-                            <p className="text-xs font-semibold text-green-600 sm:text-sm">
-                              {formatTND(row.total_revenue)}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between sm:block">
-                            <p className="text-xs text-muted-foreground">Depenses</p>
-                            <p className="text-xs font-semibold text-red-600 sm:text-sm">
-                              {formatTND(row.total_expenses)}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between border-t pt-1.5 sm:block sm:border-0 sm:pt-0">
-                            <p className="text-xs text-muted-foreground">Net</p>
-                            <p
-                              className={`text-xs font-semibold sm:text-sm ${
-                                row.net >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}
-                            >
-                              {row.net >= 0 ? '+' : ''}
-                              {formatTND(row.net)}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <GlassPanel key={row.month} className="p-3 md:p-4">
+                      <p className="mb-2 text-sm font-medium text-white">
+                        {formatMonthLabel(row.month)}
+                      </p>
+                      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                        <MetricRow
+                          label="Recettes"
+                          value={formatTND(row.total_revenue)}
+                          valueClass="text-[#B8EB3C]"
+                        />
+                        <MetricRow
+                          label="Dépenses"
+                          value={formatTND(row.total_expenses)}
+                          valueClass="text-[#FF9A18]"
+                        />
+                        <MetricRow
+                          label="Net"
+                          value={`${row.net >= 0 ? '+' : ''}${formatTND(row.net)}`}
+                          valueClass={row.net >= 0 ? 'text-[#B8EB3C]' : 'text-[#FF9A18]'}
+                          topBorderOnMobile
+                        />
+                      </div>
+                    </GlassPanel>
                   ))
                 )}
               </div>
@@ -786,30 +874,31 @@ export default function ReportsPage() {
 
           {activeTab === 'categories' && (
             <div className="space-y-4">
-              <Card>
-                <CardHeader className="flex min-w-0 flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
-                  <CardTitle className="text-sm sm:text-base">
-                    Depenses par categorie (mois selectionne)
-                  </CardTitle>
-                  <Select value={selectedPieMonth} onValueChange={setSelectedPieMonth}>
-                    <SelectTrigger className="min-w-0 w-full sm:w-[180px]">
-                      <SelectValue placeholder="Choisir un mois" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableMonths.map((month) => (
-                        <SelectItem key={month} value={month}>
-                          {formatMonthLabel(`${month}-01`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardHeader>
-                <CardContent>
+              <GlassPanel className="p-4 md:p-5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2 className="text-sm font-semibold text-white md:text-base">
+                      Dépenses par catégorie (mois sélectionné)
+                    </h2>
+                    <Select value={selectedPieMonth} onValueChange={setSelectedPieMonth}>
+                      <SelectTrigger className="min-w-0 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white sm:w-[200px]">
+                        <SelectValue placeholder="Choisir un mois" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableMonths.map((month) => (
+                          <SelectItem key={month} value={month}>
+                            {formatMonthLabel(`${month}-01`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {pieLoading ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">Chargement...</p>
+                    <p className="py-8 text-center text-sm text-white/46">Chargement...</p>
                   ) : pieChartData.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                      Pas de depenses sur ce mois
+                    <p className="py-8 text-center text-sm text-white/46">
+                      Pas de dépenses sur ce mois
                     </p>
                   ) : (
                     <div className="min-w-0 space-y-4 overflow-hidden">
@@ -822,16 +911,24 @@ export default function ReportsPage() {
                             cx="50%"
                             cy="50%"
                             outerRadius={90}
-                            innerRadius={50}
-                            paddingAngle={2}
+                            innerRadius={56}
+                            paddingAngle={3}
+                            stroke="#0A0B0A"
+                            strokeWidth={2}
                             labelLine={false}
                             label={false}
                           >
                             {pieChartData.map((_, index) => (
-                              <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                              <Cell
+                                key={index}
+                                fill={CHART_COLORS[index % CHART_COLORS.length]}
+                              />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(value) => formatTND(Number(value))} />
+                          <Tooltip
+                            formatter={(value) => formatTND(Number(value))}
+                            contentStyle={TOOLTIP_STYLE}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
 
@@ -839,16 +936,18 @@ export default function ReportsPage() {
                         {pieBreakdown.map((row, index) => (
                           <div
                             key={row.category}
-                            className="flex min-w-0 items-center justify-between gap-2 rounded-md border px-2 py-1.5"
+                            className="flex min-w-0 items-center justify-between gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5"
                           >
                             <div className="flex min-w-0 items-center gap-2">
                               <span
-                                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}
+                                className="size-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                               />
-                              <span className="truncate text-xs sm:text-sm">{row.category}</span>
+                              <span className="truncate text-xs text-white/80 sm:text-sm">
+                                {row.category}
+                              </span>
                             </div>
-                            <span className="shrink-0 text-xs font-medium sm:text-sm">
+                            <span className="shrink-0 text-xs font-semibold tabular-nums text-white sm:text-sm">
                               {formatTND(row.total)}
                             </span>
                           </div>
@@ -856,15 +955,15 @@ export default function ReportsPage() {
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </GlassPanel>
 
               {catChartData.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm sm:text-base">Depenses par categorie</CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-2 sm:px-6">
+                <GlassPanel className="p-4 md:p-5">
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-sm font-semibold text-white md:text-base">
+                      Dépenses par catégorie
+                    </h2>
                     <div className="w-full overflow-x-auto">
                       <div className="min-w-[280px]">
                         <ResponsiveContainer
@@ -872,9 +971,14 @@ export default function ReportsPage() {
                           height={Math.max(catChartData.length * 40, 150)}
                         >
                           <BarChart data={catChartData} layout="vertical" margin={{ left: 0, right: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <CartesianGrid
+                              stroke="rgba(255,255,255,0.06)"
+                              strokeDasharray="3 3"
+                              horizontal={false}
+                            />
                             <XAxis
                               type="number"
+                              stroke="rgba(255,255,255,0.46)"
                               fontSize={10}
                               tickLine={false}
                               tickFormatter={formatCompact}
@@ -882,28 +986,32 @@ export default function ReportsPage() {
                             <YAxis
                               type="category"
                               dataKey="name"
+                              stroke="rgba(255,255,255,0.46)"
                               fontSize={10}
                               tickLine={false}
                               width={80}
                             />
-                            <Tooltip formatter={(value) => formatTND(Number(value))} />
-                            <Bar dataKey="total" fill="#6366f1" radius={[0, 3, 3, 0]} />
+                            <Tooltip
+                              formatter={(value) => formatTND(Number(value))}
+                              contentStyle={TOOLTIP_STYLE}
+                              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                            />
+                            <Bar dataKey="total" fill="#8B5CF6" radius={[0, 5, 5, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </GlassPanel>
               )}
 
               {categoryTotals.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">
-                  Aucune depense sur cette periode
+                <p className="py-8 text-center text-sm text-white/46">
+                  Aucune dépense sur cette période
                 </p>
               ) : (
                 <div className="space-y-2">
                   {categoryTotals.map((row) => {
-                    const config = categoryConfig[row.category as Category]
                     const subcategories = subcategoryBreakdown.get(row.category) || []
                     const canExpand = subcategories.length > 0
                     const isExpanded = expandedCategories.has(row.category)
@@ -914,97 +1022,81 @@ export default function ReportsPage() {
                         open={isExpanded}
                         onOpenChange={(open) => canExpand && setCategoryExpanded(row.category, open)}
                       >
-                        <Card>
-                          <CardContent className="px-3 py-3 sm:px-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  {canExpand ? (
-                                    <CollapsibleTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="flex min-w-0 items-center gap-2 text-left"
-                                      >
-                                        {isExpanded ? (
-                                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        ) : (
-                                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                        )}
-                                        <Badge
-                                          variant="outline"
-                                          className={`shrink-0 border text-[10px] ${
-                                            config ? `${config.color} ${config.textColor}` : ''
-                                          }`}
-                                        >
-                                          {row.category}
-                                        </Badge>
-                                        <span className="text-[10px] text-muted-foreground sm:text-xs">
-                                          {row.count} tx
-                                        </span>
-                                      </button>
-                                    </CollapsibleTrigger>
-                                  ) : (
-                                    <>
-                                      <Badge
-                                        variant="outline"
-                                        className={`shrink-0 border text-[10px] ${
-                                          config ? `${config.color} ${config.textColor}` : ''
-                                        }`}
-                                      >
-                                        {row.category}
-                                      </Badge>
-                                      <span className="text-[10px] text-muted-foreground sm:text-xs">
+                        <GlassPanel className="p-3 md:p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                {canExpand ? (
+                                  <CollapsibleTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="flex min-w-0 items-center gap-2 text-left"
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronDown className="size-4 shrink-0 text-white/46" />
+                                      ) : (
+                                        <ChevronRight className="size-4 shrink-0 text-white/46" />
+                                      )}
+                                      <CategoryChip category={row.category} />
+                                      <span className="text-[10px] text-white/46 sm:text-xs">
                                         {row.count} tx
                                       </span>
-                                    </>
-                                  )}
-                                </div>
-                                <span className="shrink-0 text-xs font-semibold text-red-600 sm:text-sm">
-                                  {formatTND(row.total)}
-                                </span>
+                                    </button>
+                                  </CollapsibleTrigger>
+                                ) : (
+                                  <>
+                                    <CategoryChip category={row.category} />
+                                    <span className="text-[10px] text-white/46 sm:text-xs">
+                                      {row.count} tx
+                                    </span>
+                                  </>
+                                )}
                               </div>
-
-                              {canExpand && (
-                                <CollapsibleContent>
-                                  <div className="space-y-1.5 border-l border-border/70 pl-5">
-                                    {subcategories.map((subcategory) => (
-                                      <div
-                                        key={`${row.category}-${subcategory.name}`}
-                                        className="flex items-center justify-between gap-2"
-                                      >
-                                        <div className="min-w-0">
-                                          <p className="truncate text-xs sm:text-sm">
-                                            {subcategory.name}
-                                          </p>
-                                          <p className="text-[10px] text-muted-foreground sm:text-xs">
-                                            {subcategory.count} tx
-                                          </p>
-                                        </div>
-                                        <span className="shrink-0 text-xs font-medium text-red-600 sm:text-sm">
-                                          {formatTND(subcategory.total)}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </CollapsibleContent>
-                              )}
+                              <span className="shrink-0 text-xs font-semibold tabular-nums text-[#FF9A18] sm:text-sm">
+                                {formatTND(row.total)}
+                              </span>
                             </div>
-                          </CardContent>
-                        </Card>
+
+                            {canExpand && (
+                              <CollapsibleContent>
+                                <div className="space-y-1.5 border-l border-white/[0.08] pl-5">
+                                  {subcategories.map((subcategory) => (
+                                    <div
+                                      key={`${row.category}-${subcategory.name}`}
+                                      className="flex items-center justify-between gap-2"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="truncate text-xs text-white/90 sm:text-sm">
+                                          {subcategory.name}
+                                        </p>
+                                        <p className="text-[10px] text-white/46 sm:text-xs">
+                                          {subcategory.count} tx
+                                        </p>
+                                      </div>
+                                      <span className="shrink-0 text-xs font-medium tabular-nums text-[#FF9A18] sm:text-sm">
+                                        {formatTND(subcategory.total)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            )}
+                          </div>
+                        </GlassPanel>
                       </Collapsible>
                     )
                   })}
 
-                  <Card className="bg-muted/50">
-                    <CardContent className="px-3 py-3 sm:px-4">
-                      <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
-                        <span>Total ({categoryTotals.reduce((sum, row) => sum + row.count, 0)} tx)</span>
-                        <span className="text-red-600">
-                          {formatTND(categoryTotals.reduce((sum, row) => sum + row.total, 0))}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <GlassPanel variant="raised" className="p-3 md:p-4">
+                    <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
+                      <span className="text-white">
+                        Total ({categoryTotals.reduce((sum, row) => sum + row.count, 0)} tx)
+                      </span>
+                      <span className="tabular-nums text-[#FF9A18]">
+                        {formatTND(categoryTotals.reduce((sum, row) => sum + row.total, 0))}
+                      </span>
+                    </div>
+                  </GlassPanel>
                 </div>
               )}
             </div>
@@ -1013,38 +1105,36 @@ export default function ReportsPage() {
           {activeTab === 'employees' && (
             <div className="space-y-2">
               {employeeTotals.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">
-                  Aucun paiement sur cette periode
+                <p className="py-8 text-center text-sm text-white/46">
+                  Aucun paiement sur cette période
                 </p>
               ) : (
                 <>
                   {employeeTotals.map((row) => (
-                    <Card key={row.name}>
-                      <CardContent className="px-3 py-3 sm:px-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{row.name}</p>
-                            <p className="text-[10px] text-muted-foreground sm:text-xs">
-                              {row.count} paiement{row.count !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <span className="shrink-0 text-xs font-semibold sm:text-sm">
-                            {formatTND(row.total_paid)}
-                          </span>
+                    <GlassPanel key={row.name} className="p-3 md:p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">{row.name}</p>
+                          <p className="text-[10px] text-white/46 sm:text-xs">
+                            {row.count} paiement{row.count !== 1 ? 's' : ''}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <Card className="bg-muted/50">
-                    <CardContent className="px-3 py-3 sm:px-4">
-                      <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
-                        <span>Total ({employeeTotals.reduce((sum, row) => sum + row.count, 0)})</span>
-                        <span>
-                          {formatTND(employeeTotals.reduce((sum, row) => sum + row.total_paid, 0))}
+                        <span className="shrink-0 text-xs font-semibold tabular-nums text-white sm:text-sm">
+                          {formatTND(row.total_paid)}
                         </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassPanel>
+                  ))}
+                  <GlassPanel variant="raised" className="p-3 md:p-4">
+                    <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
+                      <span className="text-white">
+                        Total ({employeeTotals.reduce((sum, row) => sum + row.count, 0)})
+                      </span>
+                      <span className="tabular-nums text-white">
+                        {formatTND(employeeTotals.reduce((sum, row) => sum + row.total_paid, 0))}
+                      </span>
+                    </div>
+                  </GlassPanel>
                 </>
               )}
             </div>
@@ -1053,38 +1143,36 @@ export default function ReportsPage() {
           {activeTab === 'products' && (
             <div className="space-y-2">
               {productTotals.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">
-                  Aucune depense fournisseur sur cette periode
+                <p className="py-8 text-center text-sm text-white/46">
+                  Aucune dépense fournisseur sur cette période
                 </p>
               ) : (
                 <>
                   {productTotals.map((row) => (
-                    <Card key={row.name}>
-                      <CardContent className="px-3 py-3 sm:px-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{row.name}</p>
-                            <p className="text-[10px] text-muted-foreground sm:text-xs">
-                              {row.count} transaction{row.count !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <span className="shrink-0 text-xs font-semibold text-red-600 sm:text-sm">
-                            {formatTND(row.total)}
-                          </span>
+                    <GlassPanel key={row.name} className="p-3 md:p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">{row.name}</p>
+                          <p className="text-[10px] text-white/46 sm:text-xs">
+                            {row.count} transaction{row.count !== 1 ? 's' : ''}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  <Card className="bg-muted/50">
-                    <CardContent className="px-3 py-3 sm:px-4">
-                      <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
-                        <span>Total ({productTotals.reduce((sum, row) => sum + row.count, 0)} tx)</span>
-                        <span className="text-red-600">
-                          {formatTND(productTotals.reduce((sum, row) => sum + row.total, 0))}
+                        <span className="shrink-0 text-xs font-semibold tabular-nums text-[#FF9A18] sm:text-sm">
+                          {formatTND(row.total)}
                         </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassPanel>
+                  ))}
+                  <GlassPanel variant="raised" className="p-3 md:p-4">
+                    <div className="flex items-center justify-between text-xs font-semibold sm:text-sm">
+                      <span className="text-white">
+                        Total ({productTotals.reduce((sum, row) => sum + row.count, 0)} tx)
+                      </span>
+                      <span className="tabular-nums text-[#FF9A18]">
+                        {formatTND(productTotals.reduce((sum, row) => sum + row.total, 0))}
+                      </span>
+                    </div>
+                  </GlassPanel>
                 </>
               )}
             </div>
@@ -1093,83 +1181,102 @@ export default function ReportsPage() {
           {activeTab === 'loans' && (
             <div className="space-y-3">
               {loanSummary.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">Aucun pret enregistre</p>
+                <p className="py-8 text-center text-sm text-white/46">Aucun prêt enregistré</p>
               ) : (
                 <>
                   {loanSummary.map((row) => (
-                    <Card key={row.loan_contact_id}>
-                      <CardContent className="px-3 py-3 sm:px-4">
-                        <p className="mb-2 text-sm font-medium">{row.name}</p>
-                        <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
-                          <div className="flex items-center justify-between sm:block">
-                            <p className="text-xs text-muted-foreground">Recu</p>
-                            <p className="text-xs font-semibold text-green-600 sm:text-sm">
-                              {formatTND(row.total_lent)}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between sm:block">
-                            <p className="text-xs text-muted-foreground">Rendu</p>
-                            <p className="text-xs font-semibold text-red-600 sm:text-sm">
-                              {formatTND(row.total_repaid)}
-                            </p>
-                          </div>
-                          <div className="flex items-center justify-between border-t pt-1.5 sm:block sm:border-0 sm:pt-0">
-                            <p className="text-xs text-muted-foreground">Solde</p>
-                            <p
-                              className={`text-xs font-semibold sm:text-sm ${
-                                row.remaining > 0
-                                  ? 'text-orange-600'
-                                  : row.remaining === 0
-                                    ? 'text-green-600'
-                                    : 'text-red-600'
-                              }`}
-                            >
-                              {formatTND(row.remaining)}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <GlassPanel key={row.loan_contact_id} className="p-3 md:p-4">
+                      <p className="mb-2 text-sm font-medium text-white">{row.name}</p>
+                      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                        <MetricRow
+                          label="Reçu"
+                          value={formatTND(row.total_lent)}
+                          valueClass="text-[#B8EB3C]"
+                        />
+                        <MetricRow
+                          label="Rendu"
+                          value={formatTND(row.total_repaid)}
+                          valueClass="text-[#FF9A18]"
+                        />
+                        <MetricRow
+                          label="Solde"
+                          value={formatTND(row.remaining)}
+                          valueClass={cn(
+                            row.remaining > 0
+                              ? 'text-[#FF9A18]'
+                              : row.remaining === 0
+                                ? 'text-[#B8EB3C]'
+                                : 'text-white',
+                          )}
+                          topBorderOnMobile
+                        />
+                      </div>
+                    </GlassPanel>
                   ))}
 
-                  <Card className="bg-muted/50">
-                    <CardContent className="px-3 py-3 sm:px-4">
-                      <div className="space-y-1.5 sm:grid sm:grid-cols-3 sm:gap-2 sm:space-y-0">
-                        <div className="flex items-center justify-between sm:block">
-                          <p className="text-xs text-muted-foreground">Total recu</p>
-                          <p className="text-xs font-semibold text-green-600 sm:text-sm">
-                            {formatTND(loanTotals.totalLent)}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between sm:block">
-                          <p className="text-xs text-muted-foreground">Total rendu</p>
-                          <p className="text-xs font-semibold text-red-600 sm:text-sm">
-                            {formatTND(loanTotals.totalRepaid)}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between border-t pt-1.5 sm:block sm:border-0 sm:pt-0">
-                          <p className="text-xs text-muted-foreground">Solde total</p>
-                          <p
-                            className={`text-xs font-semibold sm:text-sm ${
-                              loanTotals.remaining > 0
-                                ? 'text-orange-600'
-                                : loanTotals.remaining === 0
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                            }`}
-                          >
-                            {formatTND(loanTotals.remaining)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <GlassPanel variant="raised" className="p-3 md:p-4">
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
+                      <MetricRow
+                        label="Total reçu"
+                        value={formatTND(loanTotals.totalLent)}
+                        valueClass="text-[#B8EB3C]"
+                      />
+                      <MetricRow
+                        label="Total rendu"
+                        value={formatTND(loanTotals.totalRepaid)}
+                        valueClass="text-[#FF9A18]"
+                      />
+                      <MetricRow
+                        label="Solde total"
+                        value={formatTND(loanTotals.remaining)}
+                        valueClass={cn(
+                          loanTotals.remaining > 0
+                            ? 'text-[#FF9A18]'
+                            : loanTotals.remaining === 0
+                              ? 'text-[#B8EB3C]'
+                              : 'text-white',
+                        )}
+                        topBorderOnMobile
+                      />
+                    </div>
+                  </GlassPanel>
                 </>
               )}
             </div>
           )}
         </>
       )}
+    </Shell>
+  )
+}
+
+function MetricRow({
+  label,
+  value,
+  valueClass,
+  topBorderOnMobile,
+}: {
+  label: string
+  value: string
+  valueClass?: string
+  topBorderOnMobile?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between sm:block',
+        topBorderOnMobile && 'border-t border-white/[0.06] pt-1.5 sm:border-0 sm:pt-0',
+      )}
+    >
+      <p className="text-[11px] text-white/46">{label}</p>
+      <p
+        className={cn(
+          'text-xs font-semibold tabular-nums sm:mt-0.5 sm:text-sm',
+          valueClass ?? 'text-white',
+        )}
+      >
+        {value}
+      </p>
     </div>
   )
 }

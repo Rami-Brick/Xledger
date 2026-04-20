@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { ListFilter } from 'lucide-react'
+import { SlidersHorizontal, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { fetchLogs, fetchLogReferenceData, type AuditLog, type LogAction, type LogReferenceData } from '@/features/logs/api'
+import {
+  fetchLogs,
+  fetchLogReferenceData,
+  type AuditLog,
+  type LogAction,
+  type LogReferenceData,
+} from '@/features/logs/api'
 import {
   formatLogDescription,
   formatLogTimestamp,
-  getActionBadgeClass,
   getActionLabel,
   getLogActorLabel,
 } from '@/features/logs/format'
 import { useRole } from '@/lib/RoleProvider'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -22,6 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover as PopoverPrimitive } from 'radix-ui'
+import {
+  CircularIconButton,
+  GlassPanel,
+  PillButton,
+} from '@/components/system-ui/primitives'
+import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
 
 const PAGE_SIZE = 50
 
@@ -54,6 +64,21 @@ const EMPTY_REFERENCES: LogReferenceData = {
   loanContacts: {},
 }
 
+const ACTION_COLOR: Record<LogAction, { bg: string; fg: string }> = {
+  INSERT: { bg: '#2D7CF6', fg: '#FFFFFF' },
+  UPDATE: { bg: '#FF9A18', fg: '#0A0B0A' },
+  DELETE: { bg: '#D94BF4', fg: '#FFFFFF' },
+}
+
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wide text-white/46">{label}</span>
+      {children}
+    </div>
+  )
+}
+
 export default function LogsPage() {
   const { canManage } = useRole()
   const [logs, setLogs] = useState<AuditLog[]>([])
@@ -61,7 +86,6 @@ export default function LogsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
 
   const [userFilter, setUserFilter] = useState('all')
   const [tableFilter, setTableFilter] = useState('all')
@@ -70,8 +94,9 @@ export default function LogsPage() {
   const [endDate, setEndDate] = useState('')
 
   const userOptions = useMemo(() => {
-    return Object.values(referenceData.users)
-      .sort((a, b) => a.display_name.localeCompare(b.display_name))
+    return Object.values(referenceData.users).sort((a, b) =>
+      a.display_name.localeCompare(b.display_name),
+    )
   }, [referenceData.users])
 
   const loadLogs = useCallback(
@@ -89,7 +114,7 @@ export default function LogsPage() {
       setHasMore(data.length === PAGE_SIZE)
       setLogs((current) => (append ? [...current, ...data] : data))
     },
-    [actionFilter, endDate, startDate, tableFilter, userFilter]
+    [actionFilter, endDate, startDate, tableFilter, userFilter],
   )
 
   const loadReferenceData = useCallback(async () => {
@@ -140,148 +165,238 @@ export default function LogsPage() {
   }
 
   const hasActiveFilters =
-    userFilter !== 'all' || tableFilter !== 'all' || actionFilter !== 'all' || startDate || endDate
+    userFilter !== 'all' ||
+    tableFilter !== 'all' ||
+    actionFilter !== 'all' ||
+    startDate ||
+    endDate
+
+  const activeFilterCount =
+    (userFilter !== 'all' ? 1 : 0) +
+    (tableFilter !== 'all' ? 1 : 0) +
+    (actionFilter !== 'all' ? 1 : 0) +
+    (startDate ? 1 : 0) +
+    (endDate ? 1 : 0)
 
   if (!canManage) return <Navigate to="/" replace />
 
   return (
-    <div className="w-full min-w-0 space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold sm:text-2xl">Journal d'activite</h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Suivi des ajouts, modifications et suppressions
-          </p>
+    <div className="relative w-full min-w-0">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
+        style={{ background: 'rgba(92,214,180,0.10)' }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
+        style={{ background: 'rgba(154,255,90,0.10)' }}
+      />
+
+      <div className="relative z-10 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h1 className="text-xl font-semibold tracking-tight text-white md:text-2xl">
+              Journal d&apos;activité
+            </h1>
+            <p className="text-xs text-white/60">
+              Suivi des ajouts, modifications et suppressions
+            </p>
+          </div>
+
+          <div className="ml-auto flex items-center gap-1.5">
+            <PopoverPrimitive.Root>
+              <PopoverPrimitive.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label="Filtres"
+                  className={cn(
+                    'relative inline-flex h-8 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 text-xs font-medium text-white/90',
+                    'transition-colors hover:bg-white/[0.10]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black',
+                  )}
+                >
+                  <SlidersHorizontal className="size-3.5" />
+                  Filtres
+                  {activeFilterCount > 0 && (
+                    <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-white/95 text-[10px] font-bold text-black">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </PopoverPrimitive.Trigger>
+
+              <PopoverPrimitive.Portal>
+                <PopoverPrimitive.Content
+                  align="end"
+                  sideOffset={8}
+                  className="z-50 w-[min(calc(100vw-2rem),320px)] rounded-2xl border border-white/[0.08] bg-[#141414] p-3 text-white shadow-xl"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-white/72">Filtres</span>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="text-[10px] text-white/46 hover:text-white/80"
+                        >
+                          Réinitialiser
+                        </button>
+                      )}
+                    </div>
+
+                    <FilterField label="Utilisateur">
+                      <Select value={userFilter} onValueChange={setUserFilter}>
+                        <SelectTrigger className="h-8 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous</SelectItem>
+                          {userOptions.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FilterField>
+
+                    <FilterField label="Table">
+                      <Select value={tableFilter} onValueChange={setTableFilter}>
+                        <SelectTrigger className="h-8 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TABLE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FilterField>
+
+                    <FilterField label="Action">
+                      <Select
+                        value={actionFilter}
+                        onValueChange={(value) =>
+                          setActionFilter(value as 'all' | LogAction)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-full rounded-full border-white/[0.08] bg-white/[0.04] text-xs text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ACTION_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FilterField>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <FilterField label="Début">
+                        <Input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="h-8 rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark]"
+                        />
+                      </FilterField>
+                      <FilterField label="Fin">
+                        <Input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="h-8 rounded-full border-white/[0.08] bg-white/[0.04] px-3 text-xs text-white [color-scheme:dark]"
+                        />
+                      </FilterField>
+                    </div>
+                  </div>
+                </PopoverPrimitive.Content>
+              </PopoverPrimitive.Portal>
+            </PopoverPrimitive.Root>
+
+            {hasActiveFilters && (
+              <CircularIconButton
+                variant="glass"
+                size="sm"
+                icon={<X />}
+                aria-label="Réinitialiser les filtres"
+                onClick={clearFilters}
+              />
+            )}
+          </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs">
-              Reinitialiser
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="text-xs sm:hidden"
-          >
-            <ListFilter className="mr-1 h-3.5 w-3.5" />
-            Filtres
-          </Button>
-        </div>
-      </div>
+        {loading ? (
+          <GlassPanel className="p-6">
+            <p className="py-6 text-center text-sm text-white/46">Chargement…</p>
+          </GlassPanel>
+        ) : logs.length === 0 ? (
+          <GlassPanel className="p-6">
+            <p className="py-12 text-center text-sm text-white/60">
+              Aucune activité trouvée.
+            </p>
+          </GlassPanel>
+        ) : (
+          <>
+            <GlassPanel className="p-3 md:p-4">
+              <div className="flex flex-col">
+                {logs.map((log) => {
+                  const actorLabel = getLogActorLabel(log.user_id, referenceData)
+                  const actionColor = ACTION_COLOR[log.action]
 
-      <div className={`${showFilters ? 'block' : 'hidden'} space-y-3 sm:block`}>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Utilisateur" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Utilisateur - Tous</SelectItem>
-              {userOptions.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.display_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={tableFilter} onValueChange={setTableFilter}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Table" />
-            </SelectTrigger>
-            <SelectContent>
-              {TABLE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={actionFilter} onValueChange={(value) => setActionFilter(value as 'all' | LogAction)}>
-            <SelectTrigger className="text-xs sm:text-sm">
-              <SelectValue placeholder="Action" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACTION_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
-
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            className="text-xs sm:text-sm"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <p className="py-12 text-center text-muted-foreground">Chargement...</p>
-      ) : logs.length === 0 ? (
-        <div className="py-12 text-center text-muted-foreground">
-          <p>Aucune activite trouvee.</p>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-1.5">
-            {logs.map((log) => {
-              const actorLabel = getLogActorLabel(log.user_id, referenceData)
-              const actorInitial = actorLabel.charAt(0).toUpperCase()
-
-              return (
-                <Card key={log.id} className="gap-0 rounded-md border-border/80 py-1 shadow-none sm:py-1.5">
-                  <CardContent className="px-2 py-0.5 sm:px-2.5 sm:py-0.5">
-                    <div className="space-y-0.5">
-                      <div className="flex flex-wrap items-center gap-1">
-                        <Badge className={`${getActionBadgeClass(log.action)} h-3.5 px-1 py-0 text-[9px] leading-none`}>
+                  return (
+                    <div
+                      key={log.id}
+                      className="flex flex-col gap-1 rounded-2xl px-2 py-2.5"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
+                          style={{
+                            backgroundColor: actionColor.bg,
+                            color: actionColor.fg,
+                          }}
+                        >
                           {getActionLabel(log.action)}
-                        </Badge>
-                        <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-1 py-0 text-[10px] text-muted-foreground">
-                          <span className="flex h-3 w-3 items-center justify-center rounded-full bg-muted text-[8px] font-semibold text-foreground/80">
-                            {actorInitial}
-                          </span>
-                          <span className="max-w-[96px] truncate sm:max-w-[140px]">
-                            {actorLabel}
-                          </span>
                         </span>
-                        <span className="text-[10px] text-muted-foreground sm:text-[11px]">
+                        <span className="truncate text-[11px] text-white/72">
+                          {actorLabel}
+                        </span>
+                        <span className="shrink-0 text-white/30">·</span>
+                        <span className="shrink-0 text-[11px] text-white/46">
                           {formatLogTimestamp(log.created_at)}
                         </span>
                       </div>
-                      <p className="text-[13px] leading-[1.05rem] sm:text-[12.5px]">
+                      <p className="text-[13px] leading-snug text-white/90">
                         {formatLogDescription(log, referenceData)}
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+                  )
+                })}
+              </div>
+            </GlassPanel>
 
-          {hasMore && (
-            <div className="flex justify-center pt-2">
-              <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Chargement...' : 'Charger plus'}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+            {hasMore && (
+              <div className="flex justify-center pt-1">
+                <PillButton
+                  variant="glass"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? 'Chargement…' : 'Charger plus'}
+                </PillButton>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
