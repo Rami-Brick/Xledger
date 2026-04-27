@@ -493,14 +493,8 @@ export default function HistoryPage() {
               return (
                 <div
                   key={transaction.id}
-                  className="group grid items-center gap-3 rounded-2xl px-2 py-3 md:py-3.5 grid-cols-[8px_36px_minmax(0,1fr)_auto]"
+                  className="grid items-center gap-3 rounded-2xl px-2 py-3 md:py-3.5 grid-cols-[36px_minmax(0,1fr)_auto]"
                 >
-                  {/* Playground-style selection dot — fills on hover */}
-                  <span
-                    aria-hidden
-                    className="size-2 rounded-full bg-white opacity-0 transition-opacity duration-150 group-hover:opacity-60"
-                  />
-
                   <AvatarCircle
                     name={displayName}
                     color={avatarColorForCategory(transaction.category)}
