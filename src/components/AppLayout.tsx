@@ -89,7 +89,7 @@ export default function AppLayout() {
         <div className="flex items-center gap-4">
           <nav
             aria-label="Navigation principale"
-            className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto pl-2 sm:pl-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <div className="flex items-center gap-1">
               {primaryTabs.map((tab) => {
