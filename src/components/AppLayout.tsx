@@ -86,10 +86,10 @@ export default function AppLayout() {
     <div className="min-h-screen bg-[#0A0B0A] text-white">
       <div className="mx-auto w-full max-w-[1400px] px-2 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6">
         {/* Top row — tabs centered, profile right. No bar, no border. */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-0.5 sm:gap-4">
           <nav
             aria-label="Navigation principale"
-            className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto pl-2 sm:pl-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto pr-2.5 sm:pr-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <div className="flex items-center gap-1">
               {primaryTabs.map((tab) => {
