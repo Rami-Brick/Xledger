@@ -153,34 +153,30 @@ export default function DashboardPage() {
 
   const netPositive = stats.netThisMonth >= 0
 
+  const formatTNDCompact = (amount: number) => `${Math.round(amount).toLocaleString('fr-TN')} TND`
+
   const kpiMetrics: KPIMetricData[] = [
     {
-      id: 'balance',
-      label: 'Solde total',
-      value: formatTND(stats.totalBalance),
+      id: 'net',
+      label: 'Net ce mois',
+      value: `${netPositive ? '+' : ''}${formatTNDCompact(stats.netThisMonth)}`,
     },
     {
       id: 'revenue',
       label: 'Recettes ce mois',
-      value: formatTND(stats.revenueThisMonth),
+      value: formatTNDCompact(stats.revenueThisMonth),
     },
     {
       id: 'expenses',
       label: 'Dépenses ce mois',
-      value: formatTND(stats.expensesThisMonth),
-    },
-    {
-      id: 'net',
-      label: 'Net ce mois',
-      value: `${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`,
+      value: formatTNDCompact(stats.expensesThisMonth),
     },
   ]
 
   const kpiSegments: Segment[] = [
-    { value: Math.max(stats.totalBalance, 0), color: 'cyan', label: 'Solde' },
+    { value: Math.max(stats.netThisMonth, 0), color: 'chartreuse', label: 'Net' },
     { value: stats.revenueThisMonth, color: 'blue', label: 'Recettes' },
     { value: stats.expensesThisMonth, color: 'magenta', label: 'Dépenses' },
-    { value: Math.max(stats.netThisMonth, 0), color: 'chartreuse', label: 'Net' },
   ]
 
   return (
@@ -190,8 +186,9 @@ export default function DashboardPage() {
           leading={
             <PillStat
               variant="accent"
-              label="Net ce mois"
-              value={`${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`}
+              label="Solde"
+              value={formatTND(stats.totalBalance)}
+              className="[&>span:first-child]:text-[13px] [&>span:last-child]:text-[16px] md:[&>span:last-child]:text-[18px]"
             />
           }
           trailing={
@@ -221,7 +218,7 @@ export default function DashboardPage() {
         {/* KPI Strip — 2×2 on mobile, row of 4 on md+ */}
         <GlassPanel className="p-4 md:p-7">
           <div className="flex flex-col gap-3 md:gap-4">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:flex md:gap-0">
+            <div className="grid grid-cols-3 gap-x-3 md:flex md:gap-0">
               {kpiMetrics.map((m) => (
                 <div key={m.id} className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="truncate text-[17px] font-semibold leading-none tracking-tight text-white md:text-[28px]">
@@ -235,7 +232,7 @@ export default function DashboardPage() {
             </div>
             <SegmentedBar
               segments={kpiSegments}
-              aria-label="Répartition solde, recettes, dépenses et net ce mois"
+              aria-label="Répartition net, recettes et dépenses ce mois"
             />
           </div>
         </GlassPanel>
@@ -291,7 +288,24 @@ export default function DashboardPage() {
                       />
                       <Legend
                         wrapperStyle={{ fontSize: 11, color: 'rgba(255,255,255,0.72)' }}
-                        iconType="circle"
+                        content={() => (
+                          <div className="flex justify-center gap-4 text-[11px] text-white/72">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="inline-block h-2 w-2 rounded-full"
+                                style={{ background: REVENUE_COLOR }}
+                              />
+                              Recettes
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span
+                                className="inline-block h-2 w-2 rounded-full"
+                                style={{ background: EXPENSE_COLOR }}
+                              />
+                              Dépenses
+                            </span>
+                          </div>
+                        )}
                       />
                       <Bar dataKey="Recettes" fill={REVENUE_COLOR} radius={[6, 6, 0, 0]} />
                       <Bar dataKey="Dépenses" fill={EXPENSE_COLOR} radius={[6, 6, 0, 0]} />
