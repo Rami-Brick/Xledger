@@ -61,8 +61,6 @@ export default function SubcategoryForm({
     load()
   }, [parentCategory])
 
-  const selectedSubcategory = subcategories.find((subcategory) => subcategory.id === selectedId)
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!selectedId || amount <= 0) return
@@ -71,8 +69,7 @@ export default function SubcategoryForm({
     try {
       await onSubmit({
         amount,
-        description:
-          parentCategory === 'Packaging' ? description : selectedSubcategory?.name || description,
+        description,
         subcategory_id: selectedId,
         is_internal: isInternal,
       })
