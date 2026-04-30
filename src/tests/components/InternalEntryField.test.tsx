@@ -4,18 +4,18 @@ import { describe, expect, it, vi } from 'vitest'
 import InternalEntryField from '@/features/transactions/forms/InternalEntryField'
 
 describe('InternalEntryField', () => {
-  it('renders checkbox unchecked by default', () => {
+  it('renders switch unchecked by default', () => {
     render(
       <InternalEntryField checked={false} onCheckedChange={vi.fn()} categoryLabel="Recettes" />
     )
-    expect(screen.getByRole('checkbox')).not.toBeChecked()
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('renders checkbox checked when checked=true', () => {
+  it('renders switch checked when checked=true', () => {
     render(
       <InternalEntryField checked={true} onCheckedChange={vi.fn()} categoryLabel="Recettes" />
     )
-    expect(screen.getByRole('checkbox')).toBeChecked()
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   })
 
   it('calls onCheckedChange(true) when clicked while unchecked', async () => {
@@ -23,7 +23,7 @@ describe('InternalEntryField', () => {
     render(
       <InternalEntryField checked={false} onCheckedChange={onCheckedChange} categoryLabel="Recettes" />
     )
-    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.click(screen.getByRole('switch'))
     expect(onCheckedChange).toHaveBeenCalledWith(true)
   })
 
@@ -32,7 +32,7 @@ describe('InternalEntryField', () => {
     render(
       <InternalEntryField checked={true} onCheckedChange={onCheckedChange} categoryLabel="Recettes" />
     )
-    await userEvent.click(screen.getByRole('checkbox'))
+    await userEvent.click(screen.getByRole('switch'))
     expect(onCheckedChange).toHaveBeenCalledWith(false)
   })
 
@@ -40,7 +40,7 @@ describe('InternalEntryField', () => {
     render(
       <InternalEntryField checked={false} onCheckedChange={vi.fn()} categoryLabel="Salaires" />
     )
-    expect(screen.getByText('Entree interne')).toBeInTheDocument()
+    expect(screen.getByText(/Entr.e interne/)).toBeInTheDocument()
   })
 
   it('includes the categoryLabel in the description text', () => {
@@ -50,11 +50,10 @@ describe('InternalEntryField', () => {
     expect(screen.getByText(/Transport/)).toBeInTheDocument()
   })
 
-  it('has label linked to checkbox via htmlFor', () => {
+  it('uses the label in the switch accessible name', () => {
     render(
       <InternalEntryField checked={false} onCheckedChange={vi.fn()} categoryLabel="Recettes" />
     )
-    const label = screen.getByText('Entree interne')
-    expect(label).toHaveAttribute('for', 'is-internal')
+    expect(screen.getByRole('switch', { name: /Entr.e interne/ })).toBeInTheDocument()
   })
 })

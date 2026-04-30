@@ -40,7 +40,7 @@ interface LoanBalance {
   remaining: number
 }
 
-export default function PretsForm({ date, initialData, onSubmit }: Props) {
+export default function PretsForm({ initialData, onSubmit }: Props) {
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.loan_contact_id ?? '')
@@ -172,8 +172,8 @@ export default function PretsForm({ date, initialData, onSubmit }: Props) {
         <Input
           id="amount"
           type="number"
-          step="0.001"
-          min="0.001"
+          step="1"
+          min="1"
           value={amount || ''}
           onChange={(event) => setAmount(parseFloat(event.target.value) || 0)}
           required

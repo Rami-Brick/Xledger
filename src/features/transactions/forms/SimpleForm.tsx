@@ -23,7 +23,6 @@ interface SimpleFormProps {
 }
 
 export default function SimpleForm({
-  date,
   categoryLabel,
   descriptionRequired = false,
   descriptionPlaceholder = 'Description',
@@ -74,8 +73,8 @@ export default function SimpleForm({
         <Input
           id="amount"
           type="number"
-          step="0.001"
-          min="0.001"
+          step="1"
+          min="1"
           value={amount || ''}
           onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
           required

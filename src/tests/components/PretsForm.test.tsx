@@ -77,9 +77,9 @@ describe('PretsForm', () => {
     selectContact('lc1')
 
     await waitFor(() => {
-      expect(screen.getByText('Total recu')).toBeInTheDocument()
-      expect(screen.getByText('5000.000 TND')).toBeInTheDocument()
-      expect(screen.getByText('Reste a rendre')).toBeInTheDocument()
+      expect(screen.getByText(/Total re.u/)).toBeInTheDocument()
+      expect(screen.getByText('5,000 TND')).toBeInTheDocument()
+      expect(screen.getByText(/Reste . rendre/)).toBeInTheDocument()
     })
   })
 
