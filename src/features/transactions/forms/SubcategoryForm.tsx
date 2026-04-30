@@ -31,7 +31,6 @@ interface SubcategoryFormProps {
 }
 
 export default function SubcategoryForm({
-  date,
   parentCategory,
   initialData,
   onSubmit,
@@ -119,8 +118,8 @@ export default function SubcategoryForm({
         <Input
           id="amount"
           type="number"
-          step="0.001"
-          min="0.001"
+          step="1"
+          min="1"
           value={amount || ''}
           onChange={(event) => setAmount(parseFloat(event.target.value) || 0)}
           required

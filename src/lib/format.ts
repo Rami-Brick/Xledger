@@ -1,8 +1,17 @@
+const wholeDinarFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+})
+
+export function formatWholeDinars(amount: number): string {
+  return wholeDinarFormatter.format(Math.round(amount))
+}
+
 /**
- * Format a number as Tunisian Dinar (TND) with 3 decimal places
+ * Format a number as Tunisian Dinar (TND) in whole dinars
  */
 export function formatTND(amount: number): string {
-  return `${amount.toFixed(3)} TND`
+  return `${formatWholeDinars(amount)} TND`
 }
 
 /**

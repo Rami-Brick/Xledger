@@ -18,7 +18,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { formatTND } from '@/lib/format'
+import { formatTND, formatWholeDinars } from '@/lib/format'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronRight, Download } from 'lucide-react'
 import {
@@ -162,10 +162,7 @@ function formatMonthShort(dateStr: string) {
 }
 
 function formatCompact(amount: number): string {
-  const abs = Math.abs(amount)
-  const sign = amount < 0 ? '-' : ''
-  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`
-  return amount.toFixed(0)
+  return formatWholeDinars(amount)
 }
 
 function formatDayLabel(dateStr: string) {
@@ -189,7 +186,7 @@ function downloadCSV(data: ExportTransaction[], filename: string) {
     t.category,
     t.entity,
     t.description || '',
-    t.amount.toFixed(3),
+    formatWholeDinars(Number(t.amount)),
   ])
   const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })

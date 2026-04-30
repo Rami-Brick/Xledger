@@ -13,6 +13,7 @@ import SimpleForm from '@/features/transactions/forms/SimpleForm'
 import SubcategoryForm from '@/features/transactions/forms/SubcategoryForm'
 import SubscriptionsForm from '@/features/transactions/forms/SubscriptionsForm'
 import { CircularIconButton } from '@/components/system-ui/primitives'
+import { formatTND } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 function getTodayDate() {
@@ -106,7 +107,7 @@ export default function AddTransactionPage() {
       })
 
       toast.success('Transaction enregistree', {
-        description: `${category} - ${Math.abs(data.amount).toFixed(3)} TND`,
+        description: `${category} - ${formatTND(Math.abs(data.amount))}`,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue'

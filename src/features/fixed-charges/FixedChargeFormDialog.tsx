@@ -83,7 +83,7 @@ export default function FixedChargeFormDialog({
             <Input
               id="default_amount"
               type="number"
-              step="0.001"
+              step="1"
               min="0"
               value={form.default_amount || ''}
               onChange={(e) =>

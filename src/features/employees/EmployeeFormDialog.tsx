@@ -141,7 +141,7 @@ export default function EmployeeFormDialog({
               <Input
               id="base_salary"
               type="number"
-              step="0.001"
+              step="1"
               min="0"
               value={form.base_salary}
               onChange={(e) =>

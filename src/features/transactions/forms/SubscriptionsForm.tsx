@@ -29,7 +29,7 @@ interface Props {
   }) => Promise<void>
 }
 
-export default function SubscriptionsForm({ date, initialData, onSubmit }: Props) {
+export default function SubscriptionsForm({ initialData, onSubmit }: Props) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.subscription_id ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
@@ -96,8 +96,8 @@ export default function SubscriptionsForm({ date, initialData, onSubmit }: Props
         <Input
           id="amount"
           type="number"
-          step="0.001"
-          min="0.001"
+          step="1"
+          min="1"
           value={amount || ''}
           onChange={(event) => setAmount(parseFloat(event.target.value) || 0)}
           required

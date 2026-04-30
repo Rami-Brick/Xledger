@@ -1,29 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatTND } from '@/lib/format'
+import { formatDate, formatTND, formatWholeDinars } from '@/lib/format'
+
+describe('formatWholeDinars', () => {
+  it('formats zero', () => {
+    expect(formatWholeDinars(0)).toBe('0')
+  })
+
+  it('adds thousands separators', () => {
+    expect(formatWholeDinars(12500)).toBe('12,500')
+  })
+
+  it('rounds decimal values to whole dinars', () => {
+    expect(formatWholeDinars(250.75)).toBe('251')
+  })
+})
 
 describe('formatTND', () => {
   it('formats zero', () => {
-    expect(formatTND(0)).toBe('0.000 TND')
+    expect(formatTND(0)).toBe('0 TND')
   })
 
   it('formats a whole number', () => {
-    expect(formatTND(1500)).toBe('1500.000 TND')
+    expect(formatTND(1500)).toBe('1,500 TND')
   })
 
-  it('formats minimum TND unit', () => {
-    expect(formatTND(0.001)).toBe('0.001 TND')
+  it('rounds sub-dinar values away from decimals', () => {
+    expect(formatTND(0.001)).toBe('0 TND')
   })
 
   it('formats negative amount (expense)', () => {
-    expect(formatTND(-250.75)).toBe('-250.750 TND')
+    expect(formatTND(-250.75)).toBe('-251 TND')
   })
 
   it('formats large amount', () => {
-    expect(formatTND(1234567.123)).toBe('1234567.123 TND')
+    expect(formatTND(1234567.123)).toBe('1,234,567 TND')
   })
 
-  it('rounds to 3 decimal places', () => {
-    expect(formatTND(1.0006)).toBe('1.001 TND')
+  it('rounds to the nearest whole dinar', () => {
+    expect(formatTND(1.6)).toBe('2 TND')
   })
 })
 

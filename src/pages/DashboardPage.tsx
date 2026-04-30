@@ -153,23 +153,21 @@ export default function DashboardPage() {
 
   const netPositive = stats.netThisMonth >= 0
 
-  const formatTNDCompact = (amount: number) => `${Math.round(amount).toLocaleString('fr-TN')} TND`
-
   const kpiMetrics: KPIMetricData[] = [
     {
       id: 'net',
       label: 'Net ce mois',
-      value: `${netPositive ? '+' : ''}${formatTNDCompact(stats.netThisMonth)}`,
+      value: `${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`,
     },
     {
       id: 'revenue',
       label: 'Recettes ce mois',
-      value: formatTNDCompact(stats.revenueThisMonth),
+      value: formatTND(stats.revenueThisMonth),
     },
     {
       id: 'expenses',
       label: 'Dépenses ce mois',
-      value: formatTNDCompact(stats.expensesThisMonth),
+      value: formatTND(stats.expensesThisMonth),
     },
   ]
 
