@@ -20,6 +20,16 @@ import {
 import { formatTND } from '@/lib/format'
 import { toast } from 'sonner'
 
+function getScheduleLabel(charge: FixedCharge) {
+  if (!charge.schedule_enabled) return 'Non planifiee'
+
+  const intervalLabel = charge.recurrence_interval > 1 ? ` x${charge.recurrence_interval}` : ''
+
+  if (charge.recurrence_frequency === 'weekly') return `Hebdomadaire${intervalLabel}`
+  if (charge.recurrence_frequency === 'yearly') return `Annuelle${intervalLabel}`
+  return `Mensuelle${intervalLabel}`
+}
+
 export default function FixedChargesPage() {
   const { canManage, loading: roleLoading } = useRole()
   const [charges, setCharges] = useState<FixedCharge[]>([])
@@ -124,6 +134,8 @@ export default function FixedChargesPage() {
                 {formatTND(item.default_amount)}
               </span>
             </span>
+            <span className="shrink-0 text-white/30">·</span>
+            <span className="shrink-0">{getScheduleLabel(item)}</span>
           </SettingsItemMeta>
         )}
       />

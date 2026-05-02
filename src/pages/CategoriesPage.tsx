@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarClock,
   ChevronDown,
   ChevronUp,
   MoreHorizontal,
@@ -695,29 +696,51 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {canCreateTransactions && (
-          <>
-            <CircularIconButton
-              variant="light"
-              size="md"
-              icon={<Plus />}
-              aria-label={`Ajouter une transaction ${config.label}`}
-              onClick={() =>
-                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
-              }
-              className="md:hidden"
-            />
-            <PrimaryCTA
-              label={`Ajouter ${config.label}`}
-              icon={<Plus />}
-              aria-label={`Ajouter une transaction ${config.label}`}
-              onClick={() =>
-                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
-              }
-              className="hidden md:inline-flex"
-            />
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedCategory === 'Charges fixes' && canEditTransactions && (
+            <>
+              <CircularIconButton
+                variant="glass"
+                size="md"
+                icon={<CalendarClock />}
+                aria-label="Charges a venir"
+                onClick={() => navigate('/charges-fixes-a-venir')}
+                className="md:hidden"
+              />
+              <PrimaryCTA
+                label="Charges a venir"
+                icon={<CalendarClock />}
+                aria-label="Charges a venir"
+                onClick={() => navigate('/charges-fixes-a-venir')}
+                className="hidden md:inline-flex"
+              />
+            </>
+          )}
+
+          {canCreateTransactions && (
+            <>
+              <CircularIconButton
+                variant="light"
+                size="md"
+                icon={<Plus />}
+                aria-label={`Ajouter une transaction ${config.label}`}
+                onClick={() =>
+                  navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+                }
+                className="md:hidden"
+              />
+              <PrimaryCTA
+                label={`Ajouter ${config.label}`}
+                icon={<Plus />}
+                aria-label={`Ajouter une transaction ${config.label}`}
+                onClick={() =>
+                  navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+                }
+                className="hidden md:inline-flex"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {detailLoading ? (

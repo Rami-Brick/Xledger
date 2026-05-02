@@ -6,8 +6,19 @@ export interface FixedCharge {
   name: string
   default_amount: number
   is_active: boolean
+  schedule_enabled: boolean
+  recurrence_frequency: RecurrenceFrequency
+  recurrence_interval: number
+  schedule_start_date: string | null
+  due_day_of_week: number | null
+  due_day_of_month: number | null
+  due_month: number | null
+  due_day_mode: DueDayMode
+  generate_days_ahead: number
 }
 
+export type RecurrenceFrequency = 'weekly' | 'monthly' | 'yearly'
+export type DueDayMode = 'day_of_month' | 'last_day_of_month'
 export type FixedChargeInsert = Omit<FixedCharge, 'id' | 'created_at'>
 
 export async function getFixedCharges() {

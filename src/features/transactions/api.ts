@@ -31,6 +31,7 @@ export interface Transaction {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  fixed_charge_request_id: string | null
 }
 
 export interface TransactionInsert {
@@ -46,6 +47,7 @@ export interface TransactionInsert {
   subcategory_id?: string | null
   subscription_id?: string | null
   loan_contact_id?: string | null
+  fixed_charge_request_id?: string | null
 }
 
 export async function createTransaction(transaction: TransactionInsert) {
