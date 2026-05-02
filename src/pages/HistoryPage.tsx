@@ -67,6 +67,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  fixed_charge_request_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
   products: { name: string } | null
@@ -231,8 +232,12 @@ export default function HistoryPage() {
     if (!deleteTarget) return
 
     try {
-      await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimee')
+      const result = await deleteTransaction(deleteTarget.id)
+      toast.success(
+        result.reopenedFixedChargeRequest
+          ? 'Transaction supprimee, charge remise en attente'
+          : 'Transaction supprimee'
+      )
       setDeleteTarget(null)
       await fetchTransactions()
     } catch {
@@ -633,7 +638,11 @@ export default function HistoryPage() {
         title="Supprimer cette transaction ?"
         description={`Etes-vous sur de vouloir supprimer cette transaction de ${
           deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
-        } ? Cette action est irreversible.`}
+        } ? Cette action est irreversible.${
+          deleteTarget?.fixed_charge_request_id
+            ? ' La charge fixe liee repassera en attente de validation.'
+            : ''
+        }`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarCircle, PillButton } from '@/components/system-ui/primitives'
+import FixedChargeApprovalBell from '@/features/fixed-charges/FixedChargeApprovalBell'
 import { cn } from '@/lib/utils'
 
 interface PrimaryTab {
@@ -113,6 +114,8 @@ export default function AppLayout() {
           </nav>
 
           {/* Profile dropdown — anchored to the right edge */}
+          <FixedChargeApprovalBell />
+
           <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
               <button

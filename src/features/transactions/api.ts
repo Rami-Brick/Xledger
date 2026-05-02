@@ -31,6 +31,7 @@ export interface Transaction {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  fixed_charge_request_id: string | null
 }
 
 export interface TransactionInsert {
@@ -46,6 +47,11 @@ export interface TransactionInsert {
   subcategory_id?: string | null
   subscription_id?: string | null
   loan_contact_id?: string | null
+  fixed_charge_request_id?: string | null
+}
+
+export interface DeleteTransactionResult {
+  reopenedFixedChargeRequest: boolean
 }
 
 export async function createTransaction(transaction: TransactionInsert) {
@@ -105,9 +111,40 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
   return data as Transaction
 }
 
-export async function deleteTransaction(id: string) {
+async function reopenFixedChargeRequest(requestId: string) {
+  const { error } = await supabase
+    .from('fixed_charge_requests')
+    .update({
+      status: 'pending',
+      approved_amount: null,
+      status_changed_by: null,
+      status_changed_at: null,
+      decision_note: null,
+    })
+    .eq('id', requestId)
+    .eq('status', 'approved')
+
+  if (error) throw error
+}
+
+export async function deleteTransaction(id: string): Promise<DeleteTransactionResult> {
+  const { data: transaction, error: fetchError } = await supabase
+    .from('transactions')
+    .select('fixed_charge_request_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) throw fetchError
+
   const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) throw error
+
+  if (transaction?.fixed_charge_request_id) {
+    await reopenFixedChargeRequest(transaction.fixed_charge_request_id)
+    return { reopenedFixedChargeRequest: true }
+  }
+
+  return { reopenedFixedChargeRequest: false }
 }
 
 export async function getEmployeeSalaryStatus() {

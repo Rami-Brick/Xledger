@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarClock,
   ChevronDown,
   ChevronUp,
   MoreHorizontal,
@@ -65,6 +66,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  fixed_charge_request_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
   products: { name: string } | null
@@ -293,8 +295,12 @@ export default function CategoriesPage() {
     if (!deleteTarget) return
 
     try {
-      await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimee')
+      const result = await deleteTransaction(deleteTarget.id)
+      toast.success(
+        result.reopenedFixedChargeRequest
+          ? 'Transaction supprimee, charge remise en attente'
+          : 'Transaction supprimee'
+      )
       setDeleteTarget(null)
       await fetchSummaries()
       if (selectedCategory) {
@@ -695,29 +701,51 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {canCreateTransactions && (
-          <>
-            <CircularIconButton
-              variant="light"
-              size="md"
-              icon={<Plus />}
-              aria-label={`Ajouter une transaction ${config.label}`}
-              onClick={() =>
-                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
-              }
-              className="md:hidden"
-            />
-            <PrimaryCTA
-              label={`Ajouter ${config.label}`}
-              icon={<Plus />}
-              aria-label={`Ajouter une transaction ${config.label}`}
-              onClick={() =>
-                navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
-              }
-              className="hidden md:inline-flex"
-            />
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedCategory === 'Charges fixes' && canEditTransactions && (
+            <>
+              <CircularIconButton
+                variant="glass"
+                size="md"
+                icon={<CalendarClock />}
+                aria-label="Charges a valider"
+                onClick={() => navigate('/charges-fixes-a-venir')}
+                className="md:hidden"
+              />
+              <PrimaryCTA
+                label="Charges a valider"
+                icon={<CalendarClock />}
+                aria-label="Charges a valider"
+                onClick={() => navigate('/charges-fixes-a-venir')}
+                className="hidden md:inline-flex"
+              />
+            </>
+          )}
+
+          {canCreateTransactions && (
+            <>
+              <CircularIconButton
+                variant="light"
+                size="md"
+                icon={<Plus />}
+                aria-label={`Ajouter une transaction ${config.label}`}
+                onClick={() =>
+                  navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+                }
+                className="md:hidden"
+              />
+              <PrimaryCTA
+                label={`Ajouter ${config.label}`}
+                icon={<Plus />}
+                aria-label={`Ajouter une transaction ${config.label}`}
+                onClick={() =>
+                  navigate(`/ajouter?category=${encodeURIComponent(selectedCategory)}`)
+                }
+                className="hidden md:inline-flex"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {detailLoading ? (
@@ -822,7 +850,11 @@ export default function CategoriesPage() {
         title="Supprimer cette transaction ?"
         description={`Etes-vous sur de vouloir supprimer cette transaction de ${
           deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
-        } ? Cette action est irreversible.`}
+        } ? Cette action est irreversible.${
+          deleteTarget?.fixed_charge_request_id
+            ? ' La charge fixe liee repassera en attente de validation.'
+            : ''
+        }`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

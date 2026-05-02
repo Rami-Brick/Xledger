@@ -10,10 +10,22 @@ vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 const mockGetFixedCharges = vi.mocked(getFixedCharges)
 
+const scheduleDefaults = {
+  schedule_enabled: false,
+  recurrence_frequency: 'monthly' as const,
+  recurrence_interval: 1,
+  schedule_start_date: '2026-05-01',
+  due_day_of_week: 5,
+  due_day_of_month: 1,
+  due_month: 5,
+  due_day_mode: 'day_of_month' as const,
+  generate_days_ahead: 45,
+}
+
 const mockCharges = [
-  { id: 'c1', name: 'Loyer bureau', default_amount: 1200, is_active: true, created_at: '' },
-  { id: 'c2', name: 'Internet', default_amount: 80, is_active: true, created_at: '' },
-  { id: 'c3', name: 'Ancienne charge', default_amount: 500, is_active: false, created_at: '' },
+  { id: 'c1', name: 'Loyer bureau', default_amount: 1200, is_active: true, created_at: '', ...scheduleDefaults },
+  { id: 'c2', name: 'Internet', default_amount: 80, is_active: true, created_at: '', ...scheduleDefaults },
+  { id: 'c3', name: 'Ancienne charge', default_amount: 500, is_active: false, created_at: '', ...scheduleDefaults },
 ]
 
 function selectOption(value: string) {
