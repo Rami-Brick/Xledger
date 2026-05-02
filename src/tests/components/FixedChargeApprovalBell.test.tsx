@@ -24,7 +24,7 @@ const request: FixedChargeRequest = {
   updated_at: '',
   fixed_charge_id: 'charge-1',
   due_date: '2000-01-01',
-  suggested_amount: 100,
+  suggested_amount: '100' as unknown as number,
   status: 'pending',
   approved_amount: null,
   status_changed_by: null,
@@ -66,6 +66,7 @@ describe('FixedChargeApprovalBell', () => {
     await userEvent.click(trigger)
 
     expect(await screen.findByText('Internet')).toBeVisible()
+    expect(screen.getByLabelText('Modifier le montant')).toHaveValue(100)
     expect(screen.getByRole('button', { name: /approuver/i })).toBeVisible()
   })
 

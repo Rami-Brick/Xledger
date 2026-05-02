@@ -66,6 +66,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  fixed_charge_request_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
   products: { name: string } | null
@@ -294,8 +295,12 @@ export default function CategoriesPage() {
     if (!deleteTarget) return
 
     try {
-      await deleteTransaction(deleteTarget.id)
-      toast.success('Transaction supprimee')
+      const result = await deleteTransaction(deleteTarget.id)
+      toast.success(
+        result.reopenedFixedChargeRequest
+          ? 'Transaction supprimee, charge remise en attente'
+          : 'Transaction supprimee'
+      )
       setDeleteTarget(null)
       await fetchSummaries()
       if (selectedCategory) {
@@ -703,14 +708,14 @@ export default function CategoriesPage() {
                 variant="glass"
                 size="md"
                 icon={<CalendarClock />}
-                aria-label="Charges a venir"
+                aria-label="Charges a valider"
                 onClick={() => navigate('/charges-fixes-a-venir')}
                 className="md:hidden"
               />
               <PrimaryCTA
-                label="Charges a venir"
+                label="Charges a valider"
                 icon={<CalendarClock />}
-                aria-label="Charges a venir"
+                aria-label="Charges a valider"
                 onClick={() => navigate('/charges-fixes-a-venir')}
                 className="hidden md:inline-flex"
               />
@@ -845,7 +850,11 @@ export default function CategoriesPage() {
         title="Supprimer cette transaction ?"
         description={`Etes-vous sur de vouloir supprimer cette transaction de ${
           deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
-        } ? Cette action est irreversible.`}
+        } ? Cette action est irreversible.${
+          deleteTarget?.fixed_charge_request_id
+            ? ' La charge fixe liee repassera en attente de validation.'
+            : ''
+        }`}
         onConfirm={handleDelete}
       />
       <EditTransactionDialog

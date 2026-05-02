@@ -38,9 +38,18 @@ export default function FixedChargeRequestCard({
   onApprove,
   onSkip,
 }: FixedChargeRequestCardProps) {
-  const [amount, setAmount] = useState(request.approved_amount || request.suggested_amount)
+  const initialAmount = Number(
+    request.approved_amount
+      ?? request.suggested_amount
+      ?? request.fixed_charges?.default_amount
+      ?? 0
+  )
+  const [amountInput, setAmountInput] = useState(
+    Number.isFinite(initialAmount) && initialAmount > 0 ? String(initialAmount) : ''
+  )
+  const amount = Number(amountInput)
 
-  const canSubmit = request.status === 'pending' && amount > 0 && !submitting
+  const canSubmit = request.status === 'pending' && Number.isFinite(amount) && amount > 0 && !submitting
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
@@ -79,9 +88,12 @@ export default function FixedChargeRequestCard({
         </div>
       )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div className="space-y-1.5">
-          <label htmlFor={`request-amount-${request.id}`} className="text-[11px] text-white/46">
+      <div className="mt-4 space-y-3">
+        <div className="w-full max-w-[12rem] space-y-1.5">
+          <label
+            htmlFor={`request-amount-${request.id}`}
+            className="block whitespace-nowrap text-[11px] text-white/46"
+          >
             Modifier le montant
           </label>
           <Input
@@ -89,14 +101,15 @@ export default function FixedChargeRequestCard({
             type="number"
             min="1"
             step="1"
-            value={amount || ''}
+            value={amountInput}
             disabled={request.status !== 'pending' || submitting}
-            onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setAmountInput(e.target.value)}
+            className="h-11 rounded-xl text-base font-semibold tabular-nums"
           />
         </div>
 
         {showActions && request.status === 'pending' ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               size="sm"

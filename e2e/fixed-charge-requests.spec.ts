@@ -11,10 +11,10 @@ test.describe('Fixed charge requests', () => {
     await expect(page.getByText(/charges a valider/i).first()).toBeVisible()
   })
 
-  test('admin can open upcoming fixed charges from the category detail', async ({ adminPage: page }) => {
+  test('admin can open fixed charges to validate from the category detail', async ({ adminPage: page }) => {
     await page.goto('/categories')
     await page.getByText('Charges fixes').click()
-    await page.getByRole('button', { name: /charges a venir/i }).click()
+    await page.getByRole('button', { name: /charges a valider/i }).click()
 
     await expect(page).toHaveURL(/\/charges-fixes-a-venir/)
     await expect(page.getByRole('heading', { name: /charges a valider/i })).toBeVisible()

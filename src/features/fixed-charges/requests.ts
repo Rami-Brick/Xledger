@@ -35,6 +35,14 @@ export interface PossibleFixedChargeTransaction {
   fixed_charge_request_id: string | null
 }
 
+interface FixedChargeRequestRow extends Omit<FixedChargeRequest, 'suggested_amount' | 'approved_amount' | 'fixed_charges'> {
+  suggested_amount: number | string | null
+  approved_amount: number | string | null
+  fixed_charges: (Pick<FixedCharge, 'name' | 'is_active'> & {
+    default_amount: number | string
+  }) | null
+}
+
 const REQUEST_SELECT = `
   *,
   fixed_charges(name, default_amount, is_active)
@@ -51,9 +59,38 @@ function addDays(value: string, days: number) {
   return formatDateKey(date)
 }
 
+function getCurrentMonthStartKey(todayKey = getTodayDateKey()) {
+  const today = parseDate(todayKey)
+  return formatDateKey(new Date(today.getFullYear(), today.getMonth(), 1))
+}
+
 async function getCurrentUserId() {
   const { data } = await supabase.auth.getUser()
   return data.user?.id ?? null
+}
+
+function toNumber(value: number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') return 0
+  const next = Number(value)
+  return Number.isFinite(next) ? next : 0
+}
+
+function normalizeRequest(row: FixedChargeRequestRow): FixedChargeRequest {
+  return {
+    ...row,
+    suggested_amount: toNumber(row.suggested_amount),
+    approved_amount: row.approved_amount === null ? null : toNumber(row.approved_amount),
+    fixed_charges: row.fixed_charges
+      ? {
+          ...row.fixed_charges,
+          default_amount: toNumber(row.fixed_charges.default_amount),
+        }
+      : null,
+  }
+}
+
+function normalizeRequests(rows: FixedChargeRequestRow[] | null) {
+  return (rows || []).map(normalizeRequest)
 }
 
 export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDateKey()) {
@@ -66,11 +103,16 @@ export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDate
   if (chargesError) throw chargesError
 
   const rows: FixedChargeRequestInsert[] = ((charges || []) as FixedCharge[]).flatMap((charge) =>
-    generateFixedChargeDueDates(charge, todayKey).map((dueDate) => ({
-      fixed_charge_id: charge.id,
-      due_date: dueDate,
-      suggested_amount: charge.default_amount,
-    }))
+    generateFixedChargeDueDates(
+      { ...charge, generate_days_ahead: 0 },
+      todayKey
+    )
+      .filter((dueDate) => dueDate >= getCurrentMonthStartKey(todayKey))
+      .map((dueDate) => ({
+        fixed_charge_id: charge.id,
+        due_date: dueDate,
+        suggested_amount: toNumber(charge.default_amount),
+      }))
   )
 
   if (rows.length === 0) return []
@@ -84,32 +126,32 @@ export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDate
     .select(REQUEST_SELECT)
 
   if (error) throw error
-  return (data || []) as FixedChargeRequest[]
+  return normalizeRequests(data as FixedChargeRequestRow[] | null)
 }
 
-export async function getPendingFixedChargeRequests() {
+export async function getPendingFixedChargeRequests(todayKey = getTodayDateKey()) {
   const { data, error } = await supabase
     .from('fixed_charge_requests')
     .select(REQUEST_SELECT)
     .eq('status', 'pending')
+    .lte('due_date', todayKey)
     .order('due_date', { ascending: true })
     .order('created_at', { ascending: true })
 
   if (error) throw error
-  return (data || []) as FixedChargeRequest[]
+  return normalizeRequests(data as FixedChargeRequestRow[] | null)
 }
 
 export async function getUpcomingFixedChargeRequests(todayKey = getTodayDateKey()) {
   const { data, error } = await supabase
     .from('fixed_charge_requests')
     .select(REQUEST_SELECT)
-    .gte('due_date', addDays(todayKey, -90))
-    .lte('due_date', addDays(todayKey, 180))
+    .lte('due_date', todayKey)
     .order('due_date', { ascending: true })
     .order('created_at', { ascending: true })
 
   if (error) throw error
-  return (data || []) as FixedChargeRequest[]
+  return normalizeRequests(data as FixedChargeRequestRow[] | null)
 }
 
 async function getExistingApprovalTransaction(requestId: string) {
@@ -176,7 +218,7 @@ export async function approveFixedChargeRequest(request: FixedChargeRequest, amo
     .single()
 
   if (error) throw error
-  return data as FixedChargeRequest
+  return normalizeRequest(data as FixedChargeRequestRow)
 }
 
 export async function skipFixedChargeRequest(request: FixedChargeRequest) {
@@ -193,7 +235,7 @@ export async function skipFixedChargeRequest(request: FixedChargeRequest) {
     .single()
 
   if (error) throw error
-  return data as FixedChargeRequest
+  return normalizeRequest(data as FixedChargeRequestRow)
 }
 
 export async function findPossibleExistingFixedChargeTransactions(

@@ -75,7 +75,6 @@ export default function FixedChargeRequestsPage() {
     return {
       overdue: pending.filter((request) => request.due_date < today),
       today: pending.filter((request) => request.due_date === today),
-      upcoming: pending.filter((request) => request.due_date > today),
       recent: sortRecentDecisions(decided).slice(0, 20),
     }
   }, [requests])
@@ -140,7 +139,7 @@ export default function FixedChargeRequestsPage() {
               Charges a valider
             </h1>
             <p className="mt-1 text-sm text-white/60">
-              Suivi des charges fixes generees automatiquement.
+              Seulement les charges dues ou en retard sont affichees.
             </p>
           </div>
           <Button type="button" variant="outline" disabled={loading} onClick={refresh}>
@@ -168,15 +167,6 @@ export default function FixedChargeRequestsPage() {
               title="Aujourd'hui"
               empty="Aucune charge due aujourd'hui."
               requests={sections.today}
-              duplicates={duplicates}
-              submittingId={submittingId}
-              onApprove={handleApprove}
-              onSkip={handleSkip}
-            />
-            <RequestSection
-              title="A venir"
-              empty="Aucune charge a venir."
-              requests={sections.upcoming}
               duplicates={duplicates}
               submittingId={submittingId}
               onApprove={handleApprove}
