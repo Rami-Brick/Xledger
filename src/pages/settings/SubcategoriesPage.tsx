@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Navigate } from 'react-router-dom'
 import { MoreHorizontal, Pencil, Plus, Power, Trash2 } from 'lucide-react'
 import {
@@ -34,6 +35,7 @@ type GroupKey = 'Transport' | 'Packaging'
 
 export default function SubcategoriesPage() {
   const { canManage, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -41,9 +43,11 @@ export default function SubcategoriesPage() {
   const [activeTab, setActiveTab] = useState<GroupKey>('Transport')
   const [deleteTarget, setDeleteTarget] = useState<Subcategory | null>(null)
 
-  const fetchSubcategories = async () => {
+  const branchId = activeBranch?.id ?? null
+
+  const fetchSubcategories = async (id: string) => {
     try {
-      const data = await getSubcategories()
+      const data = await getSubcategories(id)
       setSubcategories(data)
     } catch {
       toast.error('Erreur lors du chargement des sous-catégories')
@@ -53,8 +57,10 @@ export default function SubcategoriesPage() {
   }
 
   useEffect(() => {
-    fetchSubcategories()
-  }, [])
+    if (!branchId) return
+    setLoading(true)
+    fetchSubcategories(branchId)
+  }, [branchId])
 
   const currentItems = useMemo(
     () => subcategories.filter((s) => s.category === activeTab),
@@ -74,38 +80,40 @@ export default function SubcategoriesPage() {
     setDialogOpen(true)
   }
 
-  const handleSubmit = async (data: SubcategoryInsert) => {
+  const handleSubmit = async (data: Omit<SubcategoryInsert, 'branch_id'>) => {
+    if (!branchId) return
     try {
       if (editingSub) {
         await updateSubcategory(editingSub.id, data)
         toast.success('Sous-catégorie modifiée')
       } else {
-        await createSubcategory(data)
+        await createSubcategory({ ...data, branch_id: branchId })
         toast.success('Sous-catégorie ajoutée')
       }
-      await fetchSubcategories()
+      await fetchSubcategories(branchId)
     } catch {
       toast.error("Erreur lors de l'enregistrement")
     }
   }
 
   const handleToggleActive = async (sub: Subcategory) => {
+    if (!branchId) return
     try {
       await toggleSubcategoryActive(sub.id, !sub.is_active)
       toast.success(sub.is_active ? `${sub.name} désactivée` : `${sub.name} réactivée`)
-      await fetchSubcategories()
+      await fetchSubcategories(branchId)
     } catch {
       toast.error('Erreur lors de la mise à jour')
     }
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !branchId) return
     try {
       await deleteSubcategory(deleteTarget.id)
       toast.success(`${deleteTarget.name} supprimée`)
       setDeleteTarget(null)
-      await fetchSubcategories()
+      await fetchSubcategories(branchId)
     } catch {
       toast.error('Impossible de supprimer cette sous-catégorie.')
     }

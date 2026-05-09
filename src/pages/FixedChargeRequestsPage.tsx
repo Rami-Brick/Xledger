@@ -16,6 +16,7 @@ import {
   type PossibleFixedChargeTransaction,
 } from '@/features/fixed-charges/requests'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 
 type DuplicateMap = Record<string, PossibleFixedChargeTransaction[]>
 
@@ -42,6 +43,8 @@ function sortRecentDecisions(requests: FixedChargeRequest[]) {
 export default function FixedChargeRequestsPage() {
   const navigate = useNavigate()
   const { canEditTransactions, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
+  const branchId = activeBranch?.id ?? null
   const [loading, setLoading] = useState(true)
   const [requests, setRequests] = useState<FixedChargeRequest[]>([])
   const [duplicates, setDuplicates] = useState<DuplicateMap>({})
@@ -49,11 +52,12 @@ export default function FixedChargeRequestsPage() {
 
   const refresh = useCallback(async () => {
     if (!canEditTransactions) return
+    if (!branchId) return
 
     setLoading(true)
     try {
-      await ensureFixedChargeRequestsGenerated()
-      const nextRequests = await getUpcomingFixedChargeRequests()
+      await ensureFixedChargeRequestsGenerated(branchId)
+      const nextRequests = await getUpcomingFixedChargeRequests(branchId)
       setRequests(nextRequests)
       setDuplicates(await loadDuplicates(nextRequests))
     } catch {
@@ -61,7 +65,7 @@ export default function FixedChargeRequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [canEditTransactions])
+  }, [branchId, canEditTransactions])
 
   useEffect(() => {
     refresh()

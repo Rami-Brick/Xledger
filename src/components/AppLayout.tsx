@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
+  Bell,
   ChevronDown,
   LogOut,
   ScrollText,
@@ -19,7 +20,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AvatarCircle, PillButton } from '@/components/system-ui/primitives'
-import FixedChargeApprovalBell from '@/features/fixed-charges/FixedChargeApprovalBell'
+import FixedChargeApprovalSheet from '@/features/fixed-charges/FixedChargeApprovalSheet'
+import { useFixedChargeApprovals } from '@/features/fixed-charges/useFixedChargeApprovals'
+import BranchToggle from '@/features/branches/BranchToggle'
 import { cn } from '@/lib/utils'
 
 interface PrimaryTab {
@@ -68,6 +71,8 @@ export default function AppLayout() {
   const navigate = useNavigate()
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsExpanded, setSettingsExpanded] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const { canEditTransactions, dueCount } = useFixedChargeApprovals()
 
   // Pin the app to dark mode — the system-ui kit is dark-only.
   useEffect(() => {
@@ -114,8 +119,6 @@ export default function AppLayout() {
           </nav>
 
           {/* Profile dropdown — anchored to the right edge */}
-          <FixedChargeApprovalBell />
-
           <DropdownMenu open={profileOpen} onOpenChange={setProfileOpen}>
             <DropdownMenuTrigger asChild>
               <button
@@ -140,6 +143,28 @@ export default function AppLayout() {
                 <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-normal text-white/46">
                   {user.email}
                 </DropdownMenuLabel>
+              )}
+
+              {canEditTransactions && (
+                <>
+                  <DropdownMenuItem
+                    className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      setProfileOpen(false)
+                      setNotificationsOpen(true)
+                    }}
+                  >
+                    <Bell className="size-4" />
+                    <span className="flex-1">Notifications</span>
+                    {dueCount > 0 && (
+                      <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#FF4D6D] px-1.5 text-[10px] font-bold text-white">
+                        {dueCount}
+                      </span>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
+                </>
               )}
 
               <DropdownMenuItem
@@ -207,6 +232,16 @@ export default function AppLayout() {
                 </>
               )}
 
+              <div
+                className="px-1"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <BranchToggle />
+              </div>
+
+              <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
+
               <DropdownMenuItem
                 className="gap-2 rounded-lg px-2 py-2 text-sm text-white/90 focus:bg-white/[0.06] focus:text-white"
                 onSelect={(e) => {
@@ -236,6 +271,11 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      <FixedChargeApprovalSheet
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
+      />
     </div>
   )
 }

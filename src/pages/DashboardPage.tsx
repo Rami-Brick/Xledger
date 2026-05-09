@@ -10,7 +10,8 @@ import {
 } from '@/features/dashboard/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import type { Category } from '@/features/transactions/api'
-import { formatTND, formatDate } from '@/lib/format'
+import { formatDate } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 import {
   BarChart,
@@ -28,6 +29,7 @@ import {
 import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import {
   GlassPanel,
   PillStat,
@@ -105,20 +107,26 @@ function avatarColorForCategory(category: string): SegmentColor {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { canCreateTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthly, setMonthly] = useState<MonthlySummary[]>([])
   const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([])
   const [recent, setRecent] = useState<RecentTx[]>([])
   const [loading, setLoading] = useState(true)
 
+  const branchId = activeBranch?.id ?? null
+
   useEffect(() => {
+    if (!branchId) return
+    setLoading(true)
     const load = async () => {
       try {
         const [s, m, b, r] = await Promise.all([
-          getDashboardStats(),
-          getMonthlySummary(),
-          getCategoryBreakdown(),
-          getRecentTransactions(),
+          getDashboardStats(branchId),
+          getMonthlySummary(branchId),
+          getCategoryBreakdown(branchId),
+          getRecentTransactions(branchId),
         ])
         setStats(s)
         setMonthly(m)
@@ -131,7 +139,7 @@ export default function DashboardPage() {
       }
     }
     load()
-  }, [])
+  }, [branchId])
 
   if (loading) {
     return (
@@ -157,17 +165,17 @@ export default function DashboardPage() {
     {
       id: 'net',
       label: 'Net ce mois',
-      value: `${netPositive ? '+' : ''}${formatTND(stats.netThisMonth)}`,
+      value: `${netPositive ? '+' : ''}${formatAmount(stats.netThisMonth)}`,
     },
     {
       id: 'revenue',
       label: 'Recettes ce mois',
-      value: formatTND(stats.revenueThisMonth),
+      value: formatAmount(stats.revenueThisMonth),
     },
     {
       id: 'expenses',
       label: 'Dépenses ce mois',
-      value: formatTND(stats.expensesThisMonth),
+      value: formatAmount(stats.expensesThisMonth),
     },
   ]
 
@@ -185,7 +193,7 @@ export default function DashboardPage() {
             <PillStat
               variant="accent"
               label="Solde"
-              value={formatTND(stats.totalBalance)}
+              value={formatAmount(stats.totalBalance)}
               className="[&>span:first-child]:text-[13px] [&>span:last-child]:text-[16px] md:[&>span:last-child]:text-[18px]"
             />
           }
@@ -273,7 +281,7 @@ export default function DashboardPage() {
                         axisLine={false}
                       />
                       <Tooltip
-                        formatter={(value) => formatTND(Number(value))}
+                        formatter={(value) => formatAmount(Number(value))}
                         contentStyle={{
                           background: 'rgba(20,20,20,0.95)',
                           border: '1px solid rgba(255,255,255,0.08)',
@@ -356,7 +364,7 @@ export default function DashboardPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value) => formatTND(Number(value))}
+                        formatter={(value) => formatAmount(Number(value))}
                         contentStyle={{
                           background: 'rgba(20,20,20,0.95)',
                           border: '1px solid rgba(255,255,255,0.08)',
@@ -428,7 +436,7 @@ export default function DashboardPage() {
                         }`}
                       >
                         {positive ? '+' : ''}
-                        {formatTND(tx.amount)}
+                        {formatAmount(tx.amount)}
                       </span>
                     </li>
                   )

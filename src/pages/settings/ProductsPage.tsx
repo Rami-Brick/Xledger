@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Navigate } from 'react-router-dom'
 import {
   getProducts,
@@ -21,15 +22,18 @@ import { toast } from 'sonner'
 
 export default function ProductsPage() {
   const { canManage, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
-  const fetchProducts = async () => {
+  const branchId = activeBranch?.id ?? null
+
+  const fetchProducts = async (id: string) => {
     try {
-      const data = await getProducts()
+      const data = await getProducts(id)
       setProducts(data)
     } catch {
       toast.error('Erreur lors du chargement des produits')
@@ -39,8 +43,10 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    if (!branchId) return
+    setLoading(true)
+    fetchProducts(branchId)
+  }, [branchId])
 
   if (roleLoading) return null
   if (!canManage) return <Navigate to="/" replace />
@@ -55,38 +61,40 @@ export default function ProductsPage() {
     setDialogOpen(true)
   }
 
-  const handleSubmit = async (data: ProductInsert) => {
+  const handleSubmit = async (data: Omit<ProductInsert, 'branch_id'>) => {
+    if (!branchId) return
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, data)
         toast.success('Produit modifié avec succès')
       } else {
-        await createProduct(data)
+        await createProduct({ ...data, branch_id: branchId })
         toast.success('Produit ajouté avec succès')
       }
-      await fetchProducts()
+      await fetchProducts(branchId)
     } catch {
       toast.error("Erreur lors de l'enregistrement")
     }
   }
 
   const handleToggleActive = async (p: Product) => {
+    if (!branchId) return
     try {
       await toggleProductActive(p.id, !p.is_active)
       toast.success(p.is_active ? `${p.name} désactivé` : `${p.name} réactivé`)
-      await fetchProducts()
+      await fetchProducts(branchId)
     } catch {
       toast.error('Erreur lors de la mise à jour')
     }
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !branchId) return
     try {
       await deleteProduct(deleteTarget.id)
       toast.success(`${deleteTarget.name} supprimé`)
       setDeleteTarget(null)
-      await fetchProducts()
+      await fetchProducts(branchId)
     } catch {
       toast.error('Impossible de supprimer ce produit.')
     }

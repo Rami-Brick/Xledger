@@ -6,14 +6,23 @@ import { getLoanBalances, getLoanContacts } from '@/features/loan-contacts/api'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/features/loan-contacts/api')
+vi.mock('@/features/branches/BranchProvider', () => ({
+  useBranch: () => ({
+    activeBranch: { id: 'branch-test', slug: 'test', name: 'Test', country_code: 'TN', currency_code: 'TND', is_active: true },
+    branches: [],
+    setActiveBranchId: () => {},
+    loading: false,
+    error: null,
+  }),
+}))
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 const mockGetLoanContacts = vi.mocked(getLoanContacts)
 const mockGetLoanBalances = vi.mocked(getLoanBalances)
 
 const mockContacts = [
-  { id: 'lc1', name: 'Ali Ben Salah', description: 'Ami', is_active: true, created_at: '' },
-  { id: 'lc2', name: 'Inactive Contact', description: '', is_active: false, created_at: '' },
+  { id: 'lc1', branch_id: 'branch-test', name: 'Ali Ben Salah', description: 'Ami', is_active: true, created_at: '' },
+  { id: 'lc2', branch_id: 'branch-test', name: 'Inactive Contact', description: '', is_active: false, created_at: '' },
 ]
 
 const mockBalances = [

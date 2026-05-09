@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getSubcategories, type Subcategory } from '@/features/subcategories/api'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,6 +37,9 @@ export default function SubcategoryForm({
   initialData,
   onSubmit,
 }: SubcategoryFormProps) {
+  const { activeBranch } = useBranch()
+  const { currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.subcategory_id ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
@@ -44,9 +49,10 @@ export default function SubcategoryForm({
   const isEditing = !!initialData
 
   useEffect(() => {
+    if (!branchId) return
     const load = async () => {
       try {
-        const data = await getSubcategories()
+        const data = await getSubcategories(branchId)
         setSubcategories(
           data.filter(
             (subcategory) => subcategory.category === parentCategory && subcategory.is_active
@@ -58,7 +64,7 @@ export default function SubcategoryForm({
     }
 
     load()
-  }, [parentCategory])
+  }, [branchId, parentCategory])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -114,7 +120,7 @@ export default function SubcategoryForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

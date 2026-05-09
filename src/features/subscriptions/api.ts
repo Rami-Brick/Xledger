@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface Subscription {
   id: string
   created_at: string
+  branch_id: string
   name: string
   default_amount: number
   is_active: boolean
@@ -10,8 +11,12 @@ export interface Subscription {
 
 export type SubscriptionInsert = Omit<Subscription, 'id' | 'created_at'>
 
-export async function getSubscriptions() {
-  const { data, error } = await supabase.from('subscriptions').select('*').order('name')
+export async function getSubscriptions(branchId: string) {
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('branch_id', branchId)
+    .order('name')
   if (error) throw error
   return data as Subscription[]
 }

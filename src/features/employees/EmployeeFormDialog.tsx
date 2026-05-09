@@ -17,12 +17,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Employee, EmployeeInsert } from './api'
+import { useCurrency } from '@/features/branches/useCurrency'
 
 interface EmployeeFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   employee?: Employee | null
-  onSubmit: (data: EmployeeInsert) => Promise<void>
+  onSubmit: (data: Omit<EmployeeInsert, 'branch_id'>) => Promise<void>
 }
 
 interface EmployeeFormState {
@@ -47,6 +48,7 @@ export default function EmployeeFormDialog({
   employee,
   onSubmit,
 }: EmployeeFormDialogProps) {
+  const { currencyCode } = useCurrency()
   const [form, setForm] = useState<EmployeeFormState>(emptyForm)
   const [loading, setLoading] = useState(false)
 
@@ -137,7 +139,7 @@ export default function EmployeeFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="base_salary">Salaire de base (TND)</Label>
+              <Label htmlFor="base_salary">Salaire de base ({currencyCode})</Label>
               <Input
               id="base_salary"
               type="number"

@@ -6,6 +6,7 @@ import EmployeeFormDialog from '@/features/employees/EmployeeFormDialog'
 const mockEmployee = {
   id: 'emp-1',
   created_at: '2024-01-01',
+  branch_id: 'branch-test',
   name: 'Jean Dupont',
   role: 'Marketing',
   base_salary: 1500,

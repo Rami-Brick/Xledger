@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider'
+import { BranchProvider } from '@/features/branches/BranchProvider'
 import { RoleProvider, useRole  } from '@/lib/RoleProvider'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -55,6 +56,7 @@ function App() {
     <ErrorBoundary>
     <BrowserRouter>
       <AuthProvider>
+        <BranchProvider>
         <RoleProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
@@ -85,6 +87,7 @@ function App() {
           </Routes>
           <Toaster position="top-right" />
         </RoleProvider>
+        </BranchProvider>
       </AuthProvider>
     </BrowserRouter>
     </ErrorBoundary>

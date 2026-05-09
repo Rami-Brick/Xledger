@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface Product {
   id: string
   created_at: string
+  branch_id: string
   name: string
   description: string | null
   is_active: boolean
@@ -10,10 +11,11 @@ export interface Product {
 
 export type ProductInsert = Omit<Product, 'id' | 'created_at'>
 
-export async function getProducts() {
+export async function getProducts(branchId: string) {
   const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('branch_id', branchId)
     .order('name')
 
   if (error) throw error

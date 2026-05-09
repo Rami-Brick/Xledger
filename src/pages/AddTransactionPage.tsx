@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { createTransaction, CATEGORIES, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import ChargesFixesForm from '@/features/transactions/forms/ChargesFixesForm'
@@ -13,7 +14,7 @@ import SimpleForm from '@/features/transactions/forms/SimpleForm'
 import SubcategoryForm from '@/features/transactions/forms/SubcategoryForm'
 import SubscriptionsForm from '@/features/transactions/forms/SubscriptionsForm'
 import { CircularIconButton } from '@/components/system-ui/primitives'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { cn } from '@/lib/utils'
 
 function getTodayDate() {
@@ -43,6 +44,9 @@ export default function AddTransactionPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { canCreateTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
+  const branchId = activeBranch?.id ?? null
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(() => {
     const category = searchParams.get('category')
@@ -90,8 +94,14 @@ export default function AddTransactionPage() {
       amount = config.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
     }
 
+    if (!branchId) {
+      toast.error("Aucune branche active selectionnee")
+      throw new Error('Branch is required to create a transaction')
+    }
+
     try {
       await createTransaction({
+        branch_id: branchId,
         date,
         category,
         amount,
@@ -107,7 +117,7 @@ export default function AddTransactionPage() {
       })
 
       toast.success('Transaction enregistree', {
-        description: `${category} - ${formatTND(Math.abs(data.amount))}`,
+        description: `${category} - ${formatAmount(Math.abs(data.amount))}`,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue'

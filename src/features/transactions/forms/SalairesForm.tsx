@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getEmployees, type Employee } from '@/features/employees/api'
 import { MAIN_VIEW_TRANSACTIONS_FILTER } from '@/features/transactions/api'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import InternalEntryField from './InternalEntryField'
@@ -56,6 +57,9 @@ interface SalaryTransactionRow {
 }
 
 export default function SalairesForm({ date, initialData, onSubmit }: SalairesFormProps) {
+  const { activeBranch } = useBranch()
+  const { format: formatAmount, currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [employees, setEmployees] = useState<Employee[]>([])
   const [salaryStatus, setSalaryStatus] = useState<SalaryStatus[]>([])
   const [salaryTransactions, setSalaryTransactions] = useState<SalaryTransactionRow[]>([])
@@ -97,13 +101,15 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
   }
 
   useEffect(() => {
+    if (!branchId) return
     const load = async () => {
       try {
         const [employeesData, transactionsResult] = await Promise.all([
-          getEmployees(),
+          getEmployees(branchId),
           supabase
             .from('transactions')
             .select('employee_id, amount, date, salary_month')
+            .eq('branch_id', branchId)
             .eq('category', 'Salaires')
             .or(MAIN_VIEW_TRANSACTIONS_FILTER)
         ])
@@ -122,7 +128,8 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
     }
 
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId])
 
   useEffect(() => {
     if (isEditing || salaryMonthTouched) return
@@ -175,17 +182,20 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
         setIsInternal(false)
       }
 
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('employee_id, amount, date, salary_month')
-        .eq('category', 'Salaires')
-        .or(MAIN_VIEW_TRANSACTIONS_FILTER)
+      if (branchId) {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('employee_id, amount, date, salary_month')
+          .eq('branch_id', branchId)
+          .eq('category', 'Salaires')
+          .or(MAIN_VIEW_TRANSACTIONS_FILTER)
 
-      if (error) throw error
+        if (error) throw error
 
-      const transactions = (data || []) as SalaryTransactionRow[]
-      setSalaryTransactions(transactions)
-      setSalaryStatus(buildSalaryStatus(employees, transactions, salaryMonth))
+        const transactions = (data || []) as SalaryTransactionRow[]
+        setSalaryTransactions(transactions)
+        setSalaryStatus(buildSalaryStatus(employees, transactions, salaryMonth))
+      }
     } finally {
       setLoading(false)
     }
@@ -244,11 +254,11 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
           </p>
           <div className="flex justify-between text-white/80">
             <span className="text-white/60">Salaire de base</span>
-            <span className="font-medium tabular-nums text-white">{formatTND(selectedStatus.base_salary)}</span>
+            <span className="font-medium tabular-nums text-white">{formatAmount(selectedStatus.base_salary)}</span>
           </div>
           <div className="flex justify-between text-white/80">
             <span className="text-white/60">Payé ce mois</span>
-            <span className="font-medium tabular-nums text-white">{formatTND(selectedStatus.paid_this_month)}</span>
+            <span className="font-medium tabular-nums text-white">{formatAmount(selectedStatus.paid_this_month)}</span>
           </div>
           <div className="flex justify-between border-t border-white/[0.06] pt-2">
             <span className="font-medium text-white">Restant</span>
@@ -257,14 +267,14 @@ export default function SalairesForm({ date, initialData, onSubmit }: SalairesFo
                 selectedStatus.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
               }`}
             >
-              {formatTND(selectedStatus.remaining)}
+              {formatAmount(selectedStatus.remaining)}
             </span>
           </div>
         </div>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

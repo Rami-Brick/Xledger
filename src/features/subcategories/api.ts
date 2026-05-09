@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface Subcategory {
   id: string
   created_at: string
+  branch_id: string
   category: 'Transport' | 'Packaging'
   name: string
   is_active: boolean
@@ -10,10 +11,11 @@ export interface Subcategory {
 
 export type SubcategoryInsert = Omit<Subcategory, 'id' | 'created_at'>
 
-export async function getSubcategories() {
+export async function getSubcategories(branchId: string) {
   const { data, error } = await supabase
     .from('subcategories')
     .select('*')
+    .eq('branch_id', branchId)
     .order('category')
     .order('name')
 

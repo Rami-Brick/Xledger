@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getSubscriptions, type Subscription } from '@/features/subscriptions/api'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +32,9 @@ interface Props {
 }
 
 export default function SubscriptionsForm({ initialData, onSubmit }: Props) {
+  const { activeBranch } = useBranch()
+  const { currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.subscription_id ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
@@ -38,10 +43,11 @@ export default function SubscriptionsForm({ initialData, onSubmit }: Props) {
   const isEditing = !!initialData
 
   useEffect(() => {
-    getSubscriptions()
+    if (!branchId) return
+    getSubscriptions(branchId)
       .then((data) => setSubscriptions(data.filter((subscription) => subscription.is_active)))
       .catch(() => toast.error('Erreur chargement abonnements'))
-  }, [])
+  }, [branchId])
 
   const selectedSubscription = subscriptions.find((subscription) => subscription.id === selectedId)
 
@@ -92,7 +98,7 @@ export default function SubscriptionsForm({ initialData, onSubmit }: Props) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

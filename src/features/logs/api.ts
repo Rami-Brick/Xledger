@@ -5,6 +5,7 @@ export type LogAction = 'INSERT' | 'UPDATE' | 'DELETE'
 export interface AuditLog {
   id: string
   created_at: string
+  branch_id: string | null
   user_id: string | null
   action: LogAction
   table_name: string
@@ -31,6 +32,7 @@ export interface LogReferenceData {
 }
 
 export interface FetchLogsFilters {
+  branchId: string
   user_id?: string
   table_name?: string
   action?: LogAction
@@ -40,13 +42,16 @@ export interface FetchLogsFilters {
   limit?: number
 }
 
-export async function fetchLogs(filters: FetchLogsFilters = {}) {
+export async function fetchLogs(filters: FetchLogsFilters) {
   const offset = filters.offset ?? 0
   const limit = filters.limit ?? 50
 
+  // Logs from branch-scoped tables filter by branch_id; profile changes have
+  // branch_id NULL and are shown to all branches.
   let query = supabase
     .from('logs')
     .select('*')
+    .or(`branch_id.eq.${filters.branchId},branch_id.is.null`)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -73,7 +78,7 @@ export async function fetchLogUsers() {
   }, {})
 }
 
-export async function fetchLogReferenceData(): Promise<LogReferenceData> {
+export async function fetchLogReferenceData(branchId: string): Promise<LogReferenceData> {
   const [
     users,
     employeesResult,
@@ -84,12 +89,12 @@ export async function fetchLogReferenceData(): Promise<LogReferenceData> {
     loanContactsResult,
   ] = await Promise.all([
     fetchLogUsers(),
-    supabase.from('employees').select('id, name'),
-    supabase.from('fixed_charges').select('id, name'),
-    supabase.from('products').select('id, name'),
-    supabase.from('subcategories').select('id, name'),
-    supabase.from('subscriptions').select('id, name'),
-    supabase.from('loan_contacts').select('id, name'),
+    supabase.from('employees').select('id, name').eq('branch_id', branchId),
+    supabase.from('fixed_charges').select('id, name').eq('branch_id', branchId),
+    supabase.from('products').select('id, name').eq('branch_id', branchId),
+    supabase.from('subcategories').select('id, name').eq('branch_id', branchId),
+    supabase.from('subscriptions').select('id, name').eq('branch_id', branchId),
+    supabase.from('loan_contacts').select('id, name').eq('branch_id', branchId),
   ])
 
   const results = [

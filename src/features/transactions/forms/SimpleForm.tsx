@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import InternalEntryField from './InternalEntryField'
+import { useCurrency } from '@/features/branches/useCurrency'
 
 interface SimpleFormProps {
   date: string
@@ -30,6 +31,7 @@ export default function SimpleForm({
   initialData,
   onSubmit,
 }: SimpleFormProps) {
+  const { currencyCode } = useCurrency()
   const [description, setDescription] = useState(initialData?.description ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
   const [isInternal, setIsInternal] = useState(initialData?.is_internal ?? false)
@@ -69,7 +71,7 @@ export default function SimpleForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import {
   CATEGORIES,
   deleteTransaction,
@@ -39,7 +40,8 @@ import {
   PillButton,
   type SegmentColor,
 } from '@/components/system-ui/primitives'
-import { formatDate, formatTND } from '@/lib/format'
+import { formatDate } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
@@ -134,11 +136,16 @@ export default function HistoryPage() {
     getIncludeInternalFromSearchParams(searchParams)
   )
   const { canEditTransactions, canDeleteTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
+  const branchId = activeBranch?.id ?? null
 
   const fetchTransactions = useCallback(async () => {
+    if (!branchId) return
     setLoading(true)
     try {
       const data = await getTransactions({
+        branchId,
         category: categoryFilter !== 'all' ? (categoryFilter as Category) : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -151,7 +158,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false)
     }
-  }, [categoryFilter, endDate, showInternalEntries, startDate])
+  }, [branchId, categoryFilter, endDate, showInternalEntries, startDate])
 
   const transactions = useMemo(() => {
     let filtered = allTransactions
@@ -295,7 +302,7 @@ export default function HistoryPage() {
             )}
           >
             {totalAmount >= 0 ? '+' : ''}
-            {formatTND(totalAmount)}
+            {formatAmount(totalAmount)}
           </span>
         )}
         <span className="ml-auto text-[11px] text-white/46">
@@ -564,7 +571,7 @@ export default function HistoryPage() {
                       )}
                     >
                       {positive ? '+' : ''}
-                      {formatTND(transaction.amount)}
+                      {formatAmount(transaction.amount)}
                     </span>
 
                     {showRowActions && (
@@ -637,7 +644,7 @@ export default function HistoryPage() {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cette transaction ?"
         description={`Etes-vous sur de vouloir supprimer cette transaction de ${
-          deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
+          deleteTarget ? formatAmount(Math.abs(deleteTarget.amount)) : ''
         } ? Cette action est irreversible.${
           deleteTarget?.fixed_charge_request_id
             ? ' La charge fixe liee repassera en attente de validation.'

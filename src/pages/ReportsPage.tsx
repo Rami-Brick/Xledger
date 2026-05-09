@@ -5,6 +5,7 @@ import {
   type Category,
 } from '@/features/transactions/api'
 import { getLoanBalances } from '@/features/loan-contacts/api'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -18,7 +19,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { formatTND, formatWholeDinars } from '@/lib/format'
+import { formatWholeDinars } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronRight, Download } from 'lucide-react'
 import {
@@ -179,8 +181,8 @@ function getMonthRange(monthValue: string) {
   }
 }
 
-function downloadCSV(data: ExportTransaction[], filename: string) {
-  const headers = ['Date', 'Categorie', 'Detail', 'Description', 'Montant (TND)']
+function downloadCSV(data: ExportTransaction[], filename: string, currencyCode: string) {
+  const headers = ['Date', 'Categorie', 'Detail', 'Description', `Montant (${currencyCode})`]
   const rows = data.map((t) => [
     t.date,
     t.category,
@@ -236,6 +238,9 @@ function CategoryChip({ category }: { category: string }) {
 }
 
 export default function ReportsPage() {
+  const { activeBranch } = useBranch()
+  const { format: formatAmount, currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const defaults = getDefaultDateRange()
   const [startDate, setStartDate] = useState(defaults.start)
   const [endDate, setEndDate] = useState(defaults.end)
@@ -268,11 +273,13 @@ export default function ReportsPage() {
     .sort((a, b) => b.localeCompare(a))
 
   const fetchReports = useCallback(async () => {
+    if (!branchId) return
     setLoading(true)
     try {
       const { data: monthlyData, error: monthlyError } = await supabase
         .from('transactions')
         .select('date, amount')
+        .eq('branch_id', branchId)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
         .order('date', { ascending: true })
 
@@ -306,6 +313,7 @@ export default function ReportsPage() {
       const { data: categoryData, error: categoryError } = await supabase
         .from('transactions')
         .select('category, amount')
+        .eq('branch_id', branchId)
         .gte('date', startDate)
         .lte('date', endDate)
         .lt('amount', 0)
@@ -331,6 +339,7 @@ export default function ReportsPage() {
       const { data: salaryData, error: salaryError } = await supabase
         .from('transactions')
         .select('amount, employees(name)')
+        .eq('branch_id', branchId)
         .eq('category', 'Salaires')
         .gte('date', startDate)
         .lte('date', endDate)
@@ -357,6 +366,7 @@ export default function ReportsPage() {
       const { data: productData, error: productError } = await supabase
         .from('transactions')
         .select('amount, products(name)')
+        .eq('branch_id', branchId)
         .eq('category', 'Fournisseurs')
         .gte('date', startDate)
         .lte('date', endDate)
@@ -384,6 +394,7 @@ export default function ReportsPage() {
         const { data: dailyData, error: dailyError } = await supabase
           .from('transactions')
           .select('date, amount')
+          .eq('branch_id', branchId)
           .gt('amount', 0)
           .neq('category', 'Prêts')
           .gte('date', startDate)
@@ -412,6 +423,7 @@ export default function ReportsPage() {
       const { data: subcategoryData, error: subcategoryError } = await supabase
         .from('transactions')
         .select('category, amount, subcategories(name)')
+        .eq('branch_id', branchId)
         .in('category', Array.from(SUBCATEGORY_CATEGORIES))
         .not('subcategory_id', 'is', null)
         .gte('date', startDate)
@@ -462,9 +474,10 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [endDate, showDailyChart, startDate])
+  }, [branchId, endDate, showDailyChart, startDate])
 
   const fetchPieBreakdown = useCallback(async () => {
+    if (!branchId) return
     if (!selectedPieMonth) {
       setPieBreakdown([])
       return
@@ -476,6 +489,7 @@ export default function ReportsPage() {
       const { data, error } = await supabase
         .from('transactions')
         .select('category, amount')
+        .eq('branch_id', branchId)
         .gte('date', start)
         .lte('date', end)
         .lt('amount', 0)
@@ -502,16 +516,17 @@ export default function ReportsPage() {
     } finally {
       setPieLoading(false)
     }
-  }, [selectedPieMonth])
+  }, [branchId, selectedPieMonth])
 
   const fetchLoanSummary = useCallback(async () => {
+    if (!branchId) return
     try {
-      const balances = await getLoanBalances()
+      const balances = await getLoanBalances(branchId)
       setLoanSummary(balances.sort((a, b) => Math.abs(b.remaining) - Math.abs(a.remaining)))
     } catch {
       toast.error('Erreur lors du chargement des soldes de prets')
     }
-  }, [])
+  }, [branchId])
 
   useEffect(() => {
     fetchReports()
@@ -544,6 +559,7 @@ export default function ReportsPage() {
   }
 
   const handleExportCSV = async () => {
+    if (!branchId) return
     setExporting(true)
     try {
       const { data, error } = await supabase
@@ -553,6 +569,7 @@ export default function ReportsPage() {
           employees(name), fixed_charges(name), products(name),
           subcategories(name), subscriptions(name), loan_contacts(name)
         `)
+        .eq('branch_id', branchId)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
         .gte('date', startDate)
         .lte('date', endDate)
@@ -575,7 +592,7 @@ export default function ReportsPage() {
           '',
       }))
 
-      downloadCSV(exportData, `transactions_${startDate}_${endDate}.csv`)
+      downloadCSV(exportData, `transactions_${startDate}_${endDate}.csv`, currencyCode)
       toast.success(`${exportData.length} transactions exportees`)
     } catch {
       toast.error("Erreur lors de l'export")
@@ -749,7 +766,7 @@ export default function ReportsPage() {
                               width={44}
                             />
                             <Tooltip
-                              formatter={(value) => formatTND(Number(value))}
+                              formatter={(value) => formatAmount(Number(value))}
                               contentStyle={TOOLTIP_STYLE}
                               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                             />
@@ -812,7 +829,7 @@ export default function ReportsPage() {
                                 width={44}
                               />
                               <Tooltip
-                                formatter={(value) => formatTND(Number(value))}
+                                formatter={(value) => formatAmount(Number(value))}
                                 contentStyle={TOOLTIP_STYLE}
                               />
                               <Line
@@ -847,17 +864,17 @@ export default function ReportsPage() {
                       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
                         <MetricRow
                           label="Recettes"
-                          value={formatTND(row.total_revenue)}
+                          value={formatAmount(row.total_revenue)}
                           valueClass="text-[#B8EB3C]"
                         />
                         <MetricRow
                           label="Dépenses"
-                          value={formatTND(row.total_expenses)}
+                          value={formatAmount(row.total_expenses)}
                           valueClass="text-[#FF9A18]"
                         />
                         <MetricRow
                           label="Net"
-                          value={`${row.net >= 0 ? '+' : ''}${formatTND(row.net)}`}
+                          value={`${row.net >= 0 ? '+' : ''}${formatAmount(row.net)}`}
                           valueClass={row.net >= 0 ? 'text-[#B8EB3C]' : 'text-[#FF9A18]'}
                           topBorderOnMobile
                         />
@@ -923,7 +940,7 @@ export default function ReportsPage() {
                             ))}
                           </Pie>
                           <Tooltip
-                            formatter={(value) => formatTND(Number(value))}
+                            formatter={(value) => formatAmount(Number(value))}
                             contentStyle={TOOLTIP_STYLE}
                           />
                         </PieChart>
@@ -945,7 +962,7 @@ export default function ReportsPage() {
                               </span>
                             </div>
                             <span className="shrink-0 text-xs font-semibold tabular-nums text-white sm:text-sm">
-                              {formatTND(row.total)}
+                              {formatAmount(row.total)}
                             </span>
                           </div>
                         ))}
@@ -989,7 +1006,7 @@ export default function ReportsPage() {
                               width={80}
                             />
                             <Tooltip
-                              formatter={(value) => formatTND(Number(value))}
+                              formatter={(value) => formatAmount(Number(value))}
                               contentStyle={TOOLTIP_STYLE}
                               cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                             />
@@ -1050,7 +1067,7 @@ export default function ReportsPage() {
                                 )}
                               </div>
                               <span className="shrink-0 text-xs font-semibold tabular-nums text-[#FF9A18] sm:text-sm">
-                                {formatTND(row.total)}
+                                {formatAmount(row.total)}
                               </span>
                             </div>
 
@@ -1071,7 +1088,7 @@ export default function ReportsPage() {
                                         </p>
                                       </div>
                                       <span className="shrink-0 text-xs font-medium tabular-nums text-[#FF9A18] sm:text-sm">
-                                        {formatTND(subcategory.total)}
+                                        {formatAmount(subcategory.total)}
                                       </span>
                                     </div>
                                   ))}
@@ -1090,7 +1107,7 @@ export default function ReportsPage() {
                         Total ({categoryTotals.reduce((sum, row) => sum + row.count, 0)} tx)
                       </span>
                       <span className="tabular-nums text-[#FF9A18]">
-                        {formatTND(categoryTotals.reduce((sum, row) => sum + row.total, 0))}
+                        {formatAmount(categoryTotals.reduce((sum, row) => sum + row.total, 0))}
                       </span>
                     </div>
                   </GlassPanel>
@@ -1117,7 +1134,7 @@ export default function ReportsPage() {
                           </p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold tabular-nums text-white sm:text-sm">
-                          {formatTND(row.total_paid)}
+                          {formatAmount(row.total_paid)}
                         </span>
                       </div>
                     </GlassPanel>
@@ -1128,7 +1145,7 @@ export default function ReportsPage() {
                         Total ({employeeTotals.reduce((sum, row) => sum + row.count, 0)})
                       </span>
                       <span className="tabular-nums text-white">
-                        {formatTND(employeeTotals.reduce((sum, row) => sum + row.total_paid, 0))}
+                        {formatAmount(employeeTotals.reduce((sum, row) => sum + row.total_paid, 0))}
                       </span>
                     </div>
                   </GlassPanel>
@@ -1155,7 +1172,7 @@ export default function ReportsPage() {
                           </p>
                         </div>
                         <span className="shrink-0 text-xs font-semibold tabular-nums text-[#FF9A18] sm:text-sm">
-                          {formatTND(row.total)}
+                          {formatAmount(row.total)}
                         </span>
                       </div>
                     </GlassPanel>
@@ -1166,7 +1183,7 @@ export default function ReportsPage() {
                         Total ({productTotals.reduce((sum, row) => sum + row.count, 0)} tx)
                       </span>
                       <span className="tabular-nums text-[#FF9A18]">
-                        {formatTND(productTotals.reduce((sum, row) => sum + row.total, 0))}
+                        {formatAmount(productTotals.reduce((sum, row) => sum + row.total, 0))}
                       </span>
                     </div>
                   </GlassPanel>
@@ -1187,17 +1204,17 @@ export default function ReportsPage() {
                       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
                         <MetricRow
                           label="Reçu"
-                          value={formatTND(row.total_lent)}
+                          value={formatAmount(row.total_lent)}
                           valueClass="text-[#B8EB3C]"
                         />
                         <MetricRow
                           label="Rendu"
-                          value={formatTND(row.total_repaid)}
+                          value={formatAmount(row.total_repaid)}
                           valueClass="text-[#FF9A18]"
                         />
                         <MetricRow
                           label="Solde"
-                          value={formatTND(row.remaining)}
+                          value={formatAmount(row.remaining)}
                           valueClass={cn(
                             row.remaining > 0
                               ? 'text-[#FF9A18]'
@@ -1215,17 +1232,17 @@ export default function ReportsPage() {
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-2">
                       <MetricRow
                         label="Total reçu"
-                        value={formatTND(loanTotals.totalLent)}
+                        value={formatAmount(loanTotals.totalLent)}
                         valueClass="text-[#B8EB3C]"
                       />
                       <MetricRow
                         label="Total rendu"
-                        value={formatTND(loanTotals.totalRepaid)}
+                        value={formatAmount(loanTotals.totalRepaid)}
                         valueClass="text-[#FF9A18]"
                       />
                       <MetricRow
                         label="Solde total"
-                        value={formatTND(loanTotals.remaining)}
+                        value={formatAmount(loanTotals.remaining)}
                         valueClass={cn(
                           loanTotals.remaining > 0
                             ? 'text-[#FF9A18]'

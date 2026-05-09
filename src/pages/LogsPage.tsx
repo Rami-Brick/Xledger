@@ -16,6 +16,8 @@ import {
   getLogActorLabel,
 } from '@/features/logs/format'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -81,6 +83,9 @@ function FilterField({ label, children }: { label: string; children: ReactNode }
 
 export default function LogsPage() {
   const { canManage } = useRole()
+  const { activeBranch } = useBranch()
+  const { currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [referenceData, setReferenceData] = useState<LogReferenceData>(EMPTY_REFERENCES)
   const [loading, setLoading] = useState(true)
@@ -101,7 +106,9 @@ export default function LogsPage() {
 
   const loadLogs = useCallback(
     async (offset: number, append: boolean) => {
+      if (!branchId) return
       const data = await fetchLogs({
+        branchId,
         user_id: userFilter !== 'all' ? userFilter : undefined,
         table_name: tableFilter !== 'all' ? tableFilter : undefined,
         action: actionFilter !== 'all' ? actionFilter : undefined,
@@ -114,17 +121,18 @@ export default function LogsPage() {
       setHasMore(data.length === PAGE_SIZE)
       setLogs((current) => (append ? [...current, ...data] : data))
     },
-    [actionFilter, endDate, startDate, tableFilter, userFilter],
+    [branchId, actionFilter, endDate, startDate, tableFilter, userFilter],
   )
 
   const loadReferenceData = useCallback(async () => {
+    if (!branchId) return
     try {
-      const references = await fetchLogReferenceData()
+      const references = await fetchLogReferenceData(branchId)
       setReferenceData(references)
     } catch {
       setReferenceData(EMPTY_REFERENCES)
     }
-  }, [])
+  }, [branchId])
 
   useEffect(() => {
     loadReferenceData()
@@ -374,7 +382,7 @@ export default function LogsPage() {
                         </span>
                       </div>
                       <p className="text-[13px] leading-snug text-white/90">
-                        {formatLogDescription(log, referenceData)}
+                        {formatLogDescription(log, referenceData, currencyCode)}
                       </p>
                     </div>
                   )
