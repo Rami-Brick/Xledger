@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Navigate } from 'react-router-dom'
 import {
   getFixedCharges,
@@ -32,15 +33,18 @@ function getScheduleLabel(charge: FixedCharge) {
 
 export default function FixedChargesPage() {
   const { canManage, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
   const [charges, setCharges] = useState<FixedCharge[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingCharge, setEditingCharge] = useState<FixedCharge | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FixedCharge | null>(null)
 
-  const fetchCharges = async () => {
+  const branchId = activeBranch?.id ?? null
+
+  const fetchCharges = async (id: string) => {
     try {
-      const data = await getFixedCharges()
+      const data = await getFixedCharges(id)
       setCharges(data)
     } catch {
       toast.error('Erreur lors du chargement des charges fixes')
@@ -50,8 +54,10 @@ export default function FixedChargesPage() {
   }
 
   useEffect(() => {
-    fetchCharges()
-  }, [])
+    if (!branchId) return
+    setLoading(true)
+    fetchCharges(branchId)
+  }, [branchId])
 
   if (roleLoading) return null
   if (!canManage) return <Navigate to="/" replace />
@@ -66,40 +72,42 @@ export default function FixedChargesPage() {
     setDialogOpen(true)
   }
 
-  const handleSubmit = async (data: FixedChargeInsert) => {
+  const handleSubmit = async (data: Omit<FixedChargeInsert, 'branch_id'>) => {
+    if (!branchId) return
     try {
       if (editingCharge) {
         await updateFixedCharge(editingCharge.id, data)
         toast.success('Charge modifiée avec succès')
       } else {
-        await createFixedCharge(data)
+        await createFixedCharge({ ...data, branch_id: branchId })
         toast.success('Charge ajoutée avec succès')
       }
-      await fetchCharges()
+      await fetchCharges(branchId)
     } catch {
       toast.error("Erreur lors de l'enregistrement")
     }
   }
 
   const handleToggleActive = async (charge: FixedCharge) => {
+    if (!branchId) return
     try {
       await toggleFixedChargeActive(charge.id, !charge.is_active)
       toast.success(
         charge.is_active ? `${charge.name} désactivée` : `${charge.name} réactivée`,
       )
-      await fetchCharges()
+      await fetchCharges(branchId)
     } catch {
       toast.error('Erreur lors de la mise à jour')
     }
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !branchId) return
     try {
       await deleteFixedCharge(deleteTarget.id)
       toast.success(`${deleteTarget.name} supprimée`)
       setDeleteTarget(null)
-      await fetchCharges()
+      await fetchCharges(branchId)
     } catch {
       toast.error('Impossible de supprimer cette charge.')
     }

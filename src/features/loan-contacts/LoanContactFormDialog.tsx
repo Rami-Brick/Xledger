@@ -5,17 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { LoanContact, LoanContactInsert } from './api'
 
+type LoanContactFormData = Omit<LoanContactInsert, 'branch_id'>
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   contact?: LoanContact | null
-  onSubmit: (data: LoanContactInsert) => Promise<void>
+  onSubmit: (data: LoanContactFormData) => Promise<void>
 }
 
-const emptyForm: LoanContactInsert = { name: '', description: '', is_active: true }
+const emptyForm: LoanContactFormData = { name: '', description: '', is_active: true }
 
 export default function LoanContactFormDialog({ open, onOpenChange, contact, onSubmit }: Props) {
-  const [form, setForm] = useState<LoanContactInsert>(emptyForm)
+  const [form, setForm] = useState<LoanContactFormData>(emptyForm)
   const [loading, setLoading] = useState(false)
   const isEditing = !!contact
 

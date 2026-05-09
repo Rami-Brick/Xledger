@@ -11,14 +11,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Product, ProductInsert } from './api'
 
+type ProductFormData = Omit<ProductInsert, 'branch_id'>
+
 interface ProductFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   product?: Product | null
-  onSubmit: (data: ProductInsert) => Promise<void>
+  onSubmit: (data: ProductFormData) => Promise<void>
 }
 
-const emptyForm: ProductInsert = {
+const emptyForm: ProductFormData = {
   name: '',
   description: '',
   is_active: true,
@@ -30,7 +32,7 @@ export default function ProductFormDialog({
   product,
   onSubmit,
 }: ProductFormDialogProps) {
-  const [form, setForm] = useState<ProductInsert>(emptyForm)
+  const [form, setForm] = useState<ProductFormData>(emptyForm)
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!product

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface FixedCharge {
   id: string
   created_at: string
+  branch_id: string
   name: string
   default_amount: number
   is_active: boolean
@@ -21,10 +22,11 @@ export type RecurrenceFrequency = 'weekly' | 'monthly' | 'yearly'
 export type DueDayMode = 'day_of_month' | 'last_day_of_month'
 export type FixedChargeInsert = Omit<FixedCharge, 'id' | 'created_at'>
 
-export async function getFixedCharges() {
+export async function getFixedCharges(branchId: string) {
   const { data, error } = await supabase
     .from('fixed_charges')
     .select('*')
+    .eq('branch_id', branchId)
     .order('name')
 
   if (error) throw error

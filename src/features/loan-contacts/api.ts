@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface LoanContact {
   id: string
   created_at: string
+  branch_id: string
   name: string
   description: string | null
   is_active: boolean
@@ -10,8 +11,12 @@ export interface LoanContact {
 
 export type LoanContactInsert = Omit<LoanContact, 'id' | 'created_at'>
 
-export async function getLoanContacts() {
-  const { data, error } = await supabase.from('loan_contacts').select('*').order('name')
+export async function getLoanContacts(branchId: string) {
+  const { data, error } = await supabase
+    .from('loan_contacts')
+    .select('*')
+    .eq('branch_id', branchId)
+    .order('name')
   if (error) throw error
   return data as LoanContact[]
 }
@@ -37,11 +42,12 @@ export async function deleteLoanContact(id: string) {
   if (error) throw error
 }
 
-// Get loan balance per contact (total lent - total repaid)
-export async function getLoanBalances() {
+// Get loan balance per contact (total lent - total repaid) for the active branch
+export async function getLoanBalances(branchId: string) {
   const { data, error } = await supabase
     .from('transactions')
     .select('loan_contact_id, amount, loan_contacts(name)')
+    .eq('branch_id', branchId)
     .eq('category', 'Prêts')
     .not('loan_contact_id', 'is', null)
 

@@ -21,10 +21,11 @@ export interface CategoryBreakdown {
   total_amount: number
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(branchId: string): Promise<DashboardStats> {
   const { data: allTx, error: allErr } = await supabase
     .from('transactions')
     .select('amount')
+    .eq('branch_id', branchId)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)
 
   if (allErr) throw allErr
@@ -38,6 +39,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const { data: monthTx, error: monthErr } = await supabase
     .from('transactions')
     .select('amount')
+    .eq('branch_id', branchId)
     .gte('date', startStr)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)
 
@@ -59,10 +61,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   }
 }
 
-export async function getMonthlySummary(): Promise<MonthlySummary[]> {
+export async function getMonthlySummary(branchId: string): Promise<MonthlySummary[]> {
   const { data, error } = await supabase
     .from('transactions')
     .select('date, amount')
+    .eq('branch_id', branchId)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)
     .order('date', { ascending: true })
 
@@ -93,7 +96,7 @@ export async function getMonthlySummary(): Promise<MonthlySummary[]> {
   return Array.from(monthMap.values()).slice(-12)
 }
 
-export async function getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
+export async function getCategoryBreakdown(branchId: string): Promise<CategoryBreakdown[]> {
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
   const startStr = startOfMonth.toISOString().split('T')[0]
@@ -101,6 +104,7 @@ export async function getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
   const { data, error } = await supabase
     .from('transactions')
     .select('category, amount')
+    .eq('branch_id', branchId)
     .gte('date', startStr)
     .lt('amount', 0)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)
@@ -124,7 +128,7 @@ export async function getCategoryBreakdown(): Promise<CategoryBreakdown[]> {
   return Array.from(categoryMap.values())
 }
 
-export async function getRecentTransactions() {
+export async function getRecentTransactions(branchId: string) {
   const { data, error } = await supabase
     .from('transactions')
     .select(`
@@ -136,6 +140,7 @@ export async function getRecentTransactions() {
       subscriptions(name),
       loan_contacts(name)
     `)
+    .eq('branch_id', branchId)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })

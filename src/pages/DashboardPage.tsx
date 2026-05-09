@@ -28,6 +28,7 @@ import {
 import { Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import {
   GlassPanel,
   PillStat,
@@ -105,20 +106,25 @@ function avatarColorForCategory(category: string): SegmentColor {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { canCreateTransactions } = useRole()
+  const { activeBranch } = useBranch()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [monthly, setMonthly] = useState<MonthlySummary[]>([])
   const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([])
   const [recent, setRecent] = useState<RecentTx[]>([])
   const [loading, setLoading] = useState(true)
 
+  const branchId = activeBranch?.id ?? null
+
   useEffect(() => {
+    if (!branchId) return
+    setLoading(true)
     const load = async () => {
       try {
         const [s, m, b, r] = await Promise.all([
-          getDashboardStats(),
-          getMonthlySummary(),
-          getCategoryBreakdown(),
-          getRecentTransactions(),
+          getDashboardStats(branchId),
+          getMonthlySummary(branchId),
+          getCategoryBreakdown(branchId),
+          getRecentTransactions(branchId),
         ])
         setStats(s)
         setMonthly(m)
@@ -131,7 +137,7 @@ export default function DashboardPage() {
       }
     }
     load()
-  }, [])
+  }, [branchId])
 
   if (loading) {
     return (

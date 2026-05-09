@@ -5,17 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Subscription, SubscriptionInsert } from './api'
 
+type SubscriptionFormData = Omit<SubscriptionInsert, 'branch_id'>
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   subscription?: Subscription | null
-  onSubmit: (data: SubscriptionInsert) => Promise<void>
+  onSubmit: (data: SubscriptionFormData) => Promise<void>
 }
 
-const emptyForm: SubscriptionInsert = { name: '', default_amount: 0, is_active: true }
+const emptyForm: SubscriptionFormData = { name: '', default_amount: 0, is_active: true }
 
 export default function SubscriptionFormDialog({ open, onOpenChange, subscription, onSubmit }: Props) {
-  const [form, setForm] = useState<SubscriptionInsert>(emptyForm)
+  const [form, setForm] = useState<SubscriptionFormData>(emptyForm)
   const [loading, setLoading] = useState(false)
   const isEditing = !!subscription
 

@@ -22,7 +22,7 @@ interface EmployeeFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   employee?: Employee | null
-  onSubmit: (data: EmployeeInsert) => Promise<void>
+  onSubmit: (data: Omit<EmployeeInsert, 'branch_id'>) => Promise<void>
 }
 
 interface EmployeeFormState {

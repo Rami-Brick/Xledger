@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 export interface Employee {
   id: string
   created_at: string
+  branch_id: string
   name: string
   role: string | null
   base_salary: number
@@ -12,10 +13,11 @@ export interface Employee {
 
 export type EmployeeInsert = Omit<Employee, 'id' | 'created_at'>
 
-export async function getEmployees() {
+export async function getEmployees(branchId: string) {
   const { data, error } = await supabase
     .from('employees')
     .select('*')
+    .eq('branch_id', branchId)
     .order('name')
 
   if (error) throw error

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Navigate } from 'react-router-dom'
 import {
   getEmployees,
@@ -22,15 +23,18 @@ import { toast } from 'sonner'
 
 export default function EmployeesPage() {
   const { canManage, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
 
-  const fetchEmployees = async () => {
+  const branchId = activeBranch?.id ?? null
+
+  const fetchEmployees = async (id: string) => {
     try {
-      const data = await getEmployees()
+      const data = await getEmployees(id)
       setEmployees(data)
     } catch {
       toast.error('Erreur lors du chargement des employés')
@@ -40,8 +44,10 @@ export default function EmployeesPage() {
   }
 
   useEffect(() => {
-    fetchEmployees()
-  }, [])
+    if (!branchId) return
+    setLoading(true)
+    fetchEmployees(branchId)
+  }, [branchId])
 
   if (roleLoading) return null
   if (!canManage) return <Navigate to="/" replace />
@@ -56,22 +62,24 @@ export default function EmployeesPage() {
     setDialogOpen(true)
   }
 
-  const handleSubmit = async (data: EmployeeInsert) => {
+  const handleSubmit = async (data: Omit<EmployeeInsert, 'branch_id'>) => {
+    if (!branchId) return
     try {
       if (editingEmployee) {
         await updateEmployee(editingEmployee.id, data)
         toast.success('Employé modifié avec succès')
       } else {
-        await createEmployee(data)
+        await createEmployee({ ...data, branch_id: branchId })
         toast.success('Employé ajouté avec succès')
       }
-      await fetchEmployees()
+      await fetchEmployees(branchId)
     } catch {
       toast.error("Erreur lors de l'enregistrement")
     }
   }
 
   const handleToggleActive = async (employee: Employee) => {
+    if (!branchId) return
     try {
       await toggleEmployeeActive(employee.id, !employee.is_active)
       toast.success(
@@ -79,19 +87,19 @@ export default function EmployeesPage() {
           ? `${employee.name} a été désactivé`
           : `${employee.name} a été réactivé`,
       )
-      await fetchEmployees()
+      await fetchEmployees(branchId)
     } catch {
       toast.error('Erreur lors de la mise à jour')
     }
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !branchId) return
     try {
       await deleteEmployee(deleteTarget.id)
       toast.success(`${deleteTarget.name} a été supprimé`)
       setDeleteTarget(null)
-      await fetchEmployees()
+      await fetchEmployees(branchId)
     } catch {
       toast.error(
         'Impossible de supprimer cet employé. Il est peut-être lié à des transactions.',

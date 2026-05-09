@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Navigate } from 'react-router-dom'
 import {
   getLoanContacts,
@@ -32,6 +33,7 @@ interface LoanBalance {
 
 export default function LoanContactsPage() {
   const { canManage, loading: roleLoading } = useRole()
+  const { activeBranch } = useBranch()
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,9 +41,11 @@ export default function LoanContactsPage() {
   const [editing, setEditing] = useState<LoanContact | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<LoanContact | null>(null)
 
-  const fetchData = async () => {
+  const branchId = activeBranch?.id ?? null
+
+  const fetchData = async (id: string) => {
     try {
-      const [c, b] = await Promise.all([getLoanContacts(), getLoanBalances()])
+      const [c, b] = await Promise.all([getLoanContacts(id), getLoanBalances(id)])
       setContacts(c)
       setBalances(b)
     } catch {
@@ -52,46 +56,50 @@ export default function LoanContactsPage() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (!branchId) return
+    setLoading(true)
+    fetchData(branchId)
+  }, [branchId])
 
   if (roleLoading) return null
   if (!canManage) return <Navigate to="/" replace />
 
   const getBalance = (id: string) => balances.find((b) => b.loan_contact_id === id)
 
-  const handleSubmit = async (data: LoanContactInsert) => {
+  const handleSubmit = async (data: Omit<LoanContactInsert, 'branch_id'>) => {
+    if (!branchId) return
     try {
       if (editing) {
         await updateLoanContact(editing.id, data)
         toast.success('Modifié')
       } else {
-        await createLoanContact(data)
+        await createLoanContact({ ...data, branch_id: branchId })
         toast.success('Ajouté')
       }
-      await fetchData()
+      await fetchData(branchId)
     } catch {
       toast.error('Erreur')
     }
   }
 
   const handleToggleActive = async (contact: LoanContact) => {
+    if (!branchId) return
     try {
       await toggleLoanContactActive(contact.id, !contact.is_active)
       toast.success(contact.is_active ? 'Désactivé' : 'Réactivé')
-      await fetchData()
+      await fetchData(branchId)
     } catch {
       toast.error('Erreur lors de la mise à jour')
     }
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !branchId) return
     try {
       await deleteLoanContact(deleteTarget.id)
       toast.success('Supprimé')
       setDeleteTarget(null)
-      await fetchData()
+      await fetchData(branchId)
     } catch {
       toast.error('Impossible de supprimer')
     }

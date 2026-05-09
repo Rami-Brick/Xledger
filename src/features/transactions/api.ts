@@ -19,6 +19,7 @@ export const MAIN_VIEW_TRANSACTIONS_FILTER = 'is_internal.is.null,is_internal.eq
 export interface Transaction {
   id: string
   created_at: string
+  branch_id: string
   date: string
   salary_month: string | null
   category: Category
@@ -35,6 +36,7 @@ export interface Transaction {
 }
 
 export interface TransactionInsert {
+  branch_id: string
   date: string
   salary_month?: string | null
   category: Category
@@ -65,14 +67,17 @@ export async function createTransaction(transaction: TransactionInsert) {
   return data as Transaction
 }
 
-export async function getTransactions(filters?: {
+export interface GetTransactionsFilters {
+  branchId: string
   category?: Category
   startDate?: string
   endDate?: string
   search?: string
   limit?: number
   includeInternal?: boolean
-}) {
+}
+
+export async function getTransactions(filters: GetTransactionsFilters) {
   let query = supabase
     .from('transactions')
     .select(`
@@ -84,15 +89,16 @@ export async function getTransactions(filters?: {
       subscriptions(name),
       loan_contacts(name)
     `)
+    .eq('branch_id', filters.branchId)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
 
-  if (!filters?.includeInternal) query = query.or(MAIN_VIEW_TRANSACTIONS_FILTER)
-  if (filters?.category) query = query.eq('category', filters.category)
-  if (filters?.startDate) query = query.gte('date', filters.startDate)
-  if (filters?.endDate) query = query.lte('date', filters.endDate)
-  if (filters?.search) query = query.ilike('description', `%${filters.search}%`)
-  if (filters?.limit) query = query.limit(filters.limit)
+  if (!filters.includeInternal) query = query.or(MAIN_VIEW_TRANSACTIONS_FILTER)
+  if (filters.category) query = query.eq('category', filters.category)
+  if (filters.startDate) query = query.gte('date', filters.startDate)
+  if (filters.endDate) query = query.lte('date', filters.endDate)
+  if (filters.search) query = query.ilike('description', `%${filters.search}%`)
+  if (filters.limit) query = query.limit(filters.limit)
 
   const { data, error } = await query
   if (error) throw error
@@ -147,8 +153,11 @@ export async function deleteTransaction(id: string): Promise<DeleteTransactionRe
   return { reopenedFixedChargeRequest: false }
 }
 
-export async function getEmployeeSalaryStatus() {
-  const { data, error } = await supabase.from('employee_salary_status').select('*')
+export async function getEmployeeSalaryStatus(branchId: string) {
+  const { data, error } = await supabase
+    .from('employee_salary_status')
+    .select('*')
+    .eq('branch_id', branchId)
   if (error) throw error
   return data
 }

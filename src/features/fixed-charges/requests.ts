@@ -9,6 +9,7 @@ export interface FixedChargeRequest {
   id: string
   created_at: string
   updated_at: string
+  branch_id: string
   fixed_charge_id: string
   due_date: string
   suggested_amount: number
@@ -21,6 +22,7 @@ export interface FixedChargeRequest {
 }
 
 export interface FixedChargeRequestInsert {
+  branch_id: string
   fixed_charge_id: string
   due_date: string
   suggested_amount: number
@@ -93,10 +95,14 @@ function normalizeRequests(rows: FixedChargeRequestRow[] | null) {
   return (rows || []).map(normalizeRequest)
 }
 
-export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDateKey()) {
+export async function ensureFixedChargeRequestsGenerated(
+  branchId: string,
+  todayKey = getTodayDateKey(),
+) {
   const { data: charges, error: chargesError } = await supabase
     .from('fixed_charges')
     .select('*')
+    .eq('branch_id', branchId)
     .eq('is_active', true)
     .eq('schedule_enabled', true)
 
@@ -109,6 +115,7 @@ export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDate
     )
       .filter((dueDate) => dueDate >= getCurrentMonthStartKey(todayKey))
       .map((dueDate) => ({
+        branch_id: branchId,
         fixed_charge_id: charge.id,
         due_date: dueDate,
         suggested_amount: toNumber(charge.default_amount),
@@ -120,7 +127,7 @@ export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDate
   const { data, error } = await supabase
     .from('fixed_charge_requests')
     .upsert(rows, {
-      onConflict: 'fixed_charge_id,due_date',
+      onConflict: 'branch_id,fixed_charge_id,due_date',
       ignoreDuplicates: true,
     })
     .select(REQUEST_SELECT)
@@ -129,10 +136,14 @@ export async function ensureFixedChargeRequestsGenerated(todayKey = getTodayDate
   return normalizeRequests(data as FixedChargeRequestRow[] | null)
 }
 
-export async function getPendingFixedChargeRequests(todayKey = getTodayDateKey()) {
+export async function getPendingFixedChargeRequests(
+  branchId: string,
+  todayKey = getTodayDateKey(),
+) {
   const { data, error } = await supabase
     .from('fixed_charge_requests')
     .select(REQUEST_SELECT)
+    .eq('branch_id', branchId)
     .eq('status', 'pending')
     .lte('due_date', todayKey)
     .order('due_date', { ascending: true })
@@ -142,10 +153,14 @@ export async function getPendingFixedChargeRequests(todayKey = getTodayDateKey()
   return normalizeRequests(data as FixedChargeRequestRow[] | null)
 }
 
-export async function getUpcomingFixedChargeRequests(todayKey = getTodayDateKey()) {
+export async function getUpcomingFixedChargeRequests(
+  branchId: string,
+  todayKey = getTodayDateKey(),
+) {
   const { data, error } = await supabase
     .from('fixed_charge_requests')
     .select(REQUEST_SELECT)
+    .eq('branch_id', branchId)
     .lte('due_date', todayKey)
     .order('due_date', { ascending: true })
     .order('created_at', { ascending: true })
@@ -172,6 +187,7 @@ async function createApprovalTransaction(request: FixedChargeRequest, amount: nu
   const { data, error } = await supabase
     .from('transactions')
     .insert({
+      branch_id: request.branch_id,
       date: request.due_date,
       category: 'Charges fixes',
       amount: -Math.abs(amount),
@@ -240,13 +256,14 @@ export async function skipFixedChargeRequest(request: FixedChargeRequest) {
 
 export async function findPossibleExistingFixedChargeTransactions(
   request: FixedChargeRequest,
-  amount = request.suggested_amount
+  amount = request.suggested_amount,
 ) {
   const minDate = addDays(request.due_date, -3)
   const maxDate = addDays(request.due_date, 3)
   const { data, error } = await supabase
     .from('transactions')
     .select('id, date, amount, description, fixed_charge_id, fixed_charge_request_id')
+    .eq('branch_id', request.branch_id)
     .eq('category', 'Charges fixes')
     .eq('fixed_charge_id', request.fixed_charge_id)
     .gte('date', minDate)

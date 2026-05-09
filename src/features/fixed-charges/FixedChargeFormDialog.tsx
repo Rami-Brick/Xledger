@@ -23,11 +23,13 @@ import type {
   RecurrenceFrequency,
 } from './api'
 
+type FixedChargeFormData = Omit<FixedChargeInsert, 'branch_id'>
+
 interface FixedChargeFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   charge?: FixedCharge | null
-  onSubmit: (data: FixedChargeInsert) => Promise<void>
+  onSubmit: (data: FixedChargeFormData) => Promise<void>
 }
 
 const weekdays = [
@@ -68,7 +70,7 @@ function getIsoWeekday(date = new Date()) {
   return weekday === 0 ? 7 : weekday
 }
 
-function createEmptyForm(): FixedChargeInsert {
+function createEmptyForm(): FixedChargeFormData {
   const now = new Date()
   return {
     name: '',
@@ -97,7 +99,7 @@ export default function FixedChargeFormDialog({
   charge,
   onSubmit,
 }: FixedChargeFormDialogProps) {
-  const [form, setForm] = useState<FixedChargeInsert>(createEmptyForm)
+  const [form, setForm] = useState<FixedChargeFormData>(createEmptyForm)
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!charge

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
+import { useBranch } from '@/features/branches/BranchProvider'
 import {
   CATEGORIES,
   deleteTransaction,
@@ -134,11 +135,15 @@ export default function HistoryPage() {
     getIncludeInternalFromSearchParams(searchParams)
   )
   const { canEditTransactions, canDeleteTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const branchId = activeBranch?.id ?? null
 
   const fetchTransactions = useCallback(async () => {
+    if (!branchId) return
     setLoading(true)
     try {
       const data = await getTransactions({
+        branchId,
         category: categoryFilter !== 'all' ? (categoryFilter as Category) : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -151,7 +156,7 @@ export default function HistoryPage() {
     } finally {
       setLoading(false)
     }
-  }, [categoryFilter, endDate, showInternalEntries, startDate])
+  }, [branchId, categoryFilter, endDate, showInternalEntries, startDate])
 
   const transactions = useMemo(() => {
     let filtered = allTransactions

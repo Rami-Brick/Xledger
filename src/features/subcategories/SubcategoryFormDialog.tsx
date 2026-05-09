@@ -18,15 +18,17 @@ import {
 } from '@/components/ui/select'
 import type { Subcategory, SubcategoryInsert } from './api'
 
+type SubcategoryFormData = Omit<SubcategoryInsert, 'branch_id'>
+
 interface SubcategoryFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   subcategory?: Subcategory | null
   defaultCategory?: 'Transport' | 'Packaging'
-  onSubmit: (data: SubcategoryInsert) => Promise<void>
+  onSubmit: (data: SubcategoryFormData) => Promise<void>
 }
 
-const emptyForm: SubcategoryInsert = {
+const emptyForm: SubcategoryFormData = {
   category: 'Transport',
   name: '',
   is_active: true,
@@ -39,7 +41,7 @@ export default function SubcategoryFormDialog({
   defaultCategory,
   onSubmit,
 }: SubcategoryFormDialogProps) {
-  const [form, setForm] = useState<SubcategoryInsert>(emptyForm)
+  const [form, setForm] = useState<SubcategoryFormData>(emptyForm)
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!subcategory
