@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getProducts, type Product } from '@/features/products/api'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +35,9 @@ export default function FournisseursForm({
   initialData,
   onSubmit,
 }: FournisseursFormProps) {
+  const { activeBranch } = useBranch()
+  const { currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [products, setProducts] = useState<Product[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.product_id ?? '')
   const [description, setDescription] = useState(initialData?.description ?? '')
@@ -42,9 +47,10 @@ export default function FournisseursForm({
   const isEditing = !!initialData
 
   useEffect(() => {
+    if (!branchId) return
     const load = async () => {
       try {
-        const data = await getProducts()
+        const data = await getProducts(branchId)
         setProducts(data.filter((product) => product.is_active))
       } catch {
         toast.error('Erreur lors du chargement des produits')
@@ -52,7 +58,7 @@ export default function FournisseursForm({
     }
 
     load()
-  }, [])
+  }, [branchId])
 
   const selectedProduct = products.find((product) => product.id === selectedId)
 
@@ -108,7 +114,7 @@ export default function FournisseursForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

@@ -41,7 +41,9 @@ import {
 } from '@/components/system-ui/primitives'
 import { PrimaryCTA } from '@/components/system-ui/compounds'
 import { useRole } from '@/lib/RoleProvider'
-import { formatDate, formatTND } from '@/lib/format'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { formatDate } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -141,6 +143,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 export default function CategoriesPage() {
   const navigate = useNavigate()
   const { canCreateTransactions, canEditTransactions, canDeleteTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [summaries, setSummaries] = useState<CategorySummary[]>([])
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categoryTransactions, setCategoryTransactions] = useState<TransactionRow[]>([])
@@ -163,12 +168,14 @@ export default function CategoriesPage() {
   const [thisMonthTotal, setThisMonthTotal] = useState(0)
 
   const fetchSummaries = useCallback(async () => {
+    if (!branchId) return
     setLoading(true)
     try {
       const { start, end } = getCurrentMonthRange()
       const { data, error } = await supabase
         .from('transactions')
         .select('category, amount')
+        .eq('branch_id', branchId)
         .gte('date', start)
         .lte('date', end)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
@@ -199,14 +206,16 @@ export default function CategoriesPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [branchId])
 
   useEffect(() => {
     fetchSummaries()
   }, [fetchSummaries])
 
   const fetchCategoryDetail = useCallback(async (category: Category) => {
+    if (!branchId) return
     const transactions = (await getTransactions({
+      branchId,
       category,
       includeInternal: true,
     })) as TransactionRow[]
@@ -227,17 +236,20 @@ export default function CategoriesPage() {
       supabase
         .from('transactions')
         .select('amount')
+        .eq('branch_id', branchId)
         .eq('category', category)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER),
       supabase
         .from('transactions')
         .select('amount')
+        .eq('branch_id', branchId)
         .eq('category', category)
         .gte('date', thisMonthStart)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER),
       supabase
         .from('transactions')
         .select('amount')
+        .eq('branch_id', branchId)
         .eq('category', category)
         .gte('date', lastMonthStart)
         .lte('date', lastMonthEnd)
@@ -250,20 +262,23 @@ export default function CategoriesPage() {
 
     switch (category) {
       case 'Charges fixes':
-        setFixedCharges(await getFixedCharges())
+        setFixedCharges(await getFixedCharges(branchId))
         break
       case 'Fournisseurs':
-        setProducts(await getProducts())
+        setProducts(await getProducts(branchId))
         break
       case 'Transport':
       case 'Packaging':
-        setSubcategories(await getSubcategories())
+        setSubcategories(await getSubcategories(branchId))
         break
       case 'Subscriptions':
-        setSubscriptions(await getSubscriptions())
+        setSubscriptions(await getSubscriptions(branchId))
         break
       case 'Prêts': {
-        const [contacts, balances] = await Promise.all([getLoanContacts(), getLoanBalances()])
+        const [contacts, balances] = await Promise.all([
+          getLoanContacts(branchId),
+          getLoanBalances(branchId),
+        ])
         setLoanContacts(contacts)
         setLoanBalances(balances)
         break
@@ -271,7 +286,7 @@ export default function CategoriesPage() {
       default:
         break
     }
-  }, [])
+  }, [branchId])
 
   const openDetail = async (category: Category) => {
     if (category === 'Salaires') {
@@ -364,7 +379,7 @@ export default function CategoriesPage() {
                   <div>
                     <p className="text-sm font-medium text-white">{config.label}</p>
                     <p className="mt-1 text-lg font-semibold tracking-tight tabular-nums text-white">
-                      {formatTND(summary.total)}
+                      {formatAmount(summary.total)}
                     </p>
                   </div>
                 </button>
@@ -398,7 +413,7 @@ export default function CategoriesPage() {
                 >
                   <span className="text-white">{charge.name}</span>
                   <span className="text-white/60 tabular-nums">
-                    {formatTND(charge.default_amount)}
+                    {formatAmount(charge.default_amount)}
                   </span>
                 </div>
               ))}
@@ -470,7 +485,7 @@ export default function CategoriesPage() {
                 >
                   <span className="text-white">{subscription.name}</span>
                   <span className="text-white/60 tabular-nums">
-                    {formatTND(subscription.default_amount)}
+                    {formatAmount(subscription.default_amount)}
                   </span>
                 </div>
               ))}
@@ -490,15 +505,15 @@ export default function CategoriesPage() {
           <div className="space-y-3">
             <GlassPanel className="p-4">
               <div className="grid grid-cols-3 gap-3">
-                <StatCell label="Total recu" value={formatTND(totalReceived)} />
+                <StatCell label="Total recu" value={formatAmount(totalReceived)} />
                 <StatCell
                   label="Total rendu"
-                  value={formatTND(totalReturned)}
+                  value={formatAmount(totalReturned)}
                   valueClassName="text-[#B8EB3C]"
                 />
                 <StatCell
                   label="Reste"
-                  value={formatTND(totalRemaining)}
+                  value={formatAmount(totalRemaining)}
                   valueClassName={
                     totalRemaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
                   }
@@ -552,7 +567,7 @@ export default function CategoriesPage() {
                                   )}
                                 >
                                   {balance.remaining > 0
-                                    ? `Reste : ${formatTND(balance.remaining)}`
+                                    ? `Reste : ${formatAmount(balance.remaining)}`
                                     : 'Soldé'}
                                 </span>
                               </div>
@@ -566,8 +581,8 @@ export default function CategoriesPage() {
                                 />
                               </div>
                               <div className="flex justify-between text-[10px] text-white/46">
-                                <span>Rendu : {formatTND(balance.total_repaid)}</span>
-                                <span>Recu : {formatTND(balance.total_lent)}</span>
+                                <span>Rendu : {formatAmount(balance.total_repaid)}</span>
+                                <span>Recu : {formatAmount(balance.total_lent)}</span>
                               </div>
                             </div>
                             <span className="shrink-0 text-white/46">
@@ -620,7 +635,7 @@ export default function CategoriesPage() {
                                           )}
                                         >
                                           {positive ? '+' : ''}
-                                          {formatTND(transaction.amount)}
+                                          {formatAmount(transaction.amount)}
                                         </span>
                                         {(canEditTransactions || canDeleteTransactions) && (
                                           <RowActions
@@ -754,9 +769,9 @@ export default function CategoriesPage() {
         <>
           <GlassPanel className="p-4 md:p-5">
             <div className="grid grid-cols-3 gap-3">
-              <StatCell label="Ce mois" value={formatTND(thisMonthTotal)} />
-              <StatCell label="Mois dernier" value={formatTND(lastMonthTotal)} />
-              <StatCell label="Total" value={formatTND(allTimeTotal)} />
+              <StatCell label="Ce mois" value={formatAmount(thisMonthTotal)} />
+              <StatCell label="Mois dernier" value={formatAmount(lastMonthTotal)} />
+              <StatCell label="Total" value={formatAmount(allTimeTotal)} />
             </div>
           </GlassPanel>
 
@@ -817,7 +832,7 @@ export default function CategoriesPage() {
                             )}
                           >
                             {positive ? '+' : ''}
-                            {formatTND(transaction.amount)}
+                            {formatAmount(transaction.amount)}
                           </span>
                           {(canEditTransactions || canDeleteTransactions) && (
                             <RowActions
@@ -849,7 +864,7 @@ export default function CategoriesPage() {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         title="Supprimer cette transaction ?"
         description={`Etes-vous sur de vouloir supprimer cette transaction de ${
-          deleteTarget ? formatTND(Math.abs(deleteTarget.amount)) : ''
+          deleteTarget ? formatAmount(Math.abs(deleteTarget.amount)) : ''
         } ? Cette action est irreversible.${
           deleteTarget?.fixed_charge_request_id
             ? ' La charge fixe liee repassera en attente de validation.'

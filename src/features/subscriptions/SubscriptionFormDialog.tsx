@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Subscription, SubscriptionInsert } from './api'
+import { useCurrency } from '@/features/branches/useCurrency'
 
 type SubscriptionFormData = Omit<SubscriptionInsert, 'branch_id'>
 
@@ -17,6 +18,7 @@ interface Props {
 const emptyForm: SubscriptionFormData = { name: '', default_amount: 0, is_active: true }
 
 export default function SubscriptionFormDialog({ open, onOpenChange, subscription, onSubmit }: Props) {
+  const { currencyCode } = useCurrency()
   const [form, setForm] = useState<SubscriptionFormData>(emptyForm)
   const [loading, setLoading] = useState(false)
   const isEditing = !!subscription
@@ -48,7 +50,7 @@ export default function SubscriptionFormDialog({ open, onOpenChange, subscriptio
             <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Claude, ChatGPT, Canva" required autoFocus />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="amount">Montant par défaut (TND)</Label>
+            <Label htmlFor="amount">Montant par défaut ({currencyCode})</Label>
             <Input id="amount" type="number" step="1" min="0" value={form.default_amount || ''} onChange={(e) => setForm({ ...form, default_amount: parseFloat(e.target.value) || 0 })} required />
           </div>
           <DialogFooter>

@@ -18,7 +18,7 @@ import {
   SettingsItemMeta,
   SettingsItemTitle,
 } from '@/components/system-ui/settings/SettingsListPage'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 
 function getScheduleLabel(charge: FixedCharge) {
@@ -34,6 +34,7 @@ function getScheduleLabel(charge: FixedCharge) {
 export default function FixedChargesPage() {
   const { canManage, loading: roleLoading } = useRole()
   const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
   const [charges, setCharges] = useState<FixedCharge[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -139,7 +140,7 @@ export default function FixedChargesPage() {
             <span className="shrink-0">
               Montant par défaut{' '}
               <span className="font-medium text-white/90">
-                {formatTND(item.default_amount)}
+                {formatAmount(item.default_amount)}
               </span>
             </span>
             <span className="shrink-0 text-white/30">·</span>

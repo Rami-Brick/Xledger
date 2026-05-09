@@ -23,7 +23,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRole } from '@/lib/RoleProvider'
-import { formatDate, formatTND } from '@/lib/format'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { formatDate } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { supabase } from '@/lib/supabase'
 import {
   formatSalaryMonthLabel,
@@ -98,6 +100,9 @@ function generateMonthOptions(): { value: string; label: string }[] {
 export default function SalariesPage() {
   const navigate = useNavigate()
   const { canCreateTransactions } = useRole()
+  const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [statuses, setStatuses] = useState<SalaryStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth)
@@ -110,6 +115,7 @@ export default function SalariesPage() {
   const isCurrentMonth = !isAllTime && selectedMonth === getCurrentMonth()
 
   const fetchStatuses = useCallback(async () => {
+    if (!branchId) return
     setLoading(true)
     setExpandedEmployee(null)
 
@@ -117,6 +123,7 @@ export default function SalariesPage() {
       const { data: employees, error: employeesError } = await supabase
         .from('employees')
         .select('*')
+        .eq('branch_id', branchId)
         .eq('is_active', true)
         .order('name')
 
@@ -125,6 +132,7 @@ export default function SalariesPage() {
       const transactionsQuery = supabase
         .from('transactions')
         .select('employee_id, amount, date, salary_month')
+        .eq('branch_id', branchId)
         .eq('category', 'Salaires')
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
 
@@ -165,7 +173,7 @@ export default function SalariesPage() {
     } finally {
       setLoading(false)
     }
-  }, [isAllTime, selectedMonth])
+  }, [branchId, isAllTime, selectedMonth])
 
   useEffect(() => {
     fetchStatuses()
@@ -177,6 +185,8 @@ export default function SalariesPage() {
       return
     }
 
+    if (!branchId) return
+
     setHistoryLoading(true)
     setExpandedEmployee(employeeId)
 
@@ -184,6 +194,7 @@ export default function SalariesPage() {
       const historyQuery = supabase
         .from('transactions')
         .select('id, date, salary_month, amount, description, is_internal')
+        .eq('branch_id', branchId)
         .eq('category', 'Salaires')
         .eq('employee_id', employeeId)
 
@@ -294,15 +305,15 @@ export default function SalariesPage() {
         {/* Summary stats */}
         <GlassPanel className="p-4 md:p-5">
           <div className="grid grid-cols-3 gap-3">
-            <StatCell label={isAllTime ? 'Base mensuelle' : 'Base'} value={formatTND(totalBase)} />
+            <StatCell label={isAllTime ? 'Base mensuelle' : 'Base'} value={formatAmount(totalBase)} />
             <StatCell
               label={isAllTime ? 'Payé total' : 'Payé'}
-              value={formatTND(totalPaid)}
+              value={formatAmount(totalPaid)}
               valueClass="text-[#B8EB3C]"
             />
             <StatCell
               label={isAllTime ? 'Paiements' : 'Restant'}
-              value={isAllTime ? String(totalPayments) : formatTND(totalRemaining)}
+              value={isAllTime ? String(totalPayments) : formatAmount(totalRemaining)}
               valueClass={
                 isAllTime
                   ? 'text-white'
@@ -399,13 +410,13 @@ export default function SalariesPage() {
                         <div>
                           <p className="text-white/46">Base</p>
                           <p className="mt-0.5 font-medium tabular-nums text-white">
-                            {formatTND(employee.base_salary)}
+                            {formatAmount(employee.base_salary)}
                           </p>
                         </div>
                         <div>
                           <p className="text-white/46">Payé total</p>
                           <p className="mt-0.5 font-medium tabular-nums text-[#B8EB3C]">
-                            {formatTND(employee.paid_in_period)}
+                            {formatAmount(employee.paid_in_period)}
                           </p>
                         </div>
                         <div>
@@ -419,10 +430,10 @@ export default function SalariesPage() {
                       <div className="flex flex-col gap-2">
                         <div className="flex items-baseline justify-between text-[11px]">
                           <span className="tabular-nums text-white/60">
-                            {formatTND(employee.paid_in_period)}
+                            {formatAmount(employee.paid_in_period)}
                           </span>
                           <span className="font-medium tabular-nums text-white">
-                            {formatTND(employee.base_salary)}
+                            {formatAmount(employee.base_salary)}
                           </span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
@@ -447,8 +458,8 @@ export default function SalariesPage() {
                             )}
                           >
                             {isOverpaid
-                              ? `Surplus ${formatTND(Math.abs(employee.remaining))}`
-                              : formatTND(employee.remaining)}
+                              ? `Surplus ${formatAmount(Math.abs(employee.remaining))}`
+                              : formatAmount(employee.remaining)}
                           </span>
                         </div>
                       </div>
@@ -510,7 +521,7 @@ export default function SalariesPage() {
                                     )}
                                   </div>
                                   <span className="shrink-0 font-medium tabular-nums text-white">
-                                    {formatTND(Math.abs(transaction.amount))}
+                                    {formatAmount(Math.abs(transaction.amount))}
                                   </span>
                                 </div>
                               )

@@ -18,12 +18,13 @@ import {
   SettingsItemMeta,
   SettingsItemTitle,
 } from '@/components/system-ui/settings/SettingsListPage'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 
 export default function EmployeesPage() {
   const { canManage, loading: roleLoading } = useRole()
   const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -135,7 +136,7 @@ export default function EmployeesPage() {
             <span className="shrink-0">
               Salaire{' '}
               <span className="font-medium text-white/90">
-                {formatTND(item.base_salary)}
+                {formatAmount(item.base_salary)}
               </span>
             </span>
             <span className="shrink-0 text-white/30">·</span>

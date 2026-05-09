@@ -22,6 +22,7 @@ import type {
   FixedChargeInsert,
   RecurrenceFrequency,
 } from './api'
+import { useCurrency } from '@/features/branches/useCurrency'
 
 type FixedChargeFormData = Omit<FixedChargeInsert, 'branch_id'>
 
@@ -99,6 +100,7 @@ export default function FixedChargeFormDialog({
   charge,
   onSubmit,
 }: FixedChargeFormDialogProps) {
+  const { currencyCode } = useCurrency()
   const [form, setForm] = useState<FixedChargeFormData>(createEmptyForm)
   const [loading, setLoading] = useState(false)
 
@@ -180,7 +182,7 @@ export default function FixedChargeFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="default_amount">Montant par defaut (TND)</Label>
+            <Label htmlFor="default_amount">Montant par defaut ({currencyCode})</Label>
             <Input
               id="default_amount"
               type="number"

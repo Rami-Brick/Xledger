@@ -6,6 +6,15 @@ import { getFixedCharges } from '@/features/fixed-charges/api'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/features/fixed-charges/api')
+vi.mock('@/features/branches/BranchProvider', () => ({
+  useBranch: () => ({
+    activeBranch: { id: 'branch-test', slug: 'test', name: 'Test', country_code: 'TN', currency_code: 'TND', is_active: true },
+    branches: [],
+    setActiveBranchId: () => {},
+    loading: false,
+    error: null,
+  }),
+}))
 vi.mock('sonner', () => ({ toast: { error: vi.fn() } }))
 
 const mockGetFixedCharges = vi.mocked(getFixedCharges)
@@ -23,9 +32,9 @@ const scheduleDefaults = {
 }
 
 const mockCharges = [
-  { id: 'c1', name: 'Loyer bureau', default_amount: 1200, is_active: true, created_at: '', ...scheduleDefaults },
-  { id: 'c2', name: 'Internet', default_amount: 80, is_active: true, created_at: '', ...scheduleDefaults },
-  { id: 'c3', name: 'Ancienne charge', default_amount: 500, is_active: false, created_at: '', ...scheduleDefaults },
+  { id: 'c1', branch_id: 'branch-test', name: 'Loyer bureau', default_amount: 1200, is_active: true, created_at: '', ...scheduleDefaults },
+  { id: 'c2', branch_id: 'branch-test', name: 'Internet', default_amount: 80, is_active: true, created_at: '', ...scheduleDefaults },
+  { id: 'c3', branch_id: 'branch-test', name: 'Ancienne charge', default_amount: 500, is_active: false, created_at: '', ...scheduleDefaults },
 ]
 
 function selectOption(value: string) {

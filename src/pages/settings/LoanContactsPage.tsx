@@ -19,7 +19,7 @@ import {
   SettingsItemMeta,
   SettingsItemTitle,
 } from '@/components/system-ui/settings/SettingsListPage'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +34,7 @@ interface LoanBalance {
 export default function LoanContactsPage() {
   const { canManage, loading: roleLoading } = useRole()
   const { activeBranch } = useBranch()
+  const { format: formatAmount } = useCurrency()
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [loading, setLoading] = useState(true)
@@ -144,14 +145,14 @@ export default function LoanContactsPage() {
                   <span className="shrink-0">
                     Reçu{' '}
                     <span className="font-medium text-white/90 tabular-nums">
-                      {formatTND(bal.total_lent)}
+                      {formatAmount(bal.total_lent)}
                     </span>
                   </span>
                   <span className="shrink-0 text-white/30">·</span>
                   <span className="shrink-0">
                     Rendu{' '}
                     <span className="font-medium tabular-nums text-[#B8EB3C]">
-                      {formatTND(bal.total_repaid)}
+                      {formatAmount(bal.total_repaid)}
                     </span>
                   </span>
                   <span className="shrink-0 text-white/30">·</span>
@@ -163,7 +164,7 @@ export default function LoanContactsPage() {
                         bal.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]',
                       )}
                     >
-                      {formatTND(bal.remaining)}
+                      {formatAmount(bal.remaining)}
                     </span>
                   </span>
                 </SettingsItemMeta>

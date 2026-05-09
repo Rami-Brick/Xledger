@@ -1,4 +1,4 @@
-import { formatTND } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import type { AuditLog, LogAction, LogReferenceData } from './api'
 
 const TABLE_LABELS: Record<string, string> = {
@@ -110,11 +110,12 @@ function getSubjectLabel(log: AuditLog, referenceData: LogReferenceData) {
 function formatFieldValue(
   field: string,
   value: unknown,
-  referenceData: LogReferenceData
+  referenceData: LogReferenceData,
+  currencyCode: string
 ): string {
   if (value === null || value === undefined || value === '') return 'vide'
   if (field === 'amount' || field === 'base_salary' || field === 'default_amount') {
-    return formatTND(Number(value))
+    return formatCurrency(Number(value), currencyCode)
   }
   if (field === 'is_active' || field === 'is_internal') {
     return value ? 'Oui' : 'Non'
@@ -160,15 +161,15 @@ function getChangedFields(log: AuditLog) {
   })
 }
 
-function formatUpdateDiff(log: AuditLog, referenceData: LogReferenceData) {
+function formatUpdateDiff(log: AuditLog, referenceData: LogReferenceData, currencyCode: string) {
   const changedFields = getChangedFields(log)
   if (changedFields.length === 0) return 'mise a jour sans changement visible'
 
   return changedFields
     .map((field) => {
       const label = FIELD_LABELS[field] || field
-      const oldValue = formatFieldValue(field, log.old_data?.[field], referenceData)
-      const newValue = formatFieldValue(field, log.new_data?.[field], referenceData)
+      const oldValue = formatFieldValue(field, log.old_data?.[field], referenceData, currencyCode)
+      const newValue = formatFieldValue(field, log.new_data?.[field], referenceData, currencyCode)
       return `${label} ${oldValue} -> ${newValue}`
     })
     .join(', ')
@@ -192,24 +193,28 @@ export function formatLogTimestamp(value: string) {
   return formatTimestamp(value)
 }
 
-export function formatLogDescription(log: AuditLog, referenceData: LogReferenceData) {
+export function formatLogDescription(
+  log: AuditLog,
+  referenceData: LogReferenceData,
+  currencyCode: string,
+) {
   const actor = getUserDisplayName(log.user_id, referenceData)
   const subject = getSubjectLabel(log, referenceData)
   const data = getRecordData(log)
 
   if (log.action === 'INSERT') {
     if (log.table_name === 'transactions') {
-      return `${actor} a ajoute ${subject} de ${formatTND(Number(data.amount || 0))}`
+      return `${actor} a ajoute ${subject} de ${formatCurrency(Number(data.amount || 0), currencyCode)}`
     }
     return `${actor} a ajoute ${subject}`
   }
 
   if (log.action === 'DELETE') {
     if (log.table_name === 'transactions') {
-      return `${actor} a supprime ${subject} de ${formatTND(Number(data.amount || 0))}`
+      return `${actor} a supprime ${subject} de ${formatCurrency(Number(data.amount || 0), currencyCode)}`
     }
     return `${actor} a supprime ${subject}`
   }
 
-  return `${actor} a modifie ${subject} : ${formatUpdateDiff(log, referenceData)}`
+  return `${actor} a modifie ${subject} : ${formatUpdateDiff(log, referenceData, currencyCode)}`
 }

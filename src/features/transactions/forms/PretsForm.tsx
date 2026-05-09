@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getLoanBalances, getLoanContacts, type LoanContact } from '@/features/loan-contacts/api'
+import { useBranch } from '@/features/branches/BranchProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { formatTND } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { toast } from 'sonner'
 import InternalEntryField from './InternalEntryField'
 
@@ -41,6 +42,9 @@ interface LoanBalance {
 }
 
 export default function PretsForm({ initialData, onSubmit }: Props) {
+  const { activeBranch } = useBranch()
+  const { format: formatAmount, currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [contacts, setContacts] = useState<LoanContact[]>([])
   const [balances, setBalances] = useState<LoanBalance[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.loan_contact_id ?? '')
@@ -50,11 +54,11 @@ export default function PretsForm({ initialData, onSubmit }: Props) {
   const [loading, setLoading] = useState(false)
   const isEditing = !!initialData
 
-  const loadData = async () => {
+  const loadData = async (id: string) => {
     try {
       const [contactsData, balancesData] = await Promise.all([
-        getLoanContacts(),
-        getLoanBalances(),
+        getLoanContacts(id),
+        getLoanBalances(id),
       ])
       setContacts(contactsData.filter((contact) => contact.is_active))
       setBalances(balancesData)
@@ -64,8 +68,9 @@ export default function PretsForm({ initialData, onSubmit }: Props) {
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (!branchId) return
+    loadData(branchId)
+  }, [branchId])
 
   const selectedContact = contacts.find((contact) => contact.id === selectedId)
   const selectedBalance = balances.find((balance) => balance.loan_contact_id === selectedId)
@@ -92,7 +97,7 @@ export default function PretsForm({ initialData, onSubmit }: Props) {
         setIsInternal(false)
       }
 
-      await loadData()
+      if (branchId) await loadData(branchId)
     } finally {
       setLoading(false)
     }
@@ -148,11 +153,11 @@ export default function PretsForm({ initialData, onSubmit }: Props) {
         <div className="space-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm">
           <div className="flex justify-between text-white/80">
             <span className="text-white/60">Total reçu</span>
-            <span className="font-medium tabular-nums text-white">{formatTND(selectedBalance.total_lent)}</span>
+            <span className="font-medium tabular-nums text-white">{formatAmount(selectedBalance.total_lent)}</span>
           </div>
           <div className="flex justify-between text-white/80">
             <span className="text-white/60">Total rendu</span>
-            <span className="font-medium tabular-nums text-white">{formatTND(selectedBalance.total_repaid)}</span>
+            <span className="font-medium tabular-nums text-white">{formatAmount(selectedBalance.total_repaid)}</span>
           </div>
           <div className="flex justify-between border-t border-white/[0.06] pt-2">
             <span className="font-medium text-white">Reste à rendre</span>
@@ -161,14 +166,14 @@ export default function PretsForm({ initialData, onSubmit }: Props) {
                 selectedBalance.remaining > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'
               }`}
             >
-              {formatTND(selectedBalance.remaining)}
+              {formatAmount(selectedBalance.remaining)}
             </span>
           </div>
         </div>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"

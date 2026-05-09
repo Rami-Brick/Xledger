@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { AlertTriangle, Check, Clock, SkipForward } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatDate, formatTND } from '@/lib/format'
+import { formatDate } from '@/lib/format'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { cn } from '@/lib/utils'
 import type {
   FixedChargeRequest,
@@ -38,6 +39,7 @@ export default function FixedChargeRequestCard({
   onApprove,
   onSkip,
 }: FixedChargeRequestCardProps) {
+  const { format: formatAmount } = useCurrency()
   const initialAmount = Number(
     request.approved_amount
       ?? request.suggested_amount
@@ -81,7 +83,7 @@ export default function FixedChargeRequestCard({
               <p className="font-medium">Transaction possible deja enregistree</p>
               <p className="mt-1 text-[#FFCC8A]/80">
                 {formatDate(duplicateTransactions[0].date)} ·{' '}
-                {formatTND(Math.abs(duplicateTransactions[0].amount))}
+                {formatAmount(Math.abs(duplicateTransactions[0].amount))}
               </p>
             </div>
           </div>
@@ -132,7 +134,7 @@ export default function FixedChargeRequestCard({
           </div>
         ) : (
           <p className="text-right text-xs text-white/46">
-            {request.approved_amount ? formatTND(request.approved_amount) : statusLabel(request.status)}
+            {request.approved_amount ? formatAmount(request.approved_amount) : statusLabel(request.status)}
           </p>
         )}
       </div>

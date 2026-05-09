@@ -5,6 +5,7 @@ import { generateFixedChargeDueDates } from '@/features/fixed-charges/recurrence
 const baseCharge: FixedCharge = {
   id: 'charge-1',
   created_at: '',
+  branch_id: 'branch-test',
   name: 'Internet',
   default_amount: 100,
   is_active: true,

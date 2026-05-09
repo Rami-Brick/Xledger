@@ -8,10 +8,11 @@ export function formatWholeDinars(amount: number): string {
 }
 
 /**
- * Format a number as Tunisian Dinar (TND) in whole dinars
+ * Format a number as a whole-unit amount with a currency code suffix,
+ * e.g. `1500 TND` or `200 LYD`.
  */
-export function formatTND(amount: number): string {
-  return `${formatWholeDinars(amount)} TND`
+export function formatCurrency(amount: number, currencyCode: string): string {
+  return `${formatWholeDinars(amount)} ${currencyCode}`
 }
 
 /**

@@ -7,6 +7,7 @@ import type { FixedCharge } from '@/features/fixed-charges/api'
 const scheduledCharge: FixedCharge = {
   id: 'charge-1',
   created_at: '',
+  branch_id: 'branch-test',
   name: 'Internet',
   default_amount: 100,
   is_active: true,

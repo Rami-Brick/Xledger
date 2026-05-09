@@ -2,7 +2,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import FixedChargeApprovalBell from '@/features/fixed-charges/FixedChargeApprovalBell'
+import FixedChargeApprovalSheet from '@/features/fixed-charges/FixedChargeApprovalSheet'
 import {
   approveFixedChargeRequest,
   ensureFixedChargeRequestsGenerated,
@@ -15,6 +15,15 @@ import type { FixedChargeRequest } from '@/features/fixed-charges/requests'
 vi.mock('@/lib/RoleProvider', () => ({
   useRole: () => ({ canEditTransactions: true }),
 }))
+vi.mock('@/features/branches/BranchProvider', () => ({
+  useBranch: () => ({
+    activeBranch: { id: 'branch-test', slug: 'test', name: 'Test', country_code: 'TN', currency_code: 'TND', is_active: true },
+    branches: [],
+    setActiveBranchId: () => {},
+    loading: false,
+    error: null,
+  }),
+}))
 vi.mock('@/features/fixed-charges/requests')
 vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
@@ -22,6 +31,7 @@ const request: FixedChargeRequest = {
   id: 'request-1',
   created_at: '',
   updated_at: '',
+  branch_id: 'branch-test',
   fixed_charge_id: 'charge-1',
   due_date: '2000-01-01',
   suggested_amount: '100' as unknown as number,
@@ -39,15 +49,15 @@ const mockFindDuplicates = vi.mocked(findPossibleExistingFixedChargeTransactions
 const mockApprove = vi.mocked(approveFixedChargeRequest)
 const mockSkip = vi.mocked(skipFixedChargeRequest)
 
-function renderBell() {
+function renderSheet() {
   return render(
     <MemoryRouter>
-      <FixedChargeApprovalBell />
+      <FixedChargeApprovalSheet open={true} onOpenChange={() => {}} />
     </MemoryRouter>
   )
 }
 
-describe('FixedChargeApprovalBell', () => {
+describe('FixedChargeApprovalSheet', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockEnsure.mockResolvedValue([])
@@ -57,13 +67,8 @@ describe('FixedChargeApprovalBell', () => {
     mockSkip.mockResolvedValue({ ...request, status: 'skipped' })
   })
 
-  it('shows a due badge and opens the approval sheet', async () => {
-    renderBell()
-
-    const trigger = await screen.findByLabelText('Charges a valider: 1')
-    expect(trigger).toHaveTextContent('1')
-
-    await userEvent.click(trigger)
+  it('renders the pending request with its suggested amount', async () => {
+    renderSheet()
 
     expect(await screen.findByText('Internet')).toBeVisible()
     expect(screen.getByLabelText('Modifier le montant')).toHaveValue(100)
@@ -71,9 +76,9 @@ describe('FixedChargeApprovalBell', () => {
   })
 
   it('approves with the current amount', async () => {
-    renderBell()
+    renderSheet()
 
-    await userEvent.click(await screen.findByLabelText('Charges a valider: 1'))
+    await screen.findByText('Internet')
     await userEvent.clear(screen.getByLabelText('Modifier le montant'))
     await userEvent.type(screen.getByLabelText('Modifier le montant'), '125')
     await userEvent.click(screen.getByRole('button', { name: /approuver/i }))
@@ -84,9 +89,9 @@ describe('FixedChargeApprovalBell', () => {
   })
 
   it('skips the period', async () => {
-    renderBell()
+    renderSheet()
 
-    await userEvent.click(await screen.findByLabelText('Charges a valider: 1'))
+    await screen.findByText('Internet')
     await userEvent.click(screen.getByRole('button', { name: /ignorer/i }))
 
     await waitFor(() => {
@@ -106,9 +111,7 @@ describe('FixedChargeApprovalBell', () => {
       },
     ])
 
-    renderBell()
-
-    await userEvent.click(await screen.findByLabelText('Charges a valider: 1'))
+    renderSheet()
 
     expect(await screen.findByText('Transaction possible deja enregistree')).toBeVisible()
   })

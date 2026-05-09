@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getFixedCharges, type FixedCharge } from '@/features/fixed-charges/api'
+import { useBranch } from '@/features/branches/BranchProvider'
+import { useCurrency } from '@/features/branches/useCurrency'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +35,9 @@ export default function ChargesFixesForm({
   initialData,
   onSubmit,
 }: ChargesFixesFormProps) {
+  const { activeBranch } = useBranch()
+  const { currencyCode } = useCurrency()
+  const branchId = activeBranch?.id ?? null
   const [charges, setCharges] = useState<FixedCharge[]>([])
   const [selectedId, setSelectedId] = useState(initialData?.fixed_charge_id ?? '')
   const [amount, setAmount] = useState<number>(initialData?.amount ?? 0)
@@ -41,9 +46,10 @@ export default function ChargesFixesForm({
   const isEditing = !!initialData
 
   useEffect(() => {
+    if (!branchId) return
     const load = async () => {
       try {
-        const data = await getFixedCharges()
+        const data = await getFixedCharges(branchId)
         setCharges(data.filter((charge) => charge.is_active))
       } catch {
         toast.error('Erreur lors du chargement des charges fixes')
@@ -51,7 +57,7 @@ export default function ChargesFixesForm({
     }
 
     load()
-  }, [])
+  }, [branchId])
 
   const selectedCharge = charges.find((charge) => charge.id === selectedId)
 
@@ -104,7 +110,7 @@ export default function ChargesFixesForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Montant (TND)</Label>
+        <Label htmlFor="amount">Montant ({currencyCode})</Label>
         <Input
           id="amount"
           type="number"
