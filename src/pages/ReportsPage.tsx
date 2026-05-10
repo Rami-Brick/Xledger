@@ -55,6 +55,7 @@ const CATEGORY_COLOR: Record<string, { bg: string; fg: string }> = {
   Sponsoring:      { bg: '#FF5DA2', fg: '#FFFFFF' },
   Subscriptions:   { bg: '#8B5CF6', fg: '#FFFFFF' },
   'Prêts':         { bg: '#F97316', fg: '#0A0B0A' },
+  Investissements: { bg: '#10B981', fg: '#FFFFFF' },
   Divers:          { bg: '#D7D9DF', fg: '#0A0B0A' },
   Recettes:        { bg: '#B8EB3C', fg: '#0A0B0A' },
 }
@@ -141,6 +142,7 @@ interface ExportTxRow {
   subcategories: { name: string } | null
   subscriptions: { name: string } | null
   loan_contacts: { name: string } | null
+  investment_recipients: { name: string } | null
 }
 
 function getDefaultDateRange() {
@@ -567,7 +569,8 @@ export default function ReportsPage() {
         .select(`
           date, category, amount, description,
           employees(name), fixed_charges(name), products(name),
-          subcategories(name), subscriptions(name), loan_contacts(name)
+          subcategories(name), subscriptions(name), loan_contacts(name),
+          investment_recipients(name)
         `)
         .eq('branch_id', branchId)
         .or(MAIN_VIEW_TRANSACTIONS_FILTER)
@@ -589,6 +592,7 @@ export default function ReportsPage() {
           tx.subcategories?.name ||
           tx.subscriptions?.name ||
           tx.loan_contacts?.name ||
+          tx.investment_recipients?.name ||
           '',
       }))
 

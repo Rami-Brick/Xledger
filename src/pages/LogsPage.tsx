@@ -46,6 +46,7 @@ const TABLE_OPTIONS = [
   { value: 'subcategories', label: 'Sous-categories' },
   { value: 'subscriptions', label: 'Abonnements' },
   { value: 'loan_contacts', label: 'Contacts de prets' },
+  { value: 'investment_recipients', label: 'Beneficiaires investissements' },
   { value: 'profiles', label: 'Profils' },
 ]
 
@@ -64,6 +65,7 @@ const EMPTY_REFERENCES: LogReferenceData = {
   subcategories: {},
   subscriptions: {},
   loanContacts: {},
+  investmentRecipients: {},
 }
 
 const ACTION_COLOR: Record<LogAction, { bg: string; fg: string }> = {

@@ -22,6 +22,11 @@ import {
 import { categoryConfig } from '@/features/transactions/categories'
 import { getFixedCharges, type FixedCharge } from '@/features/fixed-charges/api'
 import { getLoanBalances, getLoanContacts, type LoanContact } from '@/features/loan-contacts/api'
+import {
+  getInvestmentBalances,
+  getInvestmentRecipients,
+  type InvestmentRecipient,
+} from '@/features/investment-recipients/api'
 import { getProducts, type Product } from '@/features/products/api'
 import { getSubcategories, type Subcategory } from '@/features/subcategories/api'
 import { getSubscriptions, type Subscription } from '@/features/subscriptions/api'
@@ -68,6 +73,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  investment_recipient_id: string | null
   fixed_charge_request_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
@@ -75,6 +81,7 @@ interface TransactionRow {
   subcategories: { name: string } | null
   subscriptions: { name: string } | null
   loan_contacts: { name: string } | null
+  investment_recipients: { name: string } | null
 }
 
 interface LoanBalance {
@@ -85,7 +92,16 @@ interface LoanBalance {
   remaining: number
 }
 
+interface InvestmentBalance {
+  investment_recipient_id: string
+  name: string
+  total_invested: number
+  total_returned: number
+  net_invested: number
+}
+
 const LOAN_HISTORY_PAGE_SIZE = 5
+const INVESTMENT_HISTORY_PAGE_SIZE = 5
 
 // Distinct hex per category — mirrors AddTransactionPage so colors stay consistent.
 const CATEGORY_COLOR: Record<Category, { bg: string; fg: string }> = {
@@ -97,6 +113,7 @@ const CATEGORY_COLOR: Record<Category, { bg: string; fg: string }> = {
   Sponsoring:     { bg: '#FF5DA2', fg: '#FFFFFF' },
   Subscriptions:  { bg: '#8B5CF6', fg: '#FFFFFF' },
   'Prêts':        { bg: '#F97316', fg: '#0A0B0A' },
+  Investissements:{ bg: '#10B981', fg: '#FFFFFF' },
   Divers:         { bg: '#D7D9DF', fg: '#0A0B0A' },
   Recettes:       { bg: '#B8EB3C', fg: '#0A0B0A' },
 }
@@ -108,6 +125,7 @@ function getEntityName(transaction: TransactionRow): string {
   if (transaction.subcategories) return transaction.subcategories.name
   if (transaction.subscriptions) return transaction.subscriptions.name
   if (transaction.loan_contacts) return transaction.loan_contacts.name
+  if (transaction.investment_recipients) return transaction.investment_recipients.name
   return transaction.description || ''
 }
 
@@ -120,6 +138,10 @@ function getCurrentMonthRange() {
 
 function getLoanEntryType(amount: number) {
   return amount >= 0 ? 'Recu' : 'Rendu'
+}
+
+function getInvestmentEntryType(amount: number) {
+  return amount >= 0 ? 'Retour' : 'Investi'
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -155,6 +177,8 @@ export default function CategoriesPage() {
   const [deleteTarget, setDeleteTarget] = useState<TransactionRow | null>(null)
   const [expandedLoanContactId, setExpandedLoanContactId] = useState<string | null>(null)
   const [loanHistoryVisibleCount, setLoanHistoryVisibleCount] = useState<Record<string, number>>({})
+  const [expandedInvestmentRecipientId, setExpandedInvestmentRecipientId] = useState<string | null>(null)
+  const [investmentHistoryVisibleCount, setInvestmentHistoryVisibleCount] = useState<Record<string, number>>({})
 
   const [fixedCharges, setFixedCharges] = useState<FixedCharge[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -162,6 +186,8 @@ export default function CategoriesPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loanContacts, setLoanContacts] = useState<LoanContact[]>([])
   const [loanBalances, setLoanBalances] = useState<LoanBalance[]>([])
+  const [investmentRecipients, setInvestmentRecipients] = useState<InvestmentRecipient[]>([])
+  const [investmentBalances, setInvestmentBalances] = useState<InvestmentBalance[]>([])
 
   const [allTimeTotal, setAllTimeTotal] = useState(0)
   const [lastMonthTotal, setLastMonthTotal] = useState(0)
@@ -220,11 +246,16 @@ export default function CategoriesPage() {
       includeInternal: true,
     })) as TransactionRow[]
 
-    setCategoryTransactions(category === 'Prêts' ? transactions : transactions.slice(0, 15))
+    const showAll = category === 'Prêts' || category === 'Investissements'
+    setCategoryTransactions(showAll ? transactions : transactions.slice(0, 15))
 
     if (category === 'Prêts') {
       setExpandedLoanContactId(null)
       setLoanHistoryVisibleCount({})
+    }
+    if (category === 'Investissements') {
+      setExpandedInvestmentRecipientId(null)
+      setInvestmentHistoryVisibleCount({})
     }
 
     const now = new Date()
@@ -283,6 +314,15 @@ export default function CategoriesPage() {
         setLoanBalances(balances)
         break
       }
+      case 'Investissements': {
+        const [recipients, balances] = await Promise.all([
+          getInvestmentRecipients(branchId),
+          getInvestmentBalances(branchId),
+        ])
+        setInvestmentRecipients(recipients)
+        setInvestmentBalances(balances)
+        break
+      }
       default:
         break
     }
@@ -338,6 +378,22 @@ export default function CategoriesPage() {
     setLoanHistoryVisibleCount((current) => ({
       ...current,
       [loanContactId]: (current[loanContactId] || LOAN_HISTORY_PAGE_SIZE) + LOAN_HISTORY_PAGE_SIZE,
+    }))
+  }
+
+  const toggleInvestmentHistory = (recipientId: string) => {
+    setExpandedInvestmentRecipientId((current) => (current === recipientId ? null : recipientId))
+    setInvestmentHistoryVisibleCount((current) => {
+      if (current[recipientId]) return current
+      return { ...current, [recipientId]: INVESTMENT_HISTORY_PAGE_SIZE }
+    })
+  }
+
+  const handleShowMoreInvestmentEntries = (recipientId: string) => {
+    setInvestmentHistoryVisibleCount((current) => ({
+      ...current,
+      [recipientId]:
+        (current[recipientId] || INVESTMENT_HISTORY_PAGE_SIZE) + INVESTMENT_HISTORY_PAGE_SIZE,
     }))
   }
 
@@ -491,6 +547,197 @@ export default function CategoriesPage() {
               ))}
             </div>
           </GlassPanel>
+        )
+      }
+
+      case 'Investissements': {
+        if (investmentBalances.length === 0 && investmentRecipients.length === 0) return null
+
+        const totalInvested = investmentBalances.reduce((sum, b) => sum + b.total_invested, 0)
+        const totalReturned = investmentBalances.reduce((sum, b) => sum + b.total_returned, 0)
+        const netInvested = investmentBalances.reduce((sum, b) => sum + b.net_invested, 0)
+
+        return (
+          <div className="space-y-3">
+            <GlassPanel className="p-4">
+              <div className="grid grid-cols-3 gap-3">
+                <StatCell label="Total investi" value={formatAmount(totalInvested)} />
+                <StatCell
+                  label="Total retour"
+                  value={formatAmount(totalReturned)}
+                  valueClassName="text-[#B8EB3C]"
+                />
+                <StatCell
+                  label="Net investi"
+                  value={formatAmount(netInvested)}
+                  valueClassName={netInvested > 0 ? 'text-[#FF9A18]' : 'text-[#B8EB3C]'}
+                />
+              </div>
+            </GlassPanel>
+
+            {investmentBalances.length > 0 && (
+              <GlassPanel className="p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-white/72">Soldes par bénéficiaire</p>
+                  <p className="mt-1 text-[11px] text-white/46">
+                    Cliquez sur un bénéficiaire pour voir l&apos;historique.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {investmentBalances.map((balance) => {
+                    const percent =
+                      balance.total_invested > 0
+                        ? Math.min((balance.total_returned / balance.total_invested) * 100, 100)
+                        : 0
+                    const isExpanded =
+                      expandedInvestmentRecipientId === balance.investment_recipient_id
+                    const entries = categoryTransactions.filter(
+                      (transaction) =>
+                        transaction.investment_recipient_id === balance.investment_recipient_id,
+                    )
+                    const visibleCount =
+                      investmentHistoryVisibleCount[balance.investment_recipient_id] ||
+                      INVESTMENT_HISTORY_PAGE_SIZE
+                    const visibleEntries = entries.slice(0, visibleCount)
+                    const hasMore = entries.length > visibleEntries.length
+
+                    return (
+                      <div
+                        key={balance.investment_recipient_id}
+                        className="overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleInvestmentHistory(balance.investment_recipient_id)}
+                          className="w-full p-4 text-left transition-colors hover:bg-white/[0.03]"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                              <div className="flex items-center justify-between gap-3 text-sm">
+                                <span className="truncate font-medium text-white">
+                                  {balance.name}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'shrink-0 text-xs font-semibold tabular-nums',
+                                    balance.net_invested > 0
+                                      ? 'text-[#FF9A18]'
+                                      : 'text-[#B8EB3C]',
+                                  )}
+                                >
+                                  {balance.net_invested > 0
+                                    ? `Net : ${formatAmount(balance.net_invested)}`
+                                    : 'Recouvré'}
+                                </span>
+                              </div>
+                              <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all',
+                                    balance.net_invested <= 0 ? 'bg-[#B8EB3C]' : 'bg-[#10B981]',
+                                  )}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-between text-[10px] text-white/46">
+                                <span>Retour : {formatAmount(balance.total_returned)}</span>
+                                <span>Investi : {formatAmount(balance.total_invested)}</span>
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-white/46">
+                              {isExpanded ? (
+                                <ChevronUp className="size-4" />
+                              ) : (
+                                <ChevronDown className="size-4" />
+                              )}
+                            </span>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                            {entries.length === 0 ? (
+                              <p className="text-sm text-white/46">
+                                Aucune entree pour ce bénéficiaire.
+                              </p>
+                            ) : (
+                              <>
+                                {visibleEntries.map((transaction) => {
+                                  const positive = transaction.amount >= 0
+                                  return (
+                                    <div
+                                      key={transaction.id}
+                                      className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-3 py-2"
+                                    >
+                                      <div className="min-w-0 space-y-0.5">
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                          <span className="text-sm font-medium text-white">
+                                            {getInvestmentEntryType(transaction.amount)}
+                                          </span>
+                                          {transaction.is_internal && (
+                                            <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0 text-[10px] text-white/72">
+                                              Interne
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-[11px] text-white/46">
+                                          {formatDate(transaction.date)}
+                                          {transaction.description ? ` · ${transaction.description}` : ''}
+                                        </p>
+                                      </div>
+
+                                      <div className="flex shrink-0 items-center gap-1.5">
+                                        <span
+                                          className={cn(
+                                            'inline-flex h-7 items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 text-[12px] font-semibold tabular-nums',
+                                            positive ? 'text-[#B8EB3C]' : 'text-white',
+                                          )}
+                                        >
+                                          {positive ? '+' : ''}
+                                          {formatAmount(transaction.amount)}
+                                        </span>
+                                        {(canEditTransactions || canDeleteTransactions) && (
+                                          <RowActions
+                                            onEdit={
+                                              canEditTransactions
+                                                ? () => setEditTarget(transaction)
+                                                : undefined
+                                            }
+                                            onDelete={
+                                              canDeleteTransactions
+                                                ? () => setDeleteTarget(transaction)
+                                                : undefined
+                                            }
+                                          />
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+
+                                {hasMore && (
+                                  <PillButton
+                                    variant="glass"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleShowMoreInvestmentEntries(balance.investment_recipient_id)
+                                    }
+                                    className="self-center"
+                                  >
+                                    Voir plus
+                                  </PillButton>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </GlassPanel>
+            )}
+          </div>
         )
       }
 
@@ -777,7 +1024,7 @@ export default function CategoriesPage() {
 
           {renderEntities()}
 
-          {selectedCategory !== 'Prêts' && (
+          {selectedCategory !== 'Prêts' && selectedCategory !== 'Investissements' && (
             <GlassPanel className="p-3 md:p-4">
               <div className="flex items-center justify-between px-2 pb-2">
                 <p className="text-xs font-medium text-white/72">Transactions récentes</p>

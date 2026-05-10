@@ -9,6 +9,7 @@ import {
   TrendingUp,
   CreditCard,
   Handshake,
+  Sprout,
   type LucideIcon,
 } from 'lucide-react'
 import type { Category } from './api'
@@ -77,6 +78,13 @@ export const categoryConfig: Record<Category, CategoryConfig> = {
     color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
     textColor: 'text-amber-700',
     type: 'expense', // default — the form will handle the loan/repayment toggle
+  },
+  Investissements: {
+    label: 'Investissements',
+    icon: Sprout,
+    color: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
+    textColor: 'text-emerald-700',
+    type: 'expense', // default — the form will handle the Investi/Retour toggle
   },
   Divers: {
     label: 'Divers',

@@ -132,6 +132,24 @@ CREATE POLICY admin_delete_transactions
     AND public.is_branch_member(branch_id)
   );
 
+-- Update (admin and mod): production also has update_transactions_for_admin_and_mod
+-- from 2026-03-28_allow_mod_update_transactions.sql. RLS policies are ORed,
+-- so this coexists with admin_update_transactions and lets mods update too.
+-- We preserve that behavior and just add branch membership.
+DROP POLICY IF EXISTS update_transactions_for_admin_and_mod ON public.transactions;
+CREATE POLICY update_transactions_for_admin_and_mod
+  ON public.transactions
+  FOR UPDATE
+  TO authenticated
+  USING (
+    public.can_edit_transactions()
+    AND public.is_branch_member(branch_id)
+  )
+  WITH CHECK (
+    public.can_edit_transactions()
+    AND public.is_branch_member(branch_id)
+  );
+
 -- Fixed-charge approval insert (admin and mod): keeps all original checks,
 -- just gains branch membership. Mods can only insert transactions through
 -- this path, so this is what lets a mod approve a charge in their branch.
@@ -459,8 +477,8 @@ GRANT SELECT ON public.branch_memberships TO authenticated;
 -- ============================================================================
 --
 -- Confirm every business table has 4 policies (SELECT, INSERT, UPDATE,
--- DELETE) — except transactions which has 5 because of the fixed-charge
--- approval insert path.
+-- DELETE) — except transactions which has 6: 4 admin policies + the
+-- fixed-charge approval insert + the legacy admin_and_mod update policy.
 
 DO $$
 DECLARE
@@ -476,7 +494,7 @@ BEGIN
       ('subscriptions',         4),
       ('loan_contacts',         4),
       ('fixed_charge_requests', 4),
-      ('transactions',          5)
+      ('transactions',          6)
     ) AS t(tname, expected)
   LOOP
     SELECT count(*) INTO actual

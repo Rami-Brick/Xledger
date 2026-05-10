@@ -138,7 +138,8 @@ export async function getRecentTransactions(branchId: string) {
       products(name),
       subcategories(name),
       subscriptions(name),
-      loan_contacts(name)
+      loan_contacts(name),
+      investment_recipients(name)
     `)
     .eq('branch_id', branchId)
     .or(MAIN_VIEW_TRANSACTIONS_FILTER)

@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import ChargesFixesForm from './forms/ChargesFixesForm'
 import FournisseursForm from './forms/FournisseursForm'
 import PretsForm from './forms/PretsForm'
+import InvestissementsForm from './forms/InvestissementsForm'
 import SalairesForm from './forms/SalairesForm'
 import SimpleForm from './forms/SimpleForm'
 import SubcategoryForm from './forms/SubcategoryForm'
@@ -32,6 +33,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  investment_recipient_id: string | null
 }
 
 interface EditTransactionDialogProps {
@@ -60,16 +62,19 @@ export default function EditTransactionDialog({
   const config = categoryConfig[transaction.category]
   const absAmount = Math.abs(transaction.amount)
   const isRendu = transaction.amount < 0
+  const isReturn = transaction.amount > 0
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     try {
       const transactionConfig = categoryConfig[transaction.category]
-      const { isRendu: isRenduValue, ...dbFields } = formData
+      const { isRendu: isRenduValue, isReturn: isReturnValue, ...dbFields } = formData
       const rawAmount = formData.amount as number
 
       let amount: number
       if (transaction.category === 'Prêts') {
         amount = (isRenduValue as boolean) ? -Math.abs(rawAmount) : Math.abs(rawAmount)
+      } else if (transaction.category === 'Investissements') {
+        amount = (isReturnValue as boolean) ? Math.abs(rawAmount) : -Math.abs(rawAmount)
       } else {
         amount =
           transactionConfig.type === 'expense' ? -Math.abs(rawAmount) : Math.abs(rawAmount)
@@ -173,6 +178,21 @@ export default function EditTransactionDialog({
               description: transaction.description ?? '',
               loan_contact_id: transaction.loan_contact_id ?? '',
               isRendu,
+              is_internal: transaction.is_internal ?? false,
+            }}
+            onSubmit={handleUpdate}
+          />
+        )
+
+      case 'Investissements':
+        return (
+          <InvestissementsForm
+            date={localDate}
+            initialData={{
+              amount: absAmount,
+              description: transaction.description ?? '',
+              investment_recipient_id: transaction.investment_recipient_id ?? '',
+              isReturn,
               is_internal: transaction.is_internal ?? false,
             }}
             onSubmit={handleUpdate}
