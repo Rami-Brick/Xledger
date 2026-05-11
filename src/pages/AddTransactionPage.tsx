@@ -9,6 +9,7 @@ import { categoryConfig } from '@/features/transactions/categories'
 import ChargesFixesForm from '@/features/transactions/forms/ChargesFixesForm'
 import FournisseursForm from '@/features/transactions/forms/FournisseursForm'
 import PretsForm from '@/features/transactions/forms/PretsForm'
+import InvestissementsForm from '@/features/transactions/forms/InvestissementsForm'
 import SalairesForm from '@/features/transactions/forms/SalairesForm'
 import SimpleForm from '@/features/transactions/forms/SimpleForm'
 import SubcategoryForm from '@/features/transactions/forms/SubcategoryForm'
@@ -36,6 +37,7 @@ const CATEGORY_COLOR: Record<Category, { bg: string; fg: string }> = {
   Sponsoring:     { bg: '#FF5DA2', fg: '#FFFFFF' }, // pink
   Subscriptions:  { bg: '#8B5CF6', fg: '#FFFFFF' }, // violet
   'Prêts':        { bg: '#F97316', fg: '#0A0B0A' }, // deep orange
+  Investissements:{ bg: '#10B981', fg: '#FFFFFF' }, // emerald
   Divers:         { bg: '#D7D9DF', fg: '#0A0B0A' }, // silver
   Recettes:       { bg: '#B8EB3C', fg: '#0A0B0A' }, // lime-green (revenue cue)
 }
@@ -82,7 +84,9 @@ export default function AddTransactionPage() {
       subcategory_id?: string
       subscription_id?: string
       loan_contact_id?: string
+      investment_recipient_id?: string
       isRendu?: boolean
+      isReturn?: boolean
     }
   ) => {
     const config = categoryConfig[category]
@@ -90,6 +94,8 @@ export default function AddTransactionPage() {
     let amount: number
     if (category === 'Prêts') {
       amount = data.isRendu ? -Math.abs(data.amount) : Math.abs(data.amount)
+    } else if (category === 'Investissements') {
+      amount = data.isReturn ? Math.abs(data.amount) : -Math.abs(data.amount)
     } else {
       amount = config.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount)
     }
@@ -114,6 +120,7 @@ export default function AddTransactionPage() {
         subcategory_id: data.subcategory_id || null,
         subscription_id: data.subscription_id || null,
         loan_contact_id: data.loan_contact_id || null,
+        investment_recipient_id: data.investment_recipient_id || null,
       })
 
       toast.success('Transaction enregistree', {
@@ -172,6 +179,13 @@ export default function AddTransactionPage() {
         )
       case 'Prêts':
         return <PretsForm {...commonProps} onSubmit={(data) => handleSubmit('Prêts', data)} />
+      case 'Investissements':
+        return (
+          <InvestissementsForm
+            {...commonProps}
+            onSubmit={(data) => handleSubmit('Investissements', data)}
+          />
+        )
       case 'Sponsoring':
         return (
           <SimpleForm

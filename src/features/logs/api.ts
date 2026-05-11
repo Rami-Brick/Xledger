@@ -29,6 +29,7 @@ export interface LogReferenceData {
   subcategories: Record<string, string>
   subscriptions: Record<string, string>
   loanContacts: Record<string, string>
+  investmentRecipients: Record<string, string>
 }
 
 export interface FetchLogsFilters {
@@ -87,6 +88,7 @@ export async function fetchLogReferenceData(branchId: string): Promise<LogRefere
     subcategoriesResult,
     subscriptionsResult,
     loanContactsResult,
+    investmentRecipientsResult,
   ] = await Promise.all([
     fetchLogUsers(),
     supabase.from('employees').select('id, name').eq('branch_id', branchId),
@@ -95,6 +97,7 @@ export async function fetchLogReferenceData(branchId: string): Promise<LogRefere
     supabase.from('subcategories').select('id, name').eq('branch_id', branchId),
     supabase.from('subscriptions').select('id, name').eq('branch_id', branchId),
     supabase.from('loan_contacts').select('id, name').eq('branch_id', branchId),
+    supabase.from('investment_recipients').select('id, name').eq('branch_id', branchId),
   ])
 
   const results = [
@@ -104,6 +107,7 @@ export async function fetchLogReferenceData(branchId: string): Promise<LogRefere
     subcategoriesResult,
     subscriptionsResult,
     loanContactsResult,
+    investmentRecipientsResult,
   ]
 
   for (const result of results) {
@@ -124,5 +128,6 @@ export async function fetchLogReferenceData(branchId: string): Promise<LogRefere
     subcategories: toNameMap(subcategoriesResult.data as Array<{ id: string; name: string }> | null),
     subscriptions: toNameMap(subscriptionsResult.data as Array<{ id: string; name: string }> | null),
     loanContacts: toNameMap(loanContactsResult.data as Array<{ id: string; name: string }> | null),
+    investmentRecipients: toNameMap(investmentRecipientsResult.data as Array<{ id: string; name: string }> | null),
   }
 }

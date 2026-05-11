@@ -21,6 +21,7 @@ import ProductsPage from '@/pages/settings/ProductsPage'
 import SubcategoriesPage from '@/pages/settings/SubcategoriesPage'
 import SubscriptionsPage from '@/pages/settings/SubscriptionsPage'
 import LoanContactsPage from '@/pages/settings/LoanContactsPage'
+import InvestmentRecipientsPage from '@/pages/settings/InvestmentRecipientsPage'
 
 function LoginRoute() {
   const { user, loading } = useAuth()
@@ -82,6 +83,7 @@ function App() {
               <Route path="parametres/sous-categories" element={<SubcategoriesPage />} />
               <Route path="parametres/abonnements" element={<SubscriptionsPage />} />
               <Route path="parametres/contacts-prets" element={<LoanContactsPage />} />
+              <Route path="parametres/beneficiaires-investissements" element={<InvestmentRecipientsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

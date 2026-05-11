@@ -44,6 +44,7 @@ const settingsItems = [
   { to: '/parametres/sous-categories', label: 'Sous-categories' },
   { to: '/parametres/abonnements', label: 'Abonnements' },
   { to: '/parametres/contacts-prets', label: 'Contacts prets' },
+  { to: '/parametres/beneficiaires-investissements', label: 'Beneficiaires investissements' },
 ]
 
 function formatBuildTimestamp(value: string) {

@@ -70,6 +70,7 @@ interface RecentTx {
   subcategories: { name: string } | null
   subscriptions: { name: string } | null
   loan_contacts: { name: string } | null
+  investment_recipients: { name: string } | null
 }
 
 function getEntityName(tx: RecentTx): string {
@@ -79,6 +80,7 @@ function getEntityName(tx: RecentTx): string {
   if (tx.subcategories) return tx.subcategories.name
   if (tx.subscriptions) return tx.subscriptions.name
   if (tx.loan_contacts) return tx.loan_contacts.name
+  if (tx.investment_recipients) return tx.investment_recipients.name
   return tx.description || ''
 }
 

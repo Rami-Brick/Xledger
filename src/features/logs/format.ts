@@ -9,6 +9,7 @@ const TABLE_LABELS: Record<string, string> = {
   subcategories: 'Sous-categories',
   subscriptions: 'Abonnements',
   loan_contacts: 'Contacts de prets',
+  investment_recipients: 'Beneficiaires investissements',
   profiles: 'Profils',
 }
 
@@ -37,6 +38,7 @@ const FIELD_LABELS: Record<string, string> = {
   subcategory_id: 'sous-categorie',
   subscription_id: 'abonnement',
   loan_contact_id: 'contact de pret',
+  investment_recipient_id: 'beneficiaire investissement',
 }
 
 function formatTimestamp(value: string) {
@@ -72,6 +74,8 @@ function getTransactionEntityName(
   if (typeof data.subcategory_id === 'string') return referenceData.subcategories[data.subcategory_id]
   if (typeof data.subscription_id === 'string') return referenceData.subscriptions[data.subscription_id]
   if (typeof data.loan_contact_id === 'string') return referenceData.loanContacts[data.loan_contact_id]
+  if (typeof data.investment_recipient_id === 'string')
+    return referenceData.investmentRecipients[data.investment_recipient_id]
   if (typeof data.description === 'string' && data.description.trim()) return data.description
   return null
 }
@@ -100,6 +104,8 @@ function getSubjectLabel(log: AuditLog, referenceData: LogReferenceData) {
       return `l'abonnement "${String(data.name || 'Inconnu')}"`
     case 'loan_contacts':
       return `le contact de pret "${String(data.name || 'Inconnu')}"`
+    case 'investment_recipients':
+      return `le beneficiaire investissement "${String(data.name || 'Inconnu')}"`
     case 'profiles':
       return `le profil de ${getUserDisplayName(log.record_id, referenceData)}`
     default:
@@ -137,6 +143,9 @@ function formatFieldValue(
   }
   if (field === 'loan_contact_id' && typeof value === 'string') {
     return referenceData.loanContacts[value] || value
+  }
+  if (field === 'investment_recipient_id' && typeof value === 'string') {
+    return referenceData.investmentRecipients[value] || value
   }
   if (field === 'date' && typeof value === 'string') {
     return value

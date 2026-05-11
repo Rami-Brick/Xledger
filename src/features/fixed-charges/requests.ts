@@ -201,6 +201,7 @@ async function createApprovalTransaction(request: FixedChargeRequest, amount: nu
       subcategory_id: null,
       subscription_id: null,
       loan_contact_id: null,
+      investment_recipient_id: null,
     })
     .select()
     .single()

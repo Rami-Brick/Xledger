@@ -69,6 +69,7 @@ interface TransactionRow {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  investment_recipient_id: string | null
   fixed_charge_request_id: string | null
   employees: { name: string } | null
   fixed_charges: { name: string } | null
@@ -76,6 +77,7 @@ interface TransactionRow {
   subcategories: { name: string } | null
   subscriptions: { name: string } | null
   loan_contacts: { name: string } | null
+  investment_recipients: { name: string } | null
 }
 
 function getEntityName(transaction: TransactionRow): string {
@@ -85,6 +87,7 @@ function getEntityName(transaction: TransactionRow): string {
   if (transaction.subcategories) return transaction.subcategories.name
   if (transaction.subscriptions) return transaction.subscriptions.name
   if (transaction.loan_contacts) return transaction.loan_contacts.name
+  if (transaction.investment_recipients) return transaction.investment_recipients.name
   return ''
 }
 

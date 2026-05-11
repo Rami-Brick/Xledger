@@ -9,6 +9,7 @@ export const CATEGORIES = [
   'Sponsoring',
   'Subscriptions',
   'Prêts',
+  'Investissements',
   'Divers',
   'Recettes',
 ] as const
@@ -32,6 +33,7 @@ export interface Transaction {
   subcategory_id: string | null
   subscription_id: string | null
   loan_contact_id: string | null
+  investment_recipient_id: string | null
   fixed_charge_request_id: string | null
 }
 
@@ -49,6 +51,7 @@ export interface TransactionInsert {
   subcategory_id?: string | null
   subscription_id?: string | null
   loan_contact_id?: string | null
+  investment_recipient_id?: string | null
   fixed_charge_request_id?: string | null
 }
 
@@ -87,7 +90,8 @@ export async function getTransactions(filters: GetTransactionsFilters) {
       products(name),
       subcategories(name),
       subscriptions(name),
-      loan_contacts(name)
+      loan_contacts(name),
+      investment_recipients(name)
     `)
     .eq('branch_id', filters.branchId)
     .order('date', { ascending: false })
