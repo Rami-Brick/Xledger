@@ -12,6 +12,7 @@ import { categoryConfig } from '@/features/transactions/categories'
 import type { Category } from '@/features/transactions/api'
 import { formatDate } from '@/lib/format'
 import { useCurrency } from '@/features/branches/useCurrency'
+import BranchGlow from '@/features/branches/BranchGlow'
 import { toast } from 'sonner'
 import {
   BarChart,
@@ -455,17 +456,8 @@ export default function DashboardPage() {
 function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative">
-      {/* Ambient atmosphere — positioned within the page content so it paints behind panels */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
-        style={{ background: 'rgba(154,255,90,0.10)' }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{ background: 'rgba(92,214,180,0.10)' }}
-      />
+      {/* Ambient atmosphere — adapts to the active branch */}
+      <BranchGlow />
       <div className="relative z-10">{children}</div>
     </div>
   )

@@ -12,6 +12,7 @@ import {
   GlassPanel,
 } from '@/components/system-ui/primitives'
 import { PrimaryCTA } from '@/components/system-ui/compounds'
+import BranchGlow from '@/features/branches/BranchGlow'
 import { cn } from '@/lib/utils'
 
 export interface SettingsListItem {
@@ -50,16 +51,7 @@ export function SettingsListPage<T extends SettingsListItem>({
 }: SettingsListPageProps<T>) {
   return (
     <div className="relative w-full min-w-0">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
-        style={{ background: 'rgba(92,214,180,0.10)' }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{ background: 'rgba(154,255,90,0.10)' }}
-      />
+      <BranchGlow />
 
       <div className="relative z-10 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

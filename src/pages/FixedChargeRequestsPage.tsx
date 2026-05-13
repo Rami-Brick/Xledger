@@ -17,6 +17,7 @@ import {
 } from '@/features/fixed-charges/requests'
 import { useRole } from '@/lib/RoleProvider'
 import { useBranch } from '@/features/branches/BranchProvider'
+import BranchGlow from '@/features/branches/BranchGlow'
 
 type DuplicateMap = Record<string, PossibleFixedChargeTransaction[]>
 
@@ -114,16 +115,7 @@ export default function FixedChargeRequestsPage() {
 
   return (
     <div className="relative w-full min-w-0">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
-        style={{ background: 'rgba(217,75,244,0.10)' }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{ background: 'rgba(184,235,60,0.10)' }}
-      />
+      <BranchGlow />
 
       <div className="relative z-10 space-y-5">
         <div className="flex items-center gap-3">
