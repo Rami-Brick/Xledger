@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRole } from '@/lib/RoleProvider'
 import { useBranch } from '@/features/branches/BranchProvider'
+import BranchGlow from '@/features/branches/BranchGlow'
 import { createTransaction, CATEGORIES, type Category } from '@/features/transactions/api'
 import { categoryConfig } from '@/features/transactions/categories'
 import ChargesFixesForm from '@/features/transactions/forms/ChargesFixesForm'
@@ -225,17 +226,8 @@ export default function AddTransactionPage() {
 
   return (
     <div className="relative w-full min-w-0">
-      {/* Ambient atmosphere */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -top-40 -left-40 h-[480px] w-[480px] rounded-full blur-3xl"
-        style={{ background: 'rgba(92,214,180,0.10)' }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed -bottom-40 -right-40 h-[520px] w-[520px] rounded-full blur-3xl"
-        style={{ background: 'rgba(154,255,90,0.10)' }}
-      />
+      {/* Ambient atmosphere — adapts to the active branch */}
+      <BranchGlow />
 
       <div className="relative z-10 space-y-4">
         {!selectedCategory && (

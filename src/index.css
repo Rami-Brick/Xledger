@@ -167,6 +167,13 @@
 
     --kit-color-glow-green: rgba(154, 255, 90, 0.10);
     --kit-color-glow-teal: rgba(92, 214, 180, 0.10);
+
+    /* Branch atmosphere — paired orbs, dimmed intensity */
+    --kit-color-glow-libya-primary: rgba(60, 203, 106, 0.16);
+    --kit-color-glow-libya-secondary: rgba(154, 255, 90, 0.13);
+    --kit-color-glow-tunisia-primary: rgba(88, 14, 30, 0.35);
+    --kit-color-glow-tunisia-secondary: rgba(70, 10, 24, 0.28);
+
     --kit-color-shadow-ambient: rgba(0, 0, 0, 0.35);
 
     --kit-radius-app: 32px;
@@ -243,6 +250,10 @@
     /* Atmosphere */
     --color-glow-green: var(--kit-color-glow-green);
     --color-glow-teal: var(--kit-color-glow-teal);
+    --color-glow-libya-primary: var(--kit-color-glow-libya-primary);
+    --color-glow-libya-secondary: var(--kit-color-glow-libya-secondary);
+    --color-glow-tunisia-primary: var(--kit-color-glow-tunisia-primary);
+    --color-glow-tunisia-secondary: var(--kit-color-glow-tunisia-secondary);
 
     /* Kit radii (coexist with shadcn --radius-sm/md/lg/xl/...) */
     --radius-app: var(--kit-radius-app);
